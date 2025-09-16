@@ -4,6 +4,8 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
+import DarkModeToggle from '@/components/DarkModeToggle'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 const CycleTimeAnalysis = dynamic(
   () => import('@/components/CycleTimeAnalysis'),
@@ -41,9 +43,11 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Cycle Time Analyzer</h1>
+    <ThemeProvider>
+      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <DarkModeToggle />
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Cycle Time Analyzer</h1>
 
         {csvData.length === 0 ? (
           <FileUpload onUpload={handleFileUpload} />
@@ -52,7 +56,7 @@ export default function Home() {
             <div className="mb-4">
               <button
                 onClick={handleReset}
-                className="text-sm text-gray-600 hover:text-gray-900 underline"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
               >
                 Upload different file
               </button>
@@ -70,7 +74,7 @@ export default function Home() {
               </button>
               <button
                 onClick={handleReset}
-                className="text-sm text-gray-600 hover:text-gray-900 underline"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
               >
                 Upload different file
               </button>
@@ -96,7 +100,8 @@ export default function Home() {
             )}
           </div>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+    </ThemeProvider>
   )
 }

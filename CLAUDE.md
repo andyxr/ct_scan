@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-This is a Next.js application for analyzing CSV files containing development team cycle time data. Users can upload CSV files and generate cycle time scatterplots with 85th percentile reference lines.
+This is a Next.js application for analyzing CSV files containing development team cycle time data. Users can upload CSV files and generate various analyses including cycle time scatterplots, correlation analysis, and process behaviour charts.
 
 ## Commands
 
-- `npm run dev` - Start development server (usually on localhost:3000, may use 3001 if 3000 is busy)
+- `npm run dev` - Start development server (usually on localhost:3000, may use 3001/3002 if port is busy)
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
@@ -17,10 +17,11 @@ This is a Next.js application for analyzing CSV files containing development tea
 
 ### Tech Stack
 - **Next.js 15** with App Router and React 18
-- **TypeScript** with strict mode
-- **Tailwind CSS 4** with PostCSS
+- **TypeScript** with strict mode enabled
+- **Tailwind CSS 4** with PostCSS, dark mode via `class` strategy
 - **Papaparse** for client-side CSV parsing
 - **Recharts 3.2** for data visualization (LineChart configured as scatter plot)
+- **Lucide React** for icon components
 
 ### Expected CSV Format
 The app is designed for CSV files with these columns:
@@ -60,10 +61,14 @@ The CycleTimeAnalysis component uses a two-tier detection system:
 - Client-side mounting state (`isMounted`) to ensure charts render properly
 
 ### Key Components
-- `app/page.tsx` - State orchestrator with AnalysisAction type management
+- `app/page.tsx` - Main orchestrator managing file upload → action selection → analysis display state flow
 - `components/FileUpload.tsx` - Drag-and-drop CSV upload with Papaparse integration
-- `components/ActionSelector.tsx` - Three analysis options (only Cycle Time implemented)
-- `components/CycleTimeAnalysis.tsx` - Main chart component with data processing pipeline
+- `components/ActionSelector.tsx` - Analysis type selector (cycle time, correlation, process behaviour)
+- `components/CycleTimeAnalysis.tsx` - Scatter plot with 85th percentile line
+- `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart
+- `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
+- `components/DarkModeToggle.tsx` - Theme switcher using ThemeContext
+- `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 
 ## Development Notes
 
@@ -73,7 +78,14 @@ The CycleTimeAnalysis component uses a two-tier detection system:
 - Validates date ranges (2020-2030) to catch parsing errors
 - Uses `.getTime()` for timestamp conversion to Recharts
 
+### Theme System
+- Dark mode implemented via Tailwind's `class` strategy
+- Theme state persisted to localStorage
+- Respects system preference on first load if no saved preference
+- Theme class applied to document.documentElement for proper Tailwind dark: variant support
+
 ### Chart Troubleshooting
 - If points appear at wrong X-axis positions: check date parsing logic and domain calculation
 - If React key errors occur: ensure chart component has stable props and proper key management
 - If chart doesn't render: verify SSR is disabled and isMounted state is working
+- Dark mode toggle uses `fixed` positioning to stay in viewport corner

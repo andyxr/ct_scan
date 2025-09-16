@@ -47,15 +47,15 @@ export default function ActionSelector({ onActionSelect }: ActionSelectorProps) 
           disabled={!action.available}
           className={`p-6 rounded-lg shadow-md transition-all ${
             action.available
-              ? 'bg-white hover:shadow-lg hover:scale-105 cursor-pointer'
-              : 'bg-gray-100 cursor-not-allowed opacity-60'
+              ? 'bg-white dark:bg-gray-800 hover:shadow-lg hover:scale-105 cursor-pointer border border-gray-200 dark:border-gray-700'
+              : 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed opacity-60 border border-gray-200 dark:border-gray-600'
           }`}
         >
           <div className="text-4xl mb-4">{action.icon}</div>
-          <h3 className="text-xl font-semibold mb-2">{action.title}</h3>
-          <p className="text-gray-600 text-sm">{action.description}</p>
+          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">{action.title}</h3>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">{action.description}</p>
           {!action.available && (
-            <p className="text-xs text-gray-500 mt-2 italic">Coming soon</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">Coming soon</p>
           )}
         </button>
       ))}

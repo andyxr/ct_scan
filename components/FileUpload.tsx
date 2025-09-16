@@ -66,15 +66,15 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
       <div
         className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-white'
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
         <svg
-          className="mx-auto h-8 w-8 text-gray-400 mb-3"
+          className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3"
           stroke="currentColor"
           fill="none"
           viewBox="0 0 48 48"
@@ -88,10 +88,10 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
         </svg>
 
         <label htmlFor="file-upload" className="cursor-pointer">
-          <span className="text-base font-medium text-gray-900">
+          <span className="text-base font-medium text-gray-900 dark:text-gray-100">
             Drop CSV file here
           </span>
-          <p className="text-sm text-gray-600 mt-1">or click to browse</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">or click to browse</p>
           <input
             id="file-upload"
             name="file-upload"
@@ -103,7 +103,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
         </label>
 
         {error && (
-          <div className="mt-4 text-red-600 text-sm">{error}</div>
+          <div className="mt-4 text-red-600 dark:text-red-400 text-sm">{error}</div>
         )}
       </div>
     </div>

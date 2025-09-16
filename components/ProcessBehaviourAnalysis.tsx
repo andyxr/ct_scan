@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface ProcessBehaviourAnalysisProps {
   data: any[]
@@ -29,6 +30,7 @@ interface ProcessStats {
 
 export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const { theme } = useTheme()
 
   useEffect(() => {
     setIsMounted(true)
@@ -259,15 +261,15 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-semibold mb-4">Process Behaviour Chart</h2>
-      <p className="text-gray-600 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Process Behaviour Chart</h2>
+      <p className="text-gray-600 dark:text-gray-300 mb-6">
         Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.
       </p>
 
       {/* Individual Values Chart */}
       <div className="mb-8">
-        <h3 className="text-lg font-medium mb-3">Individual Values (Cycle Times)</h3>
+        <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Individual Values (Cycle Times)</h3>
         <div className="h-80 w-full">
           {isMounted && processedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={320}>
@@ -332,7 +334,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
       {/* Moving Range Chart */}
       <div className="mb-6">
-        <h3 className="text-lg font-medium mb-3">Moving Range</h3>
+        <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Moving Range</h3>
         <div className="h-64 w-full">
           {isMounted && movingRangeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={256}>

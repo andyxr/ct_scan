@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface CorrelationAnalysisProps {
   data: any[]
@@ -28,6 +29,7 @@ interface CorrelationStats {
 
 export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const { theme } = useTheme()
 
   useEffect(() => {
     setIsMounted(true)
@@ -157,9 +159,9 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-semibold mb-4">Correlation Analysis</h2>
-      <p className="text-gray-600 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
+      <p className="text-gray-600 dark:text-gray-300 mb-6">
         Shows the range of cycle times (CT) for each estimate value. Each bar represents the minimum to maximum cycle time range for that estimate.
       </p>
 
@@ -171,11 +173,11 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
               height={384}
               data={processedData}
               margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
               <XAxis
                 dataKey="estimate"
                 label={{ value: 'Estimate', position: 'insideBottom', offset: -10 }}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
               />
               <YAxis
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
@@ -191,8 +193,8 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
               {/* Visible bar showing the range */}
               <Bar
                 dataKey="range"
-                fill="#3b82f6"
-                stroke="#1e40af"
+                fill={theme === 'dark' ? '#60a5fa' : '#3b82f6'}
+                stroke={theme === 'dark' ? '#3b82f6' : '#1e40af'}
                 strokeWidth={1}
                 stackId="range"
               />
@@ -200,7 +202,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {!isMounted ? 'Loading chart...' : 'No data to display'}
             </p>
             {!isMounted && processedData.length > 0 && (
@@ -229,7 +231,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         </div>
       )}
 
-      <div className="mt-4 text-sm text-gray-600">
+      <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
         <p>Each bar shows the full range of cycle times for items with that estimate value. Hover over bars for detailed breakdown.</p>
       </div>
     </div>

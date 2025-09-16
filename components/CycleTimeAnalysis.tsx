@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface CycleTimeAnalysisProps {
   data: any[]
@@ -18,6 +19,7 @@ interface ProcessedDataPoint {
 
 export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const { theme } = useTheme()
 
   useEffect(() => {
     setIsMounted(true)
@@ -218,13 +220,13 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">ID: {data.itemId}</p>
-          <p className="font-semibold text-lg">{data.cycleTime} days</p>
+        <div className="bg-white dark:bg-gray-800 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
+          <p className="font-bold text-blue-600 dark:text-blue-400">ID: {data.itemId}</p>
+          <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">{data.cycleTime} days</p>
           {data.itemName !== data.itemId && (
-            <p className="text-sm text-gray-600 mt-1">{data.itemName}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{data.itemName}</p>
           )}
-          <p className="text-xs text-gray-500 mt-1">Completed: {data.originalEndDate}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed: {data.originalEndDate}</p>
         </div>
       )
     }
@@ -232,8 +234,8 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-2xl font-semibold mb-4">Cycle Time Analysis</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
 
       <div className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
@@ -244,7 +246,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               data={processedData}
               margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
               key={`chart-${processedData.length}`}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
               <XAxis
                 dataKey="endDate"
                 type="number"
@@ -255,15 +257,16 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 angle={-45}
                 textAnchor="end"
                 height={80}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
               />
               <YAxis
-                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
+                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: theme === 'dark' ? '#d1d5db' : '#6b7280' } }}
+                tick={{ fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
               />
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine
                 y={percentile85}
-                stroke="#2563eb"
+                stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "top", offset: 10 }}
@@ -271,25 +274,25 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               <Line
                 type="monotone"
                 dataKey="cycleTime"
-                stroke="#22c55e"
+                stroke={theme === 'dark' ? '#34d399' : '#22c55e'}
                 strokeWidth={0}
-                dot={{ fill: '#22c55e', stroke: '#16a34a', strokeWidth: 1, r: 4 }}
+                dot={{ fill: theme === 'dark' ? '#34d399' : '#22c55e', stroke: theme === 'dark' ? '#10b981' : '#16a34a', strokeWidth: 1, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {!isMounted ? 'Loading chart...' : 'No data to display'}
             </p>
             {!isMounted && (
-              <p className="text-xs text-gray-400 mt-2">Chart data: {processedData.length} items</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Chart data: {processedData.length} items</p>
             )}
           </div>
         )}
       </div>
 
-      <div className="mt-4 text-sm text-gray-600">
+      <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
         <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
       </div>
     </div>
