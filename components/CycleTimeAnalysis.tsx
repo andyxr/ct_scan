@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 
 interface CycleTimeAnalysisProps {
   data: any[]
@@ -235,7 +235,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
       <div className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height={384}>
-            <ScatterChart
+            <LineChart
               width={800}
               height={384}
               data={processedData}
@@ -243,20 +243,17 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="endDate"
-                domain={['dataMin - 86400000', 'dataMax + 86400000']}
                 type="number"
                 scale="time"
+                domain={['dataMin', 'dataMax']}
                 tickFormatter={formatXAxis}
                 label={{ value: 'End Date', position: 'insideBottom', offset: -10 }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
                 tick={{ fontSize: 12 }}
-                tickCount={5}
               />
               <YAxis
-                dataKey="cycleTime"
-                type="number"
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip content={<CustomTooltip />} />
@@ -267,15 +264,15 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "topRight", offset: 10 }}
               />
-              <Scatter
-                name="Items"
-                data={processedData}
-                fill="#22c55e"
-                stroke="#16a34a"
-                strokeWidth={1}
-                r={4}
+              <Line
+                type="monotone"
+                dataKey="cycleTime"
+                stroke="#22c55e"
+                strokeWidth={0}
+                dot={{ fill: '#22c55e', stroke: '#16a34a', strokeWidth: 1, r: 4 }}
+                line={false}
               />
-            </ScatterChart>
+            </LineChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
