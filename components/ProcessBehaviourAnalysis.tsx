@@ -294,20 +294,20 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   stroke="#dc2626"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "UPL", position: "left", offset: 10 }}
+                  label={{ value: "UPL", position: "top", offset: 5 }}
                 />
                 <ReferenceLine
                   y={stats.centralLine}
                   stroke="#059669"
                   strokeWidth={2}
-                  label={{ value: "CL", position: "left", offset: 10 }}
+                  label={{ value: "CL", position: "top", offset: 5 }}
                 />
                 <ReferenceLine
                   y={stats.lowerProcessLimit}
                   stroke="#dc2626"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "LPL", position: "left", offset: 10 }}
+                  label={{ value: "LPL", position: "bottom", offset: 5 }}
                 />
 
                 {/* Main process line */}
@@ -357,13 +357,13 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   stroke="#dc2626"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "URL", position: "left", offset: 10 }}
+                  label={{ value: "URL", position: "top", offset: 5 }}
                 />
                 <ReferenceLine
                   y={stats.averageMovingRange}
                   stroke="#059669"
                   strokeWidth={2}
-                  label={{ value: "AMR", position: "left", offset: 10 }}
+                  label={{ value: "AMR", position: "top", offset: 5 }}
                 />
 
                 <Line
