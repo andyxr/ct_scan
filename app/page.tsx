@@ -10,7 +10,12 @@ const CycleTimeAnalysis = dynamic(
   { ssr: false }
 )
 
-export type AnalysisAction = 'cycle-time' | 'process-behaviour' | 'monte-carlo' | null
+const CorrelationAnalysis = dynamic(
+  () => import('@/components/CorrelationAnalysis'),
+  { ssr: false }
+)
+
+export type AnalysisAction = 'cycle-time' | 'process-behaviour' | 'correlation' | 'monte-carlo' | null
 
 export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
@@ -75,6 +80,10 @@ export default function Home() {
                 <h2 className="text-2xl font-semibold mb-4">Process Behaviour Chart</h2>
                 <p className="text-gray-600">Coming soon...</p>
               </div>
+            )}
+
+            {selectedAction === 'correlation' && (
+              <CorrelationAnalysis data={csvData} />
             )}
 
             {selectedAction === 'monte-carlo' && (

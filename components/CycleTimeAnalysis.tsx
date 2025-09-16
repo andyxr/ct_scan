@@ -99,7 +99,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     // Validate we got the right columns and show sample data
     if (cycleTimeColumn) {
       const sampleCTs = data.slice(0, 5).map(row => ({
-        id: row[idColumn],
+        id: idColumn ? row[idColumn] : 'Unknown',
         ct: row[cycleTimeColumn]
       }))
       console.log('Sample cycle time data:', sampleCTs)
@@ -107,9 +107,10 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
 
     // Process the data
     const processed: ProcessedDataPoint[] = data
-      .filter(row => row[endDateColumn] && row[cycleTimeColumn])
-      .map((row, index) => {
-        const dateString = row[endDateColumn].toString().trim()
+      .filter(row => endDateColumn && cycleTimeColumn && row[endDateColumn] && row[cycleTimeColumn])
+      .map((row, index): ProcessedDataPoint | null => {
+        const dateString = row[endDateColumn!].toString().trim()
+        const itemId = idColumn ? row[idColumn] : 'Unknown'
 
         let dateValue: Date
 
@@ -126,7 +127,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
             dateValue = new Date(year, month - 1, day)
 
             // Debug specific problematic dates
-            if (row[idColumn] === 'DF-73') {
+            if (itemId === 'DF-73') {
               console.log(`DF-73 DEBUG:`)
               console.log(`  Original dateString: "${dateString}"`)
               console.log(`  Parsed: day=${day}, month=${month}, year=${year}`)
@@ -135,29 +136,29 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               console.log(`  Formatted back: ${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`)
             }
           } else {
-            console.warn(`Invalid date parts for ${row[idColumn]}: ${day}/${month}/${year}`)
+            console.warn(`Invalid date parts for ${itemId}: ${day}/${month}/${year}`)
             return null
           }
         } else {
-          console.warn(`Unexpected date format for ${row[idColumn]}: ${dateString}`)
+          console.warn(`Unexpected date format for ${itemId}: ${dateString}`)
           return null
         }
 
         // Final validation
         if (isNaN(dateValue.getTime())) {
-          console.warn(`Final validation failed for ${row[idColumn]}: ${dateString}`)
+          console.warn(`Final validation failed for ${itemId}: ${dateString}`)
           return null
         }
 
         return {
           endDate: dateValue.getTime(),
-          cycleTime: parseFloat(row[cycleTimeColumn]) || 0,
-          itemName: row[nameColumn] || 'Unknown',
-          itemId: row[idColumn] || row[nameColumn] || 'Unknown',
+          cycleTime: parseFloat(row[cycleTimeColumn!]) || 0,
+          itemName: nameColumn ? row[nameColumn] || 'Unknown' : 'Unknown',
+          itemId: idColumn ? row[idColumn] : (nameColumn ? row[nameColumn] || 'Unknown' : 'Unknown'),
           originalEndDate: dateString
         }
       })
-      .filter(item => item !== null && !isNaN(item.endDate) && item.cycleTime > 0)
+      .filter((item): item is ProcessedDataPoint => item !== null && !isNaN(item.endDate) && item.cycleTime > 0)
       .sort((a, b) => a.endDate - b.endDate)
 
     // Debug the date range
@@ -262,7 +263,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 stroke="#2563eb"
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                label={{ value: `85th Percentile`, position: "topRight", offset: 10 }}
+                label={{ value: `85th Percentile`, position: "top", offset: 10 }}
               />
               <Line
                 type="monotone"
@@ -270,7 +271,6 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 stroke="#22c55e"
                 strokeWidth={0}
                 dot={{ fill: '#22c55e', stroke: '#16a34a', strokeWidth: 1, r: 4 }}
-                line={false}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -23,6 +23,13 @@ export default function ActionSelector({ onActionSelect }: ActionSelectorProps) 
       available: false
     },
     {
+      id: 'correlation' as AnalysisAction,
+      title: 'Correlation Analysis',
+      description: 'Analyze correlation between estimates and cycle time ranges',
+      icon: '📊',
+      available: true
+    },
+    {
       id: 'monte-carlo' as AnalysisAction,
       title: 'Monte Carlo Simulation',
       description: 'Forecast delivery probabilities',
