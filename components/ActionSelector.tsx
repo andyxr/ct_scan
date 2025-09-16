@@ -20,7 +20,7 @@ export default function ActionSelector({ onActionSelect }: ActionSelectorProps) 
       title: 'Process Behaviour Chart',
       description: 'Visualize process stability and predictability',
       icon: '📈',
-      available: false
+      available: true
     },
     {
       id: 'correlation' as AnalysisAction,

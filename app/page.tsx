@@ -15,6 +15,11 @@ const CorrelationAnalysis = dynamic(
   { ssr: false }
 )
 
+const ProcessBehaviourAnalysis = dynamic(
+  () => import('@/components/ProcessBehaviourAnalysis'),
+  { ssr: false }
+)
+
 export type AnalysisAction = 'cycle-time' | 'process-behaviour' | 'correlation' | 'monte-carlo' | null
 
 export default function Home() {
@@ -76,10 +81,7 @@ export default function Home() {
             )}
 
             {selectedAction === 'process-behaviour' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-semibold mb-4">Process Behaviour Chart</h2>
-                <p className="text-gray-600">Coming soon...</p>
-              </div>
+              <ProcessBehaviourAnalysis data={csvData} />
             )}
 
             {selectedAction === 'correlation' && (

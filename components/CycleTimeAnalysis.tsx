@@ -8,6 +8,7 @@ interface CycleTimeAnalysisProps {
 }
 
 interface ProcessedDataPoint {
+  key: string
   endDate: number
   cycleTime: number
   itemName: string
@@ -151,6 +152,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         }
 
         return {
+          key: `${itemId}-${index}`,
           endDate: dateValue.getTime(),
           cycleTime: parseFloat(row[cycleTimeColumn!]) || 0,
           itemName: nameColumn ? row[nameColumn] || 'Unknown' : 'Unknown',
@@ -240,7 +242,8 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               width={800}
               height={384}
               data={processedData}
-              margin={{ top: 20, right: 20, bottom: 60, left: 60 }}>
+              margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
+              key={`chart-${processedData.length}`}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="endDate"
