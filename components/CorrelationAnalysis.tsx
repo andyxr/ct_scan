@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ErrorBar } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface CorrelationAnalysisProps {
   data: any[]
@@ -11,6 +11,7 @@ interface CorrelationDataPoint {
   estimate: number
   minCT: number
   maxCT: number
+  range: number
   avgCT: number
   count: number
   items: Array<{
@@ -97,6 +98,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
           estimate,
           minCT,
           maxCT,
+          range: maxCT - minCT,
           avgCT,
           count: items.length,
           items
@@ -153,20 +155,6 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
     return null
   }
 
-  const BarWithErrorBars = (props: any) => {
-    const { payload } = props
-    if (!payload) return null
-
-    const range = payload.maxCT - payload.minCT
-    return (
-      <Bar
-        {...props}
-        fill="#3b82f6"
-        stroke="#1e40af"
-        strokeWidth={1}
-      />
-    )
-  }
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -193,17 +181,20 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip content={<CustomTooltip />} />
+              {/* Invisible bar to position the baseline at minCT */}
               <Bar
-                dataKey="maxCT"
+                dataKey="minCT"
+                fill="transparent"
+                stroke="transparent"
+                stackId="range"
+              />
+              {/* Visible bar showing the range */}
+              <Bar
+                dataKey="range"
                 fill="#3b82f6"
                 stroke="#1e40af"
                 strokeWidth={1}
-              />
-              <ErrorBar
-                dataKey="minCT"
-                width={4}
-                stroke="#1e40af"
-                strokeWidth={2}
+                stackId="range"
               />
             </BarChart>
           </ResponsiveContainer>
