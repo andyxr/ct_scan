@@ -34,7 +34,7 @@ export default function ActionSelector({ onActionSelect }: ActionSelectorProps) 
       title: 'Monte Carlo Simulation',
       description: 'Forecast delivery probabilities',
       icon: '🎲',
-      available: false
+      available: true
     }
   ]
 

@@ -22,6 +22,11 @@ const ProcessBehaviourAnalysis = dynamic(
   { ssr: false }
 )
 
+const MonteCarloAnalysis = dynamic(
+  () => import('@/components/MonteCarloAnalysis'),
+  { ssr: false }
+)
+
 export type AnalysisAction = 'cycle-time' | 'process-behaviour' | 'correlation' | 'monte-carlo' | null
 
 export default function Home() {
@@ -93,10 +98,7 @@ export default function Home() {
             )}
 
             {selectedAction === 'monte-carlo' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-semibold mb-4">Monte Carlo Simulation</h2>
-                <p className="text-gray-600">Coming soon...</p>
-              </div>
+              <MonteCarloAnalysis data={csvData} />
             )}
           </div>
         )}
