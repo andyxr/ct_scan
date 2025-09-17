@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 
 interface CycleTimeAnalysisProps {
@@ -240,7 +240,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
       <div className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height={384}>
-            <LineChart
+            <ScatterChart
               width={800}
               height={384}
               data={processedData}
@@ -260,10 +260,11 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
               />
               <YAxis
+                dataKey="cycleTime"
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: theme === 'dark' ? '#d1d5db' : '#6b7280' } }}
                 tick={{ fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
               <ReferenceLine
                 y={percentile85}
                 stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
@@ -271,14 +272,11 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "top", offset: 10 }}
               />
-              <Line
-                type="monotone"
-                dataKey="cycleTime"
-                stroke={theme === 'dark' ? '#34d399' : '#22c55e'}
-                strokeWidth={0}
-                dot={{ fill: theme === 'dark' ? '#34d399' : '#22c55e', stroke: theme === 'dark' ? '#10b981' : '#16a34a', strokeWidth: 1, r: 4 }}
+              <Scatter
+                data={processedData}
+                fill={theme === 'dark' ? '#34d399' : '#22c55e'}
               />
-            </LineChart>
+            </ScatterChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
