@@ -387,24 +387,34 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
       {/* Statistics Summary */}
       {stats.totalItems > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Total Items</div>
-            <div className="text-lg font-bold text-blue-600">{stats.totalItems}</div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Central Line</div>
-            <div className="text-lg font-bold text-green-600">{stats.centralLine.toFixed(1)} days</div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Control Limits</div>
-            <div className="text-sm font-bold text-red-600">
-              {stats.lowerProcessLimit.toFixed(1)} - {stats.upperProcessLimit.toFixed(1)}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="font-semibold text-gray-700">Total Items</div>
+              <div className="text-lg font-bold text-blue-600">{stats.totalItems}</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="font-semibold text-gray-700">Central Line</div>
+              <div className="text-lg font-bold text-green-600">{stats.centralLine.toFixed(1)} days</div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="font-semibold text-gray-700">Control Limits</div>
+              <div className="text-sm font-bold text-red-600">
+                {stats.lowerProcessLimit.toFixed(1)} - {stats.upperProcessLimit.toFixed(1)}
+              </div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="font-semibold text-gray-700">Special Causes</div>
+              <div className="text-lg font-bold text-orange-600">{stats.specialCauseCount}</div>
             </div>
           </div>
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Special Causes</div>
-            <div className="text-lg font-bold text-orange-600">{stats.specialCauseCount}</div>
+          <div className="grid grid-cols-1 gap-4 text-sm">
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="font-semibold text-gray-700">Upper Range Limit (URL)</div>
+              <div className="text-lg font-bold text-purple-600">
+                {movingRangeData.length > 0 ? movingRangeData[0]?.upperRangeLimit.toFixed(1) : '0.0'}
+              </div>
+            </div>
           </div>
         </div>
       )}
