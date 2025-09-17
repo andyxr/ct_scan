@@ -52,7 +52,7 @@ export default function Home() {
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <DarkModeToggle />
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Cycle Time Analyzer</h1>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Metrics Analyzer</h1>
 
         {csvData.length === 0 ? (
           <FileUpload onUpload={handleFileUpload} />
