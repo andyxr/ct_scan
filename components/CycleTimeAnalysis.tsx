@@ -188,10 +188,31 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
       })))
     }
 
-    // Calculate 85th percentile
+    // Calculate 85th percentile with proper interpolation
     const cycleTimes = processed.map(item => item.cycleTime).sort((a, b) => a - b)
-    const index85 = Math.floor(cycleTimes.length * 0.85)
-    const p85 = cycleTimes[index85] || 0
+    let p85 = 0
+    if (cycleTimes.length > 0) {
+      const index = (cycleTimes.length - 1) * 0.85
+      const lower = Math.floor(index)
+      const upper = Math.ceil(index)
+      const weight = index % 1
+
+      p85 = lower === upper
+        ? cycleTimes[lower]
+        : cycleTimes[lower] * (1 - weight) + cycleTimes[upper] * weight
+
+      console.log('85th percentile calculation:', {
+        totalItems: cycleTimes.length,
+        rawIndex: index,
+        lowerIndex: lower,
+        upperIndex: upper,
+        lowerValue: cycleTimes[lower],
+        upperValue: cycleTimes[upper],
+        interpolationWeight: weight,
+        result: p85,
+        oldMethod: cycleTimes[Math.floor(cycleTimes.length * 0.85)] || 0
+      })
+    }
 
     // Calculate additional stats
     const avgCycleTime = cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length || 0

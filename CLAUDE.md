@@ -63,10 +63,11 @@ The CycleTimeAnalysis component uses a two-tier detection system:
 ### Key Components
 - `app/page.tsx` - Main orchestrator managing file upload → action selection → analysis display state flow
 - `components/FileUpload.tsx` - Drag-and-drop CSV upload with Papaparse integration
-- `components/ActionSelector.tsx` - Analysis type selector (cycle time, correlation, process behaviour)
+- `components/ActionSelector.tsx` - Analysis type selector (cycle time, correlation, process behaviour, monte carlo)
 - `components/CycleTimeAnalysis.tsx` - Scatter plot with 85th percentile line
 - `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
+- `components/MonteCarloAnalysis.tsx` - Monte Carlo simulation for throughput forecasting based on historical data
 - `components/DarkModeToggle.tsx` - Theme switcher using ThemeContext
 - `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 

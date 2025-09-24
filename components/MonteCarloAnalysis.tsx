@@ -187,16 +187,17 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     // Sort results for percentile calculation
     results.sort((a, b) => a - b)
 
-    // Calculate statistics
-    const p50Index = Math.floor(results.length * 0.50)
-    const p85Index = Math.floor(results.length * 0.85)
-    const p95Index = Math.floor(results.length * 0.95)
+    // Calculate statistics (percentiles represent "at least this many items")
+    // For confidence levels, we want the lower percentiles of the distribution
+    const p50Index = Math.floor(results.length * 0.50)  // 50% of runs exceeded this
+    const p15Index = Math.floor(results.length * 0.15)  // 85% of runs exceeded this (100-85=15)
+    const p5Index = Math.floor(results.length * 0.05)   // 95% of runs exceeded this (100-95=5)
 
     const simulationStats: SimulationStats = {
       totalSimulations: numSimulations,
       p50: results[p50Index] || 0,
-      p85: results[p85Index] || 0,
-      p95: results[p95Index] || 0,
+      p85: results[p15Index] || 0,  // 85% confidence means 15th percentile
+      p95: results[p5Index] || 0,   // 95% confidence means 5th percentile
       mean: results.reduce((sum, val) => sum + val, 0) / results.length,
       min: results[0] || 0,
       max: results[results.length - 1] || 0
@@ -352,17 +353,17 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded border border-blue-200 dark:border-blue-800">
                     <div className="font-semibold text-blue-700 dark:text-blue-300">50% Confidence</div>
                     <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">{stats.p50}</div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">items or more</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">items or more (median)</div>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded border border-green-200 dark:border-green-800">
                     <div className="font-semibold text-green-700 dark:text-green-300">85% Confidence</div>
                     <div className="text-2xl font-bold text-green-800 dark:text-green-200">{stats.p85}</div>
-                    <div className="text-xs text-green-600 dark:text-green-400">items or more</div>
+                    <div className="text-xs text-green-600 dark:text-green-400">items or more (conservative)</div>
                   </div>
                   <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded border border-purple-200 dark:border-purple-800">
                     <div className="font-semibold text-purple-700 dark:text-purple-300">95% Confidence</div>
                     <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">{stats.p95}</div>
-                    <div className="text-xs text-purple-600 dark:text-purple-400">items or more</div>
+                    <div className="text-xs text-purple-600 dark:text-purple-400">items or more (highly confident)</div>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -405,27 +406,27 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                         />
                         <Tooltip content={<CustomTooltip />} />
 
-                        {/* Percentile lines */}
+                        {/* Percentile lines - now correctly showing confidence levels */}
                         <ReferenceLine
-                          x={stats.p50}
-                          stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
+                          x={stats.p95}
+                          stroke={theme === 'dark' ? '#a78bfa' : '#7c3aed'}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "50%", position: "top", offset: 10 }}
+                          label={{ value: "95% confident", position: "top", offset: 10 }}
                         />
                         <ReferenceLine
                           x={stats.p85}
                           stroke={theme === 'dark' ? '#34d399' : '#059669'}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "85%", position: "top", offset: 10 }}
+                          label={{ value: "85% confident", position: "top", offset: 10 }}
                         />
                         <ReferenceLine
-                          x={stats.p95}
-                          stroke={theme === 'dark' ? '#a78bfa' : '#7c3aed'}
+                          x={stats.p50}
+                          stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "95%", position: "top", offset: 10 }}
+                          label={{ value: "50% confident", position: "top", offset: 10 }}
                         />
 
                         <Bar
