@@ -40,7 +40,7 @@ Now, analyze the distribution of your simulation results to create a probabilist
 	* **50th Percentile:** The value at the halfway point (50th percentile) is the number of items you have a **50% probability** of completing.
 	* **85th Percentile:** The value at the 85th percentile is the number of items you have an **85% probability** of completing. This is often a good confidence level for forecasting.
 	* **95th Percentile:** The value at the 95th percentile is the number of items you have a **95% probability** of completing.
-**3** **Visualize:** Create a histogram or a cumulative flow diagram to visualize the results. A histogram shows the frequency of each outcome, and the cumulative flow diagram shows the probability of completing at least a certain number of items. This makes the data much easier to interpret.
+**3** **Visualise:** Create a histogram or a cumulative flow diagram to visualize the results. A histogram shows the frequency of each outcome, and the cumulative flow diagram shows the probability of completing at least a certain number of items. This makes the data much easier to interpret.
 
 ⠀
 

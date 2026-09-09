@@ -17,7 +17,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
     {
       id: 'cycle-time' as AnalysisAction,
       title: 'Cycle Time Analysis',
-      description: 'Analyze cycle times with 85th percentile visualization',
+      description: 'Analyse cycle times with 85th percentile visualization',
       icon: '📊',
       available: true,
       unavailableReason: ''
@@ -25,7 +25,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
     {
       id: 'process-behaviour' as AnalysisAction,
       title: 'Process Behaviour Chart',
-      description: 'Visualize process stability and predictability',
+      description: 'Visualise process stability and predictability',
       icon: '📈',
       available: true,
       unavailableReason: ''
@@ -33,7 +33,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
     {
       id: 'correlation' as AnalysisAction,
       title: 'Correlation Analysis',
-      description: 'Analyze correlation between estimates and cycle time ranges',
+      description: 'Analyse correlation between estimates and cycle time ranges',
       icon: '📊',
       available: hasEstimate,
       unavailableReason: 'Needs an estimate column'

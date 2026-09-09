@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Flowgauge',
-  description: 'Analyze development team metrics from CSV data',
+  description: 'Analyse development team metrics from CSV data',
 }
 
 export default function RootLayout({

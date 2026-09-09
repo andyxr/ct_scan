@@ -2,7 +2,7 @@
   "name": "ct_scan",
   "version": "1.0.0",
   "private": true,
-  "description": "Analyze development team cycle time data from CSV files",
+  "description": "Analyse development team cycle time data from CSV files",
   "engines": {
     "node": ">=20"
   },
