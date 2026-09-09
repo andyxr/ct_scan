@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, formatDate } from '@/lib/csv'
+import ExportPngButton from './ExportPngButton'
 
 interface MonteCarloAnalysisProps {
   data: any[]
@@ -37,6 +38,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
   const { theme } = useTheme()
+  const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -344,8 +346,13 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
               {/* Histogram */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Probability Distribution</h3>
-                <div className="h-80 w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Probability Distribution</h3>
+                  {isMounted && simulationResults.length > 0 && (
+                    <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
+                  )}
+                </div>
+                <div ref={chartRef} className="h-80 w-full">
                   {isMounted && simulationResults.length > 0 ? (
                     <ResponsiveContainer width="100%" height={320}>
                       <BarChart
