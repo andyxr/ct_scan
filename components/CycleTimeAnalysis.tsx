@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
+import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 
 interface CycleTimeAnalysisProps {
   data: any[]
@@ -20,6 +21,8 @@ interface ProcessedDataPoint {
 
 export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const [showSprint, setShowSprint] = useState(false)
+  const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const { theme } = useTheme()
 
   useEffect(() => {
@@ -55,6 +58,8 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     }
   }, [data])
 
+  const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
+
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -77,6 +82,15 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
+
+      <SprintLengthControl
+        enabled={showSprint}
+        days={sprintDays}
+        withinCount={withinSprint}
+        totalCount={processedData.length}
+        onToggle={setShowSprint}
+        onDaysChange={setSprintDays}
+      />
 
       <div className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
@@ -112,6 +126,15 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "top", offset: 10 }}
               />
+              {showSprint && (
+                <ReferenceLine
+                  y={sprintDays}
+                  stroke={theme === 'dark' ? '#fbbf24' : '#d97706'}
+                  strokeWidth={2}
+                  strokeDasharray="8 4"
+                  label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: theme === 'dark' ? '#fbbf24' : '#d97706' }}
+                />
+              )}
               <Scatter
                 name="Cycle time"
                 data={processedData}

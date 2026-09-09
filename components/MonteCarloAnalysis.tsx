@@ -35,6 +35,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [numSimulations, setNumSimulations] = useState(10000)
   const [forecastHorizon, setForecastHorizon] = useState(14)
   const [isRunning, setIsRunning] = useState(false)
+  const [runId, setRunId] = useState(0)
   const { theme } = useTheme()
 
   useEffect(() => {
@@ -77,11 +78,12 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     const maxTimestamp = Math.max(...timestamps)
 
     // Generate all days between min and max (inclusive)
+    // Step by calendar day rather than by 24 hours: across a clock change a
+    // 24-hour step lands on the wrong day, double-counting one and dropping the last.
     const dailyThroughputData: DailyThroughput[] = []
-    const oneDayMs = 24 * 60 * 60 * 1000
 
-    for (let currentTimestamp = minTimestamp; currentTimestamp <= maxTimestamp; currentTimestamp += oneDayMs) {
-      const currentDate = new Date(currentTimestamp)
+    for (const currentDate = new Date(minTimestamp); currentDate.getTime() <= maxTimestamp; currentDate.setDate(currentDate.getDate() + 1)) {
+      const currentTimestamp = currentDate.getTime()
       const year = currentDate.getFullYear()
       const month = currentDate.getMonth() + 1
       const day = currentDate.getDate()
@@ -178,11 +180,11 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
       simulationResults: histogramData,
       stats: simulationStats
     }
-  }, [throughputArray, numSimulations, forecastHorizon])
+  }, [throughputArray, numSimulations, forecastHorizon, runId])
 
   const runSimulation = () => {
     setIsRunning(true)
-    // Simulate a brief delay to show the running state
+    setRunId(id => id + 1)
     setTimeout(() => setIsRunning(false), 100)
   }
 

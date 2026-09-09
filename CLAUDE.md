@@ -67,9 +67,10 @@ columns already claimed:
 - Cycle time: the first remaining column of non-negative numbers (no upper bound)
 
 **Cycle time** (`cycleTimeFor`) prefers the CSV's own cycle time column, and
-falls back to `end - start` when only dates are present. Values are rounded, with
-a floor of 1 day: same-day items (`0.00` in the source) are real work, and
-dropping them biases every downstream statistic.
+falls back to the calendar-day difference when only dates are present. Counting
+is inclusive: every value is rounded elapsed days plus one, so a same-day item
+(`0.00` in the source) is 1 day and `8.32` is 9. This matches the Vacanti and
+ActionableAgile convention.
 
 **`toWorkItems`** returns `{ id, endDate, cycleTime, originalEndDate }` sorted
 oldest first — the shape all four analyses consume.

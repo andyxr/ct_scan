@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems } from '@/lib/csv'
+import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 
 interface ProcessBehaviourAnalysisProps {
   data: any[]
@@ -18,6 +19,7 @@ interface ProcessDataPoint {
   itemId: string
   originalEndDate: string
   isSpecialCause: boolean
+  signals: string[]
 }
 
 interface ProcessStats {
@@ -25,12 +27,38 @@ interface ProcessStats {
   upperProcessLimit: number
   lowerProcessLimit: number
   averageMovingRange: number
+  medianMovingRange: number
+  upperRangeLimit: number
+  limitMethod: 'median' | 'average'
   totalItems: number
   specialCauseCount: number
 }
 
+const RUN_LENGTH = 8
+
+/**
+ * Wheeler's rule 2: a run of RUN_LENGTH successive points all on one side of
+ * the centre line. Returns the index of every point that belongs to such a run.
+ */
+function runSignalIndices(values: number[], centralLine: number): Set<number> {
+  const flagged = new Set<number>()
+  let runStart = 0
+  const side = (v: number) => Math.sign(v - centralLine)
+  for (let i = 1; i <= values.length; i++) {
+    if (i === values.length || side(values[i]) !== side(values[runStart]) || side(values[i]) === 0) {
+      if (i - runStart >= RUN_LENGTH && side(values[runStart]) !== 0) {
+        for (let j = runStart; j < i; j++) flagged.add(j)
+      }
+      runStart = i
+    }
+  }
+  return flagged
+}
+
 export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const [showSprint, setShowSprint] = useState(false)
+  const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const { theme } = useTheme()
 
   useEffect(() => {
@@ -56,17 +84,18 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           upperProcessLimit: 0,
           lowerProcessLimit: 0,
           averageMovingRange: 0,
+          medianMovingRange: 0,
+          upperRangeLimit: 0,
+          limitMethod: 'median' as const,
           totalItems: 0,
           specialCauseCount: 0
         }
       }
     }
 
-    // Calculate process statistics using Shewhart method
     const cycleTimes = chronologicalData.map(item => item.cycleTime)
     const centralLine = cycleTimes.reduce((sum, ct) => sum + ct, 0) / cycleTimes.length
 
-    // Calculate moving ranges
     const movingRanges: number[] = []
     for (let i = 1; i < cycleTimes.length; i++) {
       movingRanges.push(Math.abs(cycleTimes[i] - cycleTimes[i - 1]))
@@ -75,14 +104,30 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     const averageMovingRange = movingRanges.length > 0
       ? movingRanges.reduce((sum, mr) => sum + mr, 0) / movingRanges.length
       : 0
+    const sortedRanges = [...movingRanges].sort((a, b) => a - b)
+    const medianMovingRange = sortedRanges.length > 0
+      ? sortedRanges.length % 2 === 1
+        ? sortedRanges[(sortedRanges.length - 1) / 2]
+        : (sortedRanges[sortedRanges.length / 2 - 1] + sortedRanges[sortedRanges.length / 2]) / 2
+      : 0
 
-    // Shewhart control limits using 2.66 multiplier for individuals chart
-    const upperProcessLimit = centralLine + (2.66 * averageMovingRange)
-    const lowerProcessLimit = Math.max(0, centralLine - (2.66 * averageMovingRange)) // Can't have negative cycle time
+    // Cycle time is right-skewed, and one extreme item inflates the average
+    // moving range enough to hide everything else. Wheeler's median moving range
+    // method (3.145 and 3.865 in place of 2.66 and 3.27) resists that. When more
+    // than half the moving ranges are zero the median collapses, so fall back.
+    const limitMethod: ProcessStats['limitMethod'] = medianMovingRange > 0 ? 'median' : 'average'
+    const sigmaSpan = limitMethod === 'median' ? 3.145 * medianMovingRange : 2.66 * averageMovingRange
+    const upperRangeLimit = limitMethod === 'median' ? 3.865 * medianMovingRange : 3.27 * averageMovingRange
 
-    // Create processed data points with special cause identification
+    const upperProcessLimit = centralLine + sigmaSpan
+    const lowerProcessLimit = Math.max(0, centralLine - sigmaSpan)
+
+    const runFlags = runSignalIndices(cycleTimes, centralLine)
+
     const processedDataPoints: ProcessDataPoint[] = chronologicalData.map((item, index) => {
-      const isSpecialCause = item.cycleTime > upperProcessLimit || item.cycleTime < lowerProcessLimit
+      const signals: string[] = []
+      if (item.cycleTime > upperProcessLimit || item.cycleTime < lowerProcessLimit) signals.push('Outside process limits')
+      if (runFlags.has(index)) signals.push(`Run of ${RUN_LENGTH}+ on one side of the centre line`)
 
       return {
         key: `${item.itemId}-${index}`,
@@ -92,7 +137,8 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         itemName: item.itemName,
         itemId: item.itemId,
         originalEndDate: item.originalEndDate,
-        isSpecialCause
+        isSpecialCause: signals.length > 0,
+        signals,
       }
     })
 
@@ -101,8 +147,6 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       key: `mr-${index}`,
       sequence: index + 2, // Moving range starts from 2nd point
       movingRange: mr,
-      upperRangeLimit: averageMovingRange * 3.27, // Upper control limit for moving range
-      centralMovingRange: averageMovingRange
     }))
 
     const specialCauseCount = processedDataPoints.filter(point => point.isSpecialCause).length
@@ -115,11 +159,31 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         upperProcessLimit,
         lowerProcessLimit,
         averageMovingRange,
+        medianMovingRange,
+        upperRangeLimit,
+        limitMethod,
         totalItems: processedDataPoints.length,
         specialCauseCount
       }
     }
   }, [data])
+
+  const withinSprint = processedData.filter(point => point.cycleTime <= sprintDays).length
+
+  const SpecialCauseDot = ({ cx, cy, payload }: any) => {
+    if (cx === undefined || cy === undefined) return null
+    const special = (payload as ProcessDataPoint).isSpecialCause
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={special ? 5 : 4}
+        fill={special ? '#dc2626' : '#3b82f6'}
+        stroke={special ? '#991b1b' : '#1e40af'}
+        strokeWidth={2}
+      />
+    )
+  }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -141,11 +205,11 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           <p className="text-xs text-gray-500 mt-1">
             Completed: {data.originalEndDate}
           </p>
-          {data.isSpecialCause && (
-            <p className="text-xs text-red-600 font-semibold mt-1">
-              ⚠ Special Cause Variation
+          {data.signals.map(signal => (
+            <p key={signal} className="text-xs text-red-600 font-semibold mt-1">
+              ⚠ {signal}
             </p>
-          )}
+          ))}
         </div>
       )
     }
@@ -179,6 +243,14 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Individual Values Chart */}
       <div className="mb-8">
         <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Individual Values (Cycle Times)</h3>
+        <SprintLengthControl
+          enabled={showSprint}
+          days={sprintDays}
+          withinCount={withinSprint}
+          totalCount={processedData.length}
+          onToggle={setShowSprint}
+          onDaysChange={setSprintDays}
+        />
         <div className="h-80 w-full">
           {isMounted && processedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={320}>
@@ -220,6 +292,15 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   strokeDasharray="5 5"
                   label={{ value: "LPL", position: "bottom", offset: 5 }}
                 />
+                {showSprint && (
+                  <ReferenceLine
+                    y={sprintDays}
+                    stroke="#d97706"
+                    strokeWidth={2}
+                    strokeDasharray="8 4"
+                    label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
+                  />
+                )}
 
                 {/* Main process line */}
                 <Line
@@ -227,7 +308,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   dataKey="cycleTime"
                   stroke="#3b82f6"
                   strokeWidth={2}
-                  dot={{ r: 4, fill: '#3b82f6', stroke: '#1e40af', strokeWidth: 2 }}
+                  dot={<SpecialCauseDot />}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -264,17 +345,17 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                 <Tooltip content={<MovingRangeTooltip />} />
 
                 <ReferenceLine
-                  y={movingRangeData[0]?.upperRangeLimit || 0}
+                  y={stats.upperRangeLimit}
                   stroke="#dc2626"
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   label={{ value: "URL", position: "top", offset: 5 }}
                 />
                 <ReferenceLine
-                  y={stats.averageMovingRange}
+                  y={stats.limitMethod === 'median' ? stats.medianMovingRange : stats.averageMovingRange}
                   stroke="#059669"
                   strokeWidth={2}
-                  label={{ value: "AMR", position: "top", offset: 5 }}
+                  label={{ value: stats.limitMethod === 'median' ? "Median mR" : "Average mR", position: "top", offset: 5 }}
                 />
 
                 <Line
@@ -321,7 +402,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
             <div className="bg-gray-50 p-3 rounded">
               <div className="font-semibold text-gray-700">Upper Range Limit (URL)</div>
               <div className="text-lg font-bold text-purple-600">
-                {movingRangeData.length > 0 ? movingRangeData[0]?.upperRangeLimit.toFixed(1) : '0.0'}
+                {stats.upperRangeLimit.toFixed(1)}
               </div>
             </div>
           </div>
@@ -330,11 +411,20 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
       <div className="mt-6 text-sm text-gray-600 space-y-2">
         <p>
-          <strong>Interpretation:</strong> Points within control limits indicate common cause variation (predictable).
-          Points outside limits (shown in red) indicate special cause variation requiring investigation.
+          <strong>Limits:</strong> the centre line is the mean cycle time. The process limits sit 3.145 times
+          the {stats.limitMethod === 'median' ? 'median' : 'average'} moving range either side of it, and the moving
+          range limit is 3.865 times the median (Wheeler&apos;s median moving range method, which resists the
+          inflation a single extreme item causes in right-skewed cycle time data).
+          {stats.limitMethod === 'average' && ' More than half the moving ranges are zero, so the average moving range with the 2.66 and 3.27 constants is used instead.'}
         </p>
         <p>
-          <strong>Control Limits:</strong> UPL = Upper Process Limit, CL = Central Line, LPL = Lower Process Limit
+          <strong>Signals:</strong> a point is marked red when it falls outside the process limits (Wheeler rule 1)
+          or belongs to a run of {RUN_LENGTH} or more successive points on one side of the centre line (rule 2).
+          Rules 3 and 4 (clusters near the limits) are not checked, so a chart with no red points is evidence of
+          stability, not proof.
+        </p>
+        <p>
+          <strong>Abbreviations:</strong> UPL = Upper Process Limit, CL = Central Line, LPL = Lower Process Limit, URL = Upper Range Limit
         </p>
       </div>
     </div>
