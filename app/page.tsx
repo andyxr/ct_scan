@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
 import DarkModeToggle from '@/components/DarkModeToggle'
+import SplashScreen from '@/components/SplashScreen'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
 const CycleTimeAnalysis = dynamic(
@@ -33,6 +34,8 @@ export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
 
+  const [showSplash, setShowSplash] = useState(true)
+
   const handleFileUpload = (data: any[]) => {
     setCsvData(data)
     setSelectedAction(null)
@@ -50,6 +53,7 @@ export default function Home() {
   return (
     <ThemeProvider>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
         <DarkModeToggle />
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Flowgauge</h1>
