@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Metrics Analyzer',
+  title: 'Flowscope',
   description: 'Analyze development team metrics from CSV data',
 }
 
