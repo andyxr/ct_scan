@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
+import { detectColumns, cycleTimeFor } from '@/lib/csv'
 
 interface CorrelationAnalysisProps {
   data: any[]
@@ -36,39 +37,14 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
   }, [])
 
   const { processedData, stats } = useMemo((): { processedData: CorrelationDataPoint[], stats: CorrelationStats } => {
-    const allColumns = Object.keys(data[0] || {})
-    console.log('All available columns:', allColumns)
+    const columns = detectColumns(data)
+    const estimateColumn = columns.estimate
+    const idColumn = columns.id
 
-    // Find estimate column
-    let estimateColumn = allColumns.find(key =>
-      key.toLowerCase() === 'estimate' || key.toLowerCase() === 'est'
-    )
-
-    // Find cycle time column
-    let cycleTimeColumn = allColumns.find(key =>
-      key.toLowerCase() === 'ct' || key.toLowerCase() === 'cycle time'
-    )
-
-    // Find ID column
-    let idColumn = allColumns.find(key =>
-      key.toLowerCase() === 'id' || key.toLowerCase() === 'key'
-    )
-
-    console.log('Column mapping:', {
-      estimateColumn,
-      cycleTimeColumn,
-      idColumn
-    })
-
-    if (!estimateColumn || !cycleTimeColumn) {
-      console.warn('Missing required columns for correlation analysis')
+    if (!estimateColumn) {
       return {
         processedData: [],
-        stats: {
-          totalItems: 0,
-          uniqueEstimates: 0,
-          estimateRange: 'N/A'
-        }
+        stats: { totalItems: 0, uniqueEstimates: 0, estimateRange: 'N/A' }
       }
     }
 
@@ -77,10 +53,10 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
     data.forEach(row => {
       const estimate = parseInt(row[estimateColumn])
-      const cycleTime = parseFloat(row[cycleTimeColumn])
-      const id = idColumn ? row[idColumn] : 'Unknown'
+      const cycleTime = cycleTimeFor(row, columns)
+      const id = idColumn ? String(row[idColumn] ?? 'Unknown') : 'Unknown'
 
-      if (!isNaN(estimate) && !isNaN(cycleTime) && cycleTime > 0) {
+      if (!isNaN(estimate) && cycleTime !== null) {
         if (!groupedByEstimate.has(estimate)) {
           groupedByEstimate.set(estimate, [])
         }
@@ -109,11 +85,8 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
       .sort((a, b) => a.estimate - b.estimate)
 
     // Calculate correlation stats
-    const totalItems = estimateColumn && cycleTimeColumn ? data.filter(row =>
-      !isNaN(parseInt(row[estimateColumn])) &&
-      !isNaN(parseFloat(row[cycleTimeColumn])) &&
-      parseFloat(row[cycleTimeColumn]) > 0
-    ).length : 0
+    const totalItems = Array.from(groupedByEstimate.values())
+      .reduce((sum, items) => sum + items.length, 0)
 
     return {
       processedData: chartData,
@@ -203,7 +176,9 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
             <p className="text-gray-500 dark:text-gray-400">
-              {!isMounted ? 'Loading chart...' : 'No data to display'}
+              {!isMounted
+                ? 'Loading chart...'
+                : 'No estimate column found in this CSV, so estimate-to-cycle-time correlation cannot be calculated.'}
             </p>
             {!isMounted && processedData.length > 0 && (
               <p className="text-xs text-gray-400 mt-2">

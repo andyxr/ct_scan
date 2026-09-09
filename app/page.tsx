@@ -66,7 +66,7 @@ export default function Home() {
                 Upload different file
               </button>
             </div>
-            <ActionSelector onActionSelect={handleActionSelect} />
+            <ActionSelector onActionSelect={handleActionSelect} data={csvData} />
           </div>
         ) : (
           <div>

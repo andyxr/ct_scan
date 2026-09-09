@@ -1,40 +1,50 @@
 'use client'
 
+import { useMemo } from 'react'
 import { AnalysisAction } from '@/app/page'
+import { detectColumns } from '@/lib/csv'
 
 interface ActionSelectorProps {
   onActionSelect: (action: AnalysisAction) => void
+  data: any[]
 }
 
-export default function ActionSelector({ onActionSelect }: ActionSelectorProps) {
+export default function ActionSelector({ onActionSelect, data }: ActionSelectorProps) {
+  const columns = useMemo(() => detectColumns(data), [data])
+  const hasEstimate = Boolean(columns.estimate)
+
   const actions = [
     {
       id: 'cycle-time' as AnalysisAction,
       title: 'Cycle Time Analysis',
       description: 'Analyze cycle times with 85th percentile visualization',
       icon: '📊',
-      available: true
+      available: true,
+      unavailableReason: ''
     },
     {
       id: 'process-behaviour' as AnalysisAction,
       title: 'Process Behaviour Chart',
       description: 'Visualize process stability and predictability',
       icon: '📈',
-      available: true
+      available: true,
+      unavailableReason: ''
     },
     {
       id: 'correlation' as AnalysisAction,
       title: 'Correlation Analysis',
       description: 'Analyze correlation between estimates and cycle time ranges',
       icon: '📊',
-      available: true
+      available: hasEstimate,
+      unavailableReason: 'Needs an estimate column'
     },
     {
       id: 'monte-carlo' as AnalysisAction,
       title: 'Monte Carlo Simulation',
       description: 'Forecast delivery probabilities',
       icon: '🎲',
-      available: true
+      available: true,
+      unavailableReason: ''
     }
   ]
 
@@ -55,7 +65,7 @@ export default function ActionSelector({ onActionSelect }: ActionSelectorProps) 
           <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">{action.title}</h3>
           <p className="text-gray-600 dark:text-gray-300 text-sm">{action.description}</p>
           {!action.available && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">Coming soon</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{action.unavailableReason}</p>
           )}
         </button>
       ))}

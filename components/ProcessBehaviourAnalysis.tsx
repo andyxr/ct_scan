@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
+import { detectColumns, toWorkItems } from '@/lib/csv'
 
 interface ProcessBehaviourAnalysisProps {
   data: any[]
@@ -37,106 +38,14 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   }, [])
 
   const { processedData, movingRangeData, stats } = useMemo(() => {
-    const allColumns = Object.keys(data[0] || {})
-    console.log('All available columns:', allColumns)
-
-    // Find required columns (reuse logic from CycleTimeAnalysis)
-    let endDateColumn = allColumns.find(key =>
-      key.toLowerCase() === 'end' || key.toLowerCase() === 'end date'
-    )
-
-    let cycleTimeColumn = allColumns.find(key =>
-      key.toLowerCase() === 'ct' || key.toLowerCase() === 'cycle time'
-    )
-
-    let idColumn = allColumns.find(key =>
-      key.toLowerCase() === 'id' || key.toLowerCase() === 'key'
-    )
-
-    // Fallback detection if specific columns not found
-    if (!endDateColumn || !cycleTimeColumn) {
-      for (const col of allColumns) {
-        const sampleValues = data.slice(0, 5).map(row => row[col]).filter(Boolean)
-
-        if (!endDateColumn) {
-          const isDateColumn = sampleValues.some(val => {
-            const str = val.toString().trim()
-            const datePattern = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/
-            return datePattern.test(str)
-          })
-
-          if (isDateColumn) {
-            endDateColumn = col
-          }
-        }
-
-        if (!cycleTimeColumn) {
-          const isCycleTimeColumn = sampleValues.every(val => {
-            const num = parseFloat(val)
-            return !isNaN(num) && num >= 0 && num <= 100
-          })
-
-          if (isCycleTimeColumn) {
-            cycleTimeColumn = col
-          }
-        }
-      }
-    }
-
-    if (!endDateColumn || !cycleTimeColumn) {
-      console.warn('Missing required columns for process behaviour analysis')
-      return {
-        processedData: [],
-        movingRangeData: [],
-        stats: {
-          centralLine: 0,
-          upperProcessLimit: 0,
-          lowerProcessLimit: 0,
-          averageMovingRange: 0,
-          totalItems: 0,
-          specialCauseCount: 0
-        }
-      }
-    }
-
-    // Process and sort data chronologically by end date
-    const chronologicalData = data
-      .filter(row => endDateColumn && cycleTimeColumn && row[endDateColumn] && row[cycleTimeColumn])
-      .map((row, index) => {
-        const dateString = row[endDateColumn!].toString().trim()
-        const itemId = idColumn ? row[idColumn] : 'Unknown'
-
-        // Parse date (reuse logic from CycleTimeAnalysis)
-        let dateValue: Date
-        const parts = dateString.split(/[-/]/)
-        if (parts.length === 3) {
-          const day = parseInt(parts[0].trim(), 10)
-          const month = parseInt(parts[1].trim(), 10)
-          const year = parseInt(parts[2].trim(), 10)
-
-          if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2020 && year <= 2030) {
-            dateValue = new Date(year, month - 1, day)
-          } else {
-            return null
-          }
-        } else {
-          return null
-        }
-
-        if (isNaN(dateValue.getTime())) {
-          return null
-        }
-
-        return {
-          endDate: dateValue.getTime(),
-          cycleTime: parseFloat(row[cycleTimeColumn!]) || 0,
-          itemId,
-          itemName: idColumn ? row[idColumn] || 'Unknown' : 'Unknown',
-          originalEndDate: dateString
-        }
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null && item.cycleTime > 0)
-      .sort((a, b) => a.endDate - b.endDate)
+    const columns = detectColumns(data)
+    const chronologicalData = toWorkItems(data, columns).map(item => ({
+      endDate: item.endDate,
+      cycleTime: item.cycleTime,
+      itemId: item.id,
+      itemName: item.id,
+      originalEndDate: item.originalEndDate,
+    }))
 
     if (chronologicalData.length === 0) {
       return {

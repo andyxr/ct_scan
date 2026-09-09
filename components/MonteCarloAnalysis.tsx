@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
+import { detectColumns, toWorkItems, formatDate } from '@/lib/csv'
 
 interface MonteCarloAnalysisProps {
   data: any[]
@@ -41,62 +42,19 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   }, [])
 
   const { dailyThroughput, throughputArray } = useMemo(() => {
-    const allColumns = Object.keys(data[0] || {})
+    const columns = detectColumns(data)
+    const items = toWorkItems(data, columns)
 
-    // Find the end date column using the same logic as other components
-    let endDateColumn = allColumns.find(key =>
-      key.toLowerCase() === 'end' || key.toLowerCase() === 'end date'
-    )
-
-    let idColumn = allColumns.find(key =>
-      key.toLowerCase() === 'id' || key.toLowerCase() === 'key'
-    )
-
-    // Fallback detection
-    if (!endDateColumn) {
-      for (const col of allColumns) {
-        const sampleValues = data.slice(0, 5).map(row => row[col]).filter(Boolean)
-        const isDateColumn = sampleValues.some(val => {
-          const str = val.toString().trim()
-          const datePattern = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/
-          return datePattern.test(str)
-        })
-
-        if (isDateColumn) {
-          endDateColumn = col
-          break
-        }
-      }
-    }
-
-    if (!endDateColumn) {
+    if (items.length === 0) {
       return { dailyThroughput: [], throughputArray: [] }
     }
 
-    // Parse all end dates and group by day
+    // Count completions per calendar day
     const dateGroups: { [key: string]: number } = {}
-
-    data.forEach((row, index) => {
-      if (!row[endDateColumn!]) return
-
-      const dateString = row[endDateColumn!].toString().trim()
-      const itemId = idColumn ? row[idColumn] : `Item-${index}`
-
-      // Parse DD/MM/YYYY format
-      const parts = dateString.split(/[-/]/)
-      if (parts.length === 3) {
-        const day = parseInt(parts[0].trim(), 10)
-        const month = parseInt(parts[1].trim(), 10)
-        const year = parseInt(parts[2].trim(), 10)
-
-        if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2020 && year <= 2030) {
-          const dateValue = new Date(year, month - 1, day)
-          if (!isNaN(dateValue.getTime())) {
-            const dateKey = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-            dateGroups[dateKey] = (dateGroups[dateKey] || 0) + 1
-          }
-        }
-      }
+    items.forEach(item => {
+      const d = new Date(item.endDate)
+      const dateKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
+      dateGroups[dateKey] = (dateGroups[dateKey] || 0) + 1
     })
 
     // Find the complete date range (min to max) and fill in all days including zeros
@@ -135,7 +93,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
       const count = dateGroups[dateKey] || 0
 
       dailyThroughputData.push({
-        date: `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`,
+        date: formatDate(currentDate),
         count,
         timestamp: currentTimestamp
       })
