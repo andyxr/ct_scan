@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+/* Tailwind v4 drives dark: from prefers-color-scheme by default. ThemeContext
+   toggles a .dark class on <html>, so bind the variant to that class instead. */
+@custom-variant dark (&:where(.dark, .dark *));
