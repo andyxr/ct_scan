@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, cycleTimeFor } from '@/lib/csv'
+import ExportPngButton from './ExportPngButton'
 
 interface CorrelationAnalysisProps {
   data: any[]
@@ -31,6 +32,7 @@ interface CorrelationStats {
 export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const { theme } = useTheme()
+  const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -133,12 +135,17 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
+        {isMounted && processedData.length > 0 && (
+          <ExportPngButton targetRef={chartRef} filename="correlation-analysis.png" />
+        )}
+      </div>
       <p className="text-gray-600 dark:text-gray-300 mb-6">
         Shows the range of cycle times (CT) for each estimate value. Each bar represents the minimum to maximum cycle time range for that estimate.
       </p>
 
-      <div className="h-96 w-full">
+      <div ref={chartRef} className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height={384}>
             <BarChart

@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
+import ExportPngButton from './ExportPngButton'
 
 interface CycleTimeAnalysisProps {
   data: any[]
@@ -24,6 +25,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [showSprint, setShowSprint] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const { theme } = useTheme()
+  const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -81,7 +83,12 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
+        {isMounted && processedData.length > 0 && (
+          <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
+        )}
+      </div>
 
       <SprintLengthControl
         enabled={showSprint}
@@ -92,7 +99,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         onDaysChange={setSprintDays}
       />
 
-      <div className="h-96 w-full">
+      <div ref={chartRef} className="h-96 w-full">
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height={384}>
             <ScatterChart
