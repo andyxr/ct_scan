@@ -4,7 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
-import DarkModeToggle from '@/components/DarkModeToggle'
+import ThemeControls from '@/components/ThemeControls'
 import SplashScreen from '@/components/SplashScreen'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
@@ -54,7 +54,7 @@ export default function Home() {
     <ThemeProvider>
       <main className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-        <DarkModeToggle />
+        <ThemeControls />
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">Flowgauge</h1>
 

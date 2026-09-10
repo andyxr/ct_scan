@@ -13,3 +13,88 @@
     50% { transform: rotate(12deg); }
   }
 }
+
+/* The Mac OS 8 skin is a pure token remap: utilities like `bg-white` and
+   `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
+   rebinding those variables under .macos8 reskins every component without
+   touching a single Tailwind class. Shadows are the exception; `.shadow-md`
+   inlines its value into --tw-shadow, so those are overridden per utility. */
+.macos8 {
+  --color-gray-50: #cccccc;
+  --color-white: #ffffff;
+  --color-gray-100: #dddddd;
+  --color-gray-200: #bbbbbb;
+  --color-gray-300: #000000;
+  --color-gray-400: #333333;
+  --color-gray-500: #222222;
+  --color-gray-600: #1a1a1a;
+  --color-gray-700: #111111;
+  --color-gray-800: #0a0a0a;
+  --color-gray-900: #000000;
+  --color-blue-400: #6666cc;
+  --color-blue-500: #4d4dbf;
+  --color-blue-600: #333399;
+  --color-blue-700: #222266;
+
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+}
+
+.macos8.dark {
+  --color-black: #1a1a1a;
+  --color-gray-900: #333333;
+  --color-gray-800: #444444;
+  --color-gray-700: #555555;
+  --color-gray-600: #999999;
+  --color-gray-100: #f0f0f0;
+  --color-gray-200: #dddddd;
+  --color-gray-300: #cccccc;
+  --color-gray-400: #aaaaaa;
+  --color-blue-200: #ccccee;
+  --color-blue-300: #b3b3e6;
+  --color-blue-400: #9999dd;
+  --color-blue-500: #8080d4;
+  --color-blue-900: #333366;
+}
+
+.macos8 .shadow-sm,
+.macos8 .shadow-md,
+.macos8 .shadow-lg,
+.macos8 .shadow-xl {
+  --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
+}
+
+.macos8 .hover\:shadow-lg,
+.macos8 .hover\:shadow-md,
+.macos8 .hover\:shadow-xl {
+  &:hover {
+    @media (hover: hover) {
+      --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
+    }
+  }
+}
+
+/* Beat the next/font Inter class on <body>. */
+html.macos8 body {
+  font-family: "Chicago", "ChicagoFLF", "Charcoal", "Geneva", "Verdana", sans-serif;
+}
+
+.macos8 main > div > h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.macos8 main > div > h1::before,
+.macos8 main > div > h1::after {
+  content: "";
+  flex: 1;
+  height: 0.7em;
+  background: repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 2px);
+}

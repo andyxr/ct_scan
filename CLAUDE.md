@@ -96,7 +96,7 @@ oldest first — the shape all four analyses consume.
 - `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart (requires an estimate column)
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
 - `components/MonteCarloAnalysis.tsx` - Monte Carlo simulation for throughput forecasting based on historical data
-- `components/DarkModeToggle.tsx` - Theme switcher using ThemeContext
+- `components/ThemeControls.tsx` - Skin selector and dark mode toggle, using ThemeContext
 - `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 
 ## Development Notes
@@ -111,9 +111,10 @@ oldest first — the shape all four analyses consume.
 
 ### Theme System
 - Dark mode implemented via Tailwind's `class` strategy
-- Theme state persisted to localStorage
-- Respects system preference on first load if no saved preference
-- Theme class applied to document.documentElement for proper Tailwind dark: variant support
+- Two independent axes: `theme` (light/dark) and `skin` (original/macos8), both in ThemeContext
+- Every launch starts in Mac OS 8 light; nothing is persisted and system preference is ignored
+- `app/layout.tsx` sets `light macos8` on `<html>` so the first paint matches the initial state
+- The Mac OS 8 skin is a CSS token remap under `.macos8` / `.macos8.dark` in `app/globals.css`; components carry no skin-specific classes
 
 ### Chart Troubleshooting
 - If a chart is empty for a new CSV: check `detectColumns` first. Log its result —
