@@ -99,7 +99,9 @@ oldest first — the shape all four analyses consume.
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
 - `components/MonteCarloAnalysis.tsx` - Monte Carlo simulation for throughput forecasting based on historical data
 - `components/ThemeControls.tsx` - Fixed top-right bar: About link, skin selector and dark mode toggle
+- `components/Modal.tsx` - Shared dialog shell (backdrop, Escape, close button) used by AboutModal and SprintExplainerModal
 - `components/AboutModal.tsx` - About dialog with the looping logo
+- `components/SprintExplainerModal.tsx` - Reads the sprint line against the process limits; opened from the Explainer link in SprintLengthControl on the PBC page. Source text: `notes/pcb-sprints.md`
 - `components/FlowgaugeLogo.tsx` - Animated bar-chart logo shared by SplashScreen (plays once) and AboutModal (`loop`)
 - `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 

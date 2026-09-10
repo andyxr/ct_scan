@@ -7,12 +7,14 @@ interface SprintLengthControlProps {
   totalCount: number
   onToggle: (enabled: boolean) => void
   onDaysChange: (days: number) => void
+  // Shown as an "Explainer" link while the sprint line is on.
+  onExplain?: () => void
 }
 
 export const DEFAULT_SPRINT_DAYS = 14
 
 /** Toggle and length input for the sprint reference line shared by the cycle time charts. */
-export default function SprintLengthControl({ enabled, days, withinCount, totalCount, onToggle, onDaysChange }: SprintLengthControlProps) {
+export default function SprintLengthControl({ enabled, days, withinCount, totalCount, onToggle, onDaysChange, onExplain }: SprintLengthControlProps) {
   const percent = totalCount > 0 ? Math.round((withinCount / totalCount) * 100) : 0
 
   return (
@@ -41,6 +43,15 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
         <span className="text-amber-700 dark:text-amber-400">
           {withinCount} of {totalCount} items ({percent}%) finished within {days} days
         </span>
+      )}
+      {enabled && onExplain && (
+        <button
+          type="button"
+          onClick={onExplain}
+          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300"
+        >
+          Explainer
+        </button>
       )}
     </div>
   )

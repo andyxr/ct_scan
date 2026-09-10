@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { useTheme } from '@/contexts/ThemeContext'
-import { detectColumns, toWorkItems } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
+import SprintExplainerModal from './SprintExplainerModal'
 import ExportPngButton from './ExportPngButton'
 
 interface ProcessBehaviourAnalysisProps {
@@ -33,6 +34,9 @@ interface ProcessStats {
   limitMethod: 'median' | 'average'
   totalItems: number
   specialCauseCount: number
+  p85: number
+  outsideLimitsCount: number
+  runSignalCount: number
 }
 
 const RUN_LENGTH = 8
@@ -60,6 +64,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   const [isMounted, setIsMounted] = useState(false)
   const [showSprint, setShowSprint] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
+  const [explainerOpen, setExplainerOpen] = useState(false)
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
@@ -90,7 +95,10 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           upperRangeLimit: 0,
           limitMethod: 'median' as const,
           totalItems: 0,
-          specialCauseCount: 0
+          specialCauseCount: 0,
+          p85: 0,
+          outsideLimitsCount: 0,
+          runSignalCount: 0
         }
       }
     }
@@ -165,7 +173,10 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         upperRangeLimit,
         limitMethod,
         totalItems: processedDataPoints.length,
-        specialCauseCount
+        specialCauseCount,
+        p85: percentile(cycleTimes, 0.85),
+        outsideLimitsCount: cycleTimes.filter(ct => ct > upperProcessLimit || ct < lowerProcessLimit).length,
+        runSignalCount: runFlags.size
       }
     }
   }, [data])
@@ -257,7 +268,23 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           totalCount={processedData.length}
           onToggle={setShowSprint}
           onDaysChange={setSprintDays}
+          onExplain={() => setExplainerOpen(true)}
         />
+        {explainerOpen && (
+          <SprintExplainerModal
+            facts={{
+              sprintDays,
+              centralLine: stats.centralLine,
+              p85: stats.p85,
+              upperProcessLimit: stats.upperProcessLimit,
+              withinCount: withinSprint,
+              totalCount: processedData.length,
+              outsideLimitsCount: stats.outsideLimitsCount,
+              runSignalCount: stats.runSignalCount,
+            }}
+            onClose={() => setExplainerOpen(false)}
+          />
+        )}
         <div ref={chartRef} className="h-80 w-full">
           {isMounted && processedData.length > 0 ? (
             <ResponsiveContainer width="100%" height={320}>

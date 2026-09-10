@@ -12,3 +12,4 @@ node_modules
 
 # Agent worktrees
 .claude
+notes/pcb-sprints.md
