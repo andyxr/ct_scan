@@ -91,7 +91,9 @@ oldest first — the shape all four analyses consume.
 - `app/page.tsx` - Main orchestrator managing file upload → action selection → analysis display state flow
 - `components/FileUpload.tsx` - Drag-and-drop CSV upload with Papaparse integration
 - `lib/csv.ts` - Shared column detection, date parsing, cycle time derivation and percentile helper
-- `components/ActionSelector.tsx` - Analysis type selector; takes `data` and disables Correlation when no estimate column is detected
+- `lib/analyses.ts` - The `ANALYSES` table (id, title, icon, whether an estimate column is required) shared by ActionSelector and AnalysisNav
+- `components/ActionSelector.tsx` - Analysis card grid shown after upload; disables Correlation when no estimate column is detected
+- `components/AnalysisNav.tsx` - Tab row on every analysis page for switching between analyses without going back
 - `components/CycleTimeAnalysis.tsx` - Scatter plot with 85th percentile line
 - `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart (requires an estimate column)
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits

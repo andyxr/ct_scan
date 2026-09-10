@@ -4,6 +4,8 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
+import AnalysisNav from '@/components/AnalysisNav'
+import type { AnalysisId } from '@/lib/analyses'
 import ThemeControls from '@/components/ThemeControls'
 import SplashScreen from '@/components/SplashScreen'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -28,7 +30,7 @@ const MonteCarloAnalysis = dynamic(
   { ssr: false }
 )
 
-export type AnalysisAction = 'cycle-time' | 'process-behaviour' | 'correlation' | 'monte-carlo' | null
+export type AnalysisAction = AnalysisId | null
 
 export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
@@ -74,20 +76,12 @@ export default function Home() {
           </div>
         ) : (
           <div>
-            <div className="mb-4">
-              <button
-                onClick={() => setSelectedAction(null)}
-                className="text-sm text-gray-600 hover:text-gray-900 underline mr-4"
-              >
-                ← Back to action selection
-              </button>
-              <button
-                onClick={handleReset}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
-              >
-                Upload different file
-              </button>
-            </div>
+            <AnalysisNav
+              current={selectedAction}
+              onSelect={handleActionSelect}
+              onReset={handleReset}
+              data={csvData}
+            />
 
             {selectedAction === 'cycle-time' && (
               <CycleTimeAnalysis data={csvData} />
