@@ -1,0 +1,12 @@
+#!/bin/sh
+# Refuse to commit while source files exist that git does not track. Every
+# Netlify build failure so far was a new file that never got staged because
+# the commit only included modified files (git commit -am, or a GUI that
+# stages "changed" files).
+untracked=$(git ls-files --others --exclude-standard -- app components contexts lib)
+if [ -n "$untracked" ]; then
+  echo "Commit blocked: these source files are not tracked by git, so the deploy would fail:" >&2
+  echo "$untracked" | sed 's/^/  /' >&2
+  echo "Stage them first, e.g.  git add -A" >&2
+  exit 1
+fi
