@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import Papa from 'papaparse'
-import { FileSpreadsheet, BarChart3 } from 'lucide-react'
+import { FileSpreadsheet, BarChart3, Sparkles } from 'lucide-react'
+import { DEMO_DATA } from '@/lib/demoData'
 
 interface FileUploadProps {
   onUpload: (data: any[]) => void
@@ -101,6 +102,7 @@ DF-74,04/03/2025,11/03/2025`}</code>
         </div>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-6 items-stretch">
       <div
         className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragging
@@ -143,6 +145,27 @@ DF-74,04/03/2025,11/03/2025`}</code>
         {error && (
           <div className="mt-4 text-red-600 dark:text-red-400 text-sm">{error}</div>
         )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setError(null)
+          onUpload(DEMO_DATA)
+        }}
+        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800"
+      >
+        <Sparkles
+          className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3"
+          aria-hidden="true"
+        />
+        <span className="text-base font-medium text-gray-900 dark:text-gray-100">
+          Use demo data
+        </span>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+          30 sample items with estimates, spanning three months
+        </p>
+      </button>
       </div>
     </div>
   )
