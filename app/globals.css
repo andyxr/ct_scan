@@ -3,3 +3,13 @@
 /* Tailwind v4 drives dark: from prefers-color-scheme by default. ThemeContext
    toggles a .dark class on <html>, so bind the variant to that class instead. */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Dice-shake for the Monte Carlo panel icon on hover. */
+@theme {
+  --animate-wiggle: wiggle 0.6s ease-in-out infinite;
+
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-12deg); }
+    50% { transform: rotate(12deg); }
+  }
+}

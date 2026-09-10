@@ -134,7 +134,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
         {isMounted && processedData.length > 0 && (

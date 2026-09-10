@@ -34,7 +34,7 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
           max="365"
           value={days}
           onChange={e => onDaysChange(Math.max(1, Math.min(365, parseInt(e.target.value) || DEFAULT_SPRINT_DAYS)))}
-          className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100"
+          className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 dark:text-gray-100"
         />
       </label>
       {enabled && (

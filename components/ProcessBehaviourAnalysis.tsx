@@ -236,7 +236,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Process Behaviour Chart</h2>
       <p className="text-gray-600 dark:text-gray-300 mb-6">
         Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.

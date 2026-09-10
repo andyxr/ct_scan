@@ -68,7 +68,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
+        <div className="bg-white dark:bg-gray-900 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
           <p className="font-bold text-blue-600 dark:text-blue-400">ID: {data.itemId}</p>
           <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">{data.cycleTime} days</p>
           {data.itemName !== data.itemId && (
@@ -82,7 +82,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
         {isMounted && processedData.length > 0 && (

@@ -52,7 +52,7 @@ export default function Home() {
 
   return (
     <ThemeProvider>
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <main className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
         <DarkModeToggle />
         <div className="container mx-auto px-4 py-8">

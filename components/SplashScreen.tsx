@@ -31,7 +31,7 @@ export default function SplashScreen({ onDone }: { onDone?: () => void }) {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-opacity duration-[400ms] ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-black transition-opacity duration-[400ms] ${
         leaving ? 'opacity-0' : 'opacity-100'
       }`}
     >

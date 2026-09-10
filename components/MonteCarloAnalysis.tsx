@@ -195,7 +195,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
       const data = payload[0].payload as SimulationResult
       const probability = ((data.frequency / stats.totalSimulations) * 100).toFixed(2)
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
+        <div className="bg-white dark:bg-gray-900 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
           <p className="font-bold text-blue-600 dark:text-blue-400">{data.totalItems} items</p>
           <p className="text-sm text-gray-900 dark:text-gray-100">Frequency: {data.frequency}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">Probability: {probability}%</p>
@@ -206,7 +206,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Monte Carlo Simulation</h2>
       <p className="text-gray-600 dark:text-gray-300 mb-6">
         Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
@@ -241,21 +241,21 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Historical Daily Throughput</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                 <div className="font-semibold text-gray-700 dark:text-gray-300">Total Days</div>
                 <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{dailyThroughput.length}</div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                 <div className="font-semibold text-gray-700 dark:text-gray-300">Avg Daily</div>
                 <div className="text-lg font-bold text-green-600 dark:text-green-400">
                   {(throughputArray.reduce((a, b) => a + b, 0) / throughputArray.length).toFixed(1)}
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                 <div className="font-semibold text-gray-700 dark:text-gray-300">Min Daily</div>
                 <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{Math.min(...throughputArray)}</div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                 <div className="font-semibold text-gray-700 dark:text-gray-300">Max Daily</div>
                 <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{Math.max(...throughputArray)}</div>
               </div>
@@ -274,7 +274,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   type="number"
                   value={numSimulations}
                   onChange={(e) => setNumSimulations(Math.max(1000, Math.min(100000, parseInt(e.target.value) || 10000)))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
                   min="1000"
                   max="100000"
                   step="1000"
@@ -288,7 +288,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   type="number"
                   value={forecastHorizon}
                   onChange={(e) => setForecastHorizon(Math.max(1, Math.min(365, parseInt(e.target.value) || 14)))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
                   min="1"
                   max="365"
                 />
@@ -329,15 +329,15 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                     <div className="font-semibold text-gray-700 dark:text-gray-300">Average</div>
                     <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.mean.toFixed(1)}</div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                     <div className="font-semibold text-gray-700 dark:text-gray-300">Range</div>
                     <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.min} - {stats.max}</div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
                     <div className="font-semibold text-gray-700 dark:text-gray-300">Simulations</div>
                     <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.totalSimulations.toLocaleString()}</div>
                   </div>

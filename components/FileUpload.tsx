@@ -73,7 +73,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               One row per completed work item, with an ID, a start date and an end date:
             </p>
-            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 text-xs text-gray-700 dark:text-gray-300">
+            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-300">
               <code>{`ID,Start,End
 DF-73,01/03/2025,15/03/2025
 DF-74,04/03/2025,11/03/2025`}</code>
@@ -107,7 +107,7 @@ DF-74,04/03/2025,11/03/2025`}</code>
         className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragging
             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-900'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -153,7 +153,7 @@ DF-74,04/03/2025,11/03/2025`}</code>
           setError(null)
           onUpload(DEMO_DATA)
         }}
-        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800"
+        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-900"
       >
         <Sparkles
           className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3"
