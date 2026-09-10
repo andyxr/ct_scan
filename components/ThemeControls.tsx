@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { SKINS, useTheme, type Skin } from '@/contexts/ThemeContext'
+import AboutModal from '@/components/AboutModal'
 
 export default function ThemeControls() {
   const { theme, toggleTheme, skin, setSkin } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -14,13 +16,21 @@ export default function ThemeControls() {
 
   return (
     <div
-      className="flex items-center gap-3 z-50"
+      className="flex items-center gap-3 z-50 pl-3 bg-gray-50 dark:bg-black"
       style={{
         position: 'fixed',
         top: '2rem',
         right: '2rem',
       }}
     >
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      <button
+        type="button"
+        onClick={() => setAboutOpen(true)}
+        className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 underline"
+      >
+        About
+      </button>
       <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         Theme
         <select

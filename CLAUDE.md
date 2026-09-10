@@ -98,7 +98,9 @@ oldest first — the shape all four analyses consume.
 - `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart (requires an estimate column)
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
 - `components/MonteCarloAnalysis.tsx` - Monte Carlo simulation for throughput forecasting based on historical data
-- `components/ThemeControls.tsx` - Skin selector and dark mode toggle, using ThemeContext
+- `components/ThemeControls.tsx` - Fixed top-right bar: About link, skin selector and dark mode toggle
+- `components/AboutModal.tsx` - About dialog with the looping logo
+- `components/FlowgaugeLogo.tsx` - Animated bar-chart logo shared by SplashScreen (plays once) and AboutModal (`loop`)
 - `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 
 ## Development Notes
