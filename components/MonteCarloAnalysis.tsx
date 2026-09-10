@@ -359,7 +359,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                         width={800}
                         height={320}
                         data={simulationResults}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                        margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
                         key={`histogram-${stats.totalSimulations}-${forecastHorizon}`}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
                         <XAxis
