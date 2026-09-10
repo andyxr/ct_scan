@@ -36,7 +36,8 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
         <h2 id="about-title" className="sr-only">About Flowgauge</h2>
         <FlowgaugeLogo loop />
         <p className="mt-8 text-center text-gray-700 dark:text-gray-300 leading-relaxed">
-          Flowgauge was developed by Andy Deighton of Ljomi Systems Ltd. Why spend
+          Flowgauge was developed by Andy Deighton of <a href="https://ljomi-systems.com" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200">Ljomi Systems Ltd</a>. Why spend
+     
           money on 3rd party software when you can use Flowgauge instead? More
           features coming soon!
         </p>
