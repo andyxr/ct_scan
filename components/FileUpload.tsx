@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Papa from 'papaparse'
+import { FileSpreadsheet, BarChart3 } from 'lucide-react'
 
 interface FileUploadProps {
   onUpload: (data: any[]) => void
@@ -62,7 +63,44 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
   }
 
   return (
-    <div className="flex justify-center">
+    <div className="flex flex-col items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mb-8">
+        <div className="flex gap-3">
+          <FileSpreadsheet className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">1. Bring your CSV</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              One row per completed work item, with an ID, a start date and an end date:
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 text-xs text-gray-700 dark:text-gray-300">
+              <code>{`ID,Start,End
+DF-73,01/03/2025,15/03/2025
+DF-74,04/03/2025,11/03/2025`}</code>
+            </pre>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+              Headers and date formats are detected automatically, so{' '}
+              <code>Story ID</code>, <code>Start Date (In Progress)</code> and ISO dates
+              work just as well. If your export already has a cycle time column, that is
+              used instead of the start date. Add an estimate column to unlock
+              correlation analysis.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <BarChart3 className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">2. Pick an analysis</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Plot cycle times against an 85th percentile line, chart process
+              behaviour to see whether delivery is stable, compare estimates with
+              actual cycle times, or forecast delivery dates with a Monte Carlo
+              simulation.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div
         className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragging
