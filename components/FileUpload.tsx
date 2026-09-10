@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import Papa from 'papaparse'
 import { FileSpreadsheet, BarChart3, Sparkles } from 'lucide-react'
 import { DEMO_DATA } from '@/lib/demoData'
+import { validationError } from '@/lib/csv'
 
 interface FileUploadProps {
   onUpload: (data: any[]) => void
@@ -21,14 +22,25 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
 
     Papa.parse(file, {
       header: true,
+      skipEmptyLines: true,
       complete: (result) => {
-        if (result.errors.length > 0) {
-          setError('Error parsing CSV file')
+        // A ragged row (a trailing comma, say) reports TooManyFields but still
+        // parses every column we need, so only fatal errors reject the file.
+        const fatal = result.errors.filter(e => e.type === 'Delimiter' || e.type === 'Quotes')
+        if (fatal.length > 0) {
+          setError('Could not read that CSV file.')
           console.error(result.errors)
-        } else {
-          setError(null)
-          onUpload(result.data)
+          return
         }
+
+        const problem = validationError(result.data)
+        if (problem) {
+          setError(problem)
+          return
+        }
+
+        setError(null)
+        onUpload(result.data)
       },
       error: (error) => {
         setError('Error reading file')
@@ -71,19 +83,21 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-gray-100">1. Bring your CSV</h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              One row per completed work item, with an ID, a start date and an end date:
+              One row per completed work item, in this column order: ID, start
+              date, end date, and an optional estimate.
             </p>
             <pre className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-300">
-              <code>{`ID,Start,End
-DF-73,01/03/2025,15/03/2025
-DF-74,04/03/2025,11/03/2025`}</code>
+              <code>{`ID,Start,End,Estimate
+DF-73,01/03/2025,15/03/2025,5
+DF-74,04/03/2025,11/03/2025,3`}</code>
             </pre>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-              Headers and date formats are detected automatically, so{' '}
-              <code>Story ID</code>, <code>Start Date (In Progress)</code> and ISO dates
-              work just as well. If your export already has a cycle time column, that is
-              used instead of the start date. Add an estimate column to unlock
-              correlation analysis.
+              Columns are read by position, so the headers can be named anything —{' '}
+              <code>Story ID</code> and <code>Start Date (In Progress)</code> work
+              just as well. Date formats are detected per value, so DD/MM/YYYY and
+              ISO timestamps such as <code>2026-01-27T15:42:43Z</code> both parse.
+              Cycle time is worked out from the two dates. Include the fourth
+              column to unlock correlation analysis.
             </p>
           </div>
         </div>

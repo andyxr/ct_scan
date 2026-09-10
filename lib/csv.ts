@@ -1,52 +1,33 @@
 /**
- * Shared CSV column detection and date parsing.
+ * Shared CSV column reading and date parsing.
  *
- * Every analysis component used to re-implement this inline, which meant a new
- * CSV shape broke each of them in a slightly different way. Detection lives
- * here now so all four analyses agree on what a column means.
+ * Columns are identified by POSITION, not by header name:
+ *
+ *   0: item ID   1: start date   2: end date   3: estimate (optional)
+ *
+ * Header names and date formats vary between exports, so neither is reliable;
+ * the column order is the contract. Name-based matching and content sniffing
+ * both used to live here, and both guessed wrong on real files — an ISO
+ * timestamp parses as the number 2026 under parseFloat, so a date column could
+ * be claimed as cycle time and every item came out with a ~2027-day cycle time.
+ * Position removes the guess entirely.
+ *
+ * Cycle time is always derived from the start and end dates. A cycle time
+ * column in the source is not read, because position 3 is the estimate.
  */
 
 export interface ColumnMap {
   endDate?: string
   startDate?: string
-  cycleTime?: string
   id?: string
   estimate?: string
 }
 
-/** Normalise a header for matching: lowercase, strip punctuation and bracketed qualifiers. */
-function normalise(header: string): string {
-  return header
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, ' ') // drop "(In Progress)", "(Days)", "(Done)"
-    .replace(/[_\-]/g, ' ')
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/**
- * Match a header by exact normalised name first, then by whole-word containment.
- * Exact wins so that "End Date" beats "Start Date (In Progress)" for `end`.
- */
-function findColumn(columns: string[], exact: string[], contains: string[][]): string | undefined {
-  const normalised = columns.map(col => ({ col, norm: normalise(col) }))
-
-  for (const want of exact) {
-    const hit = normalised.find(c => c.norm === want)
-    if (hit) return hit.col
-  }
-
-  for (const words of contains) {
-    const hit = normalised.find(c => {
-      const tokens = c.norm.split(' ')
-      return words.every(w => tokens.includes(w))
-    })
-    if (hit) return hit.col
-  }
-
-  return undefined
-}
+/** Column positions, fixed by the CSV contract above. */
+const ID = 0
+const START = 1
+const END = 2
+const ESTIMATE = 3
 
 /**
  * Parse a date cell. Handles ISO 8601 (with or without a time component) and
@@ -84,79 +65,74 @@ export function parseDate(value: unknown): Date | null {
   return null
 }
 
-/** True if a column's sample values parse as dates. */
-function looksLikeDates(values: unknown[]): boolean {
-  const parsed = values.map(parseDate).filter(Boolean)
-  return values.length > 0 && parsed.length >= values.length * 0.8
-}
-
-/** True if a column's sample values are all non-negative numbers. */
-function looksNumeric(values: unknown[]): boolean {
+/** True if enough of a column's values parse as dates to call it a date column. */
+function mostlyDates(data: any[], column: string): boolean {
+  const values = data
+    .slice(0, 20)
+    .map(row => row[column])
+    .filter(v => v !== null && v !== undefined && v !== '')
   if (values.length === 0) return false
-  return values.every(val => {
-    const num = parseFloat(String(val))
-    return !isNaN(num) && num >= 0
-  })
+  return values.filter(v => parseDate(v) !== null).length >= values.length * 0.8
 }
 
-function sample(data: any[], column: string, size = 20): unknown[] {
-  return data.slice(0, size).map(row => row[column]).filter(v => v !== null && v !== undefined && v !== '')
+/** True if enough of a column's values are numbers to group by. */
+function mostlyNumeric(data: any[], column: string): boolean {
+  const values = data
+    .slice(0, 20)
+    .map(row => row[column])
+    .filter(v => v !== null && v !== undefined && v !== '')
+  if (values.length === 0) return false
+  // Whole string must be numeric: parseFloat alone accepts "2026-01-27T15:42:43Z".
+  return values.filter(v => /^-?\d+(\.\d+)?$/.test(String(v).trim())).length >= values.length * 0.8
 }
 
 /**
- * Work out which column is which. Named headers take priority; content-based
- * detection is a fallback for files whose headers we don't recognise.
+ * Map the fixed column positions onto this file's header names.
+ *
+ * Papaparse runs with `header: true` and preserves source column order, so the
+ * Nth key of a row is the Nth column of the file.
  */
 export function detectColumns(data: any[]): ColumnMap {
   const columns = Object.keys(data[0] || {})
 
-  const map: ColumnMap = {
-    endDate: findColumn(columns, ['end', 'end date', 'done', 'completed', 'resolved'],
-      [['end'], ['done'], ['completed'], ['resolved'], ['closed']]),
-    startDate: findColumn(columns, ['start', 'start date', 'started'],
-      [['start'], ['started'], ['began']]),
-    cycleTime: findColumn(columns, ['ct', 'cycle time', 'cycletime', 'lead time', 'age'],
-      [['cycle', 'time'], ['lead', 'time'], ['ct']]),
-    id: findColumn(columns, ['id', 'key', 'story id', 'issue key', 'ticket'],
-      [['id'], ['key'], ['ticket']]),
-    estimate: findColumn(columns, ['estimate', 'est', 'story points', 'points', 'size'],
-      [['estimate'], ['points'], ['size']]),
+  return {
+    id: columns[ID],
+    startDate: columns[START],
+    endDate: columns[END],
+    // Only offer an estimate when column 3 holds numbers to group by; a
+    // non-numeric 4th column would otherwise enable Correlation on empty data.
+    estimate: columns[ESTIMATE] && mostlyNumeric(data, columns[ESTIMATE])
+      ? columns[ESTIMATE]
+      : undefined,
+  }
+}
+
+/**
+ * Why a CSV can't be analysed, or null when it is usable.
+ *
+ * The column contract is positional, so a file in the wrong shape can't be
+ * salvaged by guessing — say so at upload instead of drawing an empty chart.
+ */
+export function validationError(data: any[]): string | null {
+  if (data.length === 0) return 'That file has no rows.'
+
+  const columns = Object.keys(data[0] || {})
+  if (columns.length < 3) {
+    return 'Expected at least 3 columns: item ID, start date, end date.'
   }
 
-  // A start column must not double as the end column.
-  if (map.startDate && map.startDate === map.endDate) map.startDate = undefined
-
-  // Content-based fallbacks, skipping any column already claimed.
-  const claimed = new Set(Object.values(map).filter(Boolean) as string[])
-
-  if (!map.endDate) {
-    // Prefer the latest-dated column: that is the completion date.
-    const dateCols = columns.filter(col => !claimed.has(col) && looksLikeDates(sample(data, col)))
-    let best: { col: string; max: number } | undefined
-    for (const col of dateCols) {
-      const max = Math.max(...data.map(r => parseDate(r[col])?.getTime() ?? -Infinity))
-      if (!best || max > best.max) best = { col, max }
-    }
-    if (best) {
-      map.endDate = best.col
-      claimed.add(best.col)
-    }
+  if (!mostlyDates(data, columns[START])) {
+    return `Column 2 ("${columns[START]}") should be the start date, but its values aren't dates.`
+  }
+  if (!mostlyDates(data, columns[END])) {
+    return `Column 3 ("${columns[END]}") should be the end date, but its values aren't dates.`
   }
 
-  if (!map.cycleTime) {
-    const col = columns.find(c => !claimed.has(c) && looksNumeric(sample(data, c)))
-    if (col) {
-      map.cycleTime = col
-      claimed.add(col)
-    }
+  if (toWorkItems(data, detectColumns(data)).length === 0) {
+    return 'No rows had a usable start and end date.'
   }
 
-  if (!map.id) {
-    const col = columns.find(c => !claimed.has(c))
-    if (col) map.id = col
-  }
-
-  return map
+  return null
 }
 
 export interface WorkItem {
@@ -169,25 +145,21 @@ export interface WorkItem {
 /**
  * Cycle time for a row, in whole days, counted inclusively: an item started and
  * finished on the same day is 1 day, so every value is elapsed days plus one.
- * Uses the CSV's own cycle time column when present, otherwise derives it from
- * the start and end calendar dates.
+ * This matches the Vacanti and ActionableAgile convention.
+ *
+ * Always derived from the start and end calendar dates. A cycle time column in
+ * the source is not read: position 3 is the estimate, and an export's own
+ * "active" cycle time measures something different from elapsed calendar days.
  */
 export function cycleTimeFor(row: any, columns: ColumnMap): number | null {
-  if (columns.cycleTime) {
-    const raw = parseFloat(String(row[columns.cycleTime]))
-    if (!isNaN(raw) && raw >= 0) return Math.round(raw) + 1
-  }
+  if (!columns.startDate || !columns.endDate) return null
 
-  if (columns.startDate && columns.endDate) {
-    const start = parseDate(row[columns.startDate])
-    const end = parseDate(row[columns.endDate])
-    if (start && end) {
-      const days = Math.round((startOfDay(end) - startOfDay(start)) / 86400000)
-      if (days >= 0) return days + 1
-    }
-  }
+  const start = parseDate(row[columns.startDate])
+  const end = parseDate(row[columns.endDate])
+  if (!start || !end) return null
 
-  return null
+  const days = Math.round((startOfDay(end) - startOfDay(start)) / 86400000)
+  return days >= 0 ? days + 1 : null
 }
 
 /** Local midnight for a date, so day arithmetic ignores time of day. */

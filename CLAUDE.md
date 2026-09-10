@@ -24,26 +24,35 @@ This is a Next.js application for analyzing CSV files containing development tea
 - **Lucide React** for icon components
 
 ### Expected CSV Format
-Column names and date formats are detected at runtime, so no fixed header row is
-required. The app looks for these roles:
+Columns are identified by **position**, not by header name. A header row is
+always required, but its names are free text. The contract is:
 
-- **ID** - Item identifier. e.g. `ID`, `Key`, `Story ID`
-- **Start date** - Optional. Used to derive cycle time when no cycle time column exists
-- **End date** - Required. The completion date every analysis is plotted against
-- **Cycle time** - Days. e.g. `CT`, `Cycle Time`, `Active Cycle Time (Days)`
-- **Estimate** - Optional. Only Correlation Analysis needs it
+| Position | Role | Required |
+|---|---|---|
+| 1 | Item ID | Yes |
+| 2 | Start date | Yes |
+| 3 | End date | Yes |
+| 4 | Estimate | Optional — only Correlation Analysis needs it |
 
-Both of these parse correctly:
+Cycle time is always derived from the start and end dates; a cycle time column
+in the source is **not** read, because position 4 is the estimate.
+
+Date formats are detected per value, so the two dates may be in different
+formats. Both of these parse correctly:
 
 ```
-ID,Start,End,CT,Estimate
-DF-73,01/03/2025,15/03/2025,14,5
+ID,Start,End,Estimate
+DF-73,01/03/2025,15/03/2025,5
 ```
 
 ```
-Story ID,Start Date (In Progress),End Date (Done),Active Cycle Time (Days)
-FSPT-1589,2026-08-25T08:55:37Z,2026-09-02T16:42:16Z,8.32
+Story ID,Start Date (In Progress),End Date (Done),Estimate
+FSPT-1589,2026-08-25T08:55:37Z,2026-09-02T16:42:16Z,5
 ```
+
+A file that breaks the contract (fewer than 3 columns, or columns 2/3 not
+parsing as dates) is rejected at upload by `validationError` with a message
+naming the offending column, rather than rendering an empty chart.
 
 ### Application State Flow
 1. `app/page.tsx` manages three main states: file upload → action selection → analysis display
@@ -56,21 +65,24 @@ All CSV interpretation lives in `lib/csv.ts`. Analysis components call
 raw rows. Keep it that way: this logic previously sat inline in each of the four
 components, and a new CSV shape broke each one differently.
 
-**Header matching** normalises first (lowercase, strip `(bracketed)` qualifiers
-and punctuation), so `End Date (Done)` matches the `end` role. Exact matches are
-tried before whole-word containment, which stops `Start Date (In Progress)` from
-being claimed as the end date.
+**Positional mapping.** `detectColumns` takes `Object.keys(data[0])` and maps
+index 0→id, 1→startDate, 2→endDate, 3→estimate. Papaparse runs with
+`header: true` and preserves source column order, so the Nth key is the Nth
+column of the file.
 
-**Content-based fallback** runs only for roles no header matched, and skips
-columns already claimed:
-- End date: the date-parsing column with the latest maximum value
-- Cycle time: the first remaining column of non-negative numbers (no upper bound)
+This replaced header-name matching plus content sniffing, which guessed wrong on
+real files: `parseFloat("2026-01-27T15:42:43Z")` returns `2026`, so an ISO date
+column passed a "looks numeric" test and got claimed as cycle time, giving every
+item a ~2027-day cycle time. Position removes the guess. Do not reintroduce
+name-based or content-based detection.
 
-**Cycle time** (`cycleTimeFor`) prefers the CSV's own cycle time column, and
-falls back to the calendar-day difference when only dates are present. Counting
-is inclusive: every value is rounded elapsed days plus one, so a same-day item
-(`0.00` in the source) is 1 day and `8.32` is 9. This matches the Vacanti and
-ActionableAgile convention.
+**Estimate** is the one position with a content check: column 4 is offered as an
+estimate only if ~80% of its values are wholly numeric (`mostlyNumeric`), so a
+4th column holding names doesn't enable Correlation on data it can't group.
+
+**Cycle time** (`cycleTimeFor`) is the inclusive calendar-day difference between
+the two dates: rounded elapsed days plus one, so a same-day item is 1 day. This
+matches the Vacanti and ActionableAgile convention.
 
 **`toWorkItems`** returns `{ id, endDate, cycleTime, originalEndDate }` sorted
 oldest first — the shape all four analyses consume.
@@ -123,8 +135,10 @@ oldest first — the shape all four analyses consume.
 - The Mac OS 8 skin is a CSS token remap under `.macos8` / `.macos8.dark` in `app/globals.css`; components carry no skin-specific classes
 
 ### Chart Troubleshooting
-- If a chart is empty for a new CSV: check `detectColumns` first. Log its result —
-  a missing `endDate` role empties every analysis
+- If a chart is empty for a new CSV: the file almost certainly breaks the column
+  contract, and `validationError` should have rejected it at upload. Check the
+  column order first — a file whose dates are not in positions 2 and 3 empties
+  every analysis
 - If axes and reference lines draw but points do not: the series is missing its
   `dataKey` (see Chart Implementation Notes)
 - If points appear at wrong X-axis positions: check date parsing logic and domain calculation
