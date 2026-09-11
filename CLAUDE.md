@@ -18,7 +18,7 @@ This is a Next.js application for analyzing CSV files containing development tea
 ### Tech Stack
 - **Next.js 15** with App Router and React 18
 - **TypeScript** with strict mode enabled
-- **Tailwind CSS 4** with PostCSS, dark mode via `class` strategy
+- **Tailwind CSS 4** with PostCSS
 - **Papaparse** for client-side CSV parsing
 - **Recharts 3.2** for data visualization (ScatterChart, LineChart, BarChart)
 - **Lucide React** for icon components
@@ -110,12 +110,11 @@ oldest first — the shape all four analyses consume.
 - `components/CorrelationAnalysis.tsx` - Cycle time vs estimate correlation chart (requires an estimate column)
 - `components/ProcessBehaviourAnalysis.tsx` - Process behaviour chart with control limits
 - `components/MonteCarloAnalysis.tsx` - Monte Carlo simulation for throughput forecasting based on historical data
-- `components/ThemeControls.tsx` - Fixed top-right bar: About link, skin selector and dark mode toggle
+- `components/AboutLink.tsx` - Fixed top-right About link that opens AboutModal
 - `components/Modal.tsx` - Shared dialog shell (backdrop, Escape, close button) used by AboutModal and SprintExplainerModal
 - `components/AboutModal.tsx` - About dialog with the looping logo
 - `components/SprintExplainerModal.tsx` - Reads the sprint line against the process limits; opened from the Explainer link in SprintLengthControl on the PBC page. Source text: `notes/pcb-sprints.md`
 - `components/FlowgaugeLogo.tsx` - Animated bar-chart logo shared by SplashScreen (plays once) and AboutModal (`loop`)
-- `contexts/ThemeContext.tsx` - Theme provider managing dark/light mode state
 
 ## Development Notes
 
@@ -127,12 +126,10 @@ oldest first — the shape all four analyses consume.
 - `formatDate` renders DD/MM/YYYY for display; use it instead of rebuilding the string
 - Uses `.getTime()` for timestamp conversion to Recharts
 
-### Theme System
-- Dark mode implemented via Tailwind's `class` strategy
-- Two independent axes: `theme` (light/dark) and `skin` (original/macos8), both in ThemeContext
-- Every launch starts in Mac OS 8 light; nothing is persisted and system preference is ignored
-- `app/layout.tsx` sets `light macos8` on `<html>` so the first paint matches the initial state
-- The Mac OS 8 skin is a CSS token remap under `.macos8` / `.macos8.dark` in `app/globals.css`; components carry no skin-specific classes
+### Styling
+- There is a single look, modelled on Mac OS 8, and no dark mode
+- It is a CSS token remap on `:root` in `app/globals.css`: Tailwind utilities like `bg-white` compile to `var(--color-white)`, so rebinding the variables reskins every component without skin-specific classes
+- Do not add `dark:` utilities; the `dark` variant is not bound to anything
 
 ### Chart Troubleshooting
 - If a chart is empty for a new CSV: the file almost certainly breaks the column
@@ -144,4 +141,3 @@ oldest first — the shape all four analyses consume.
 - If points appear at wrong X-axis positions: check date parsing logic and domain calculation
 - If React key errors occur: ensure chart component has stable props and proper key management
 - If chart doesn't render: verify SSR is disabled and isMounted state is working
-- Dark mode toggle uses `fixed` positioning to stay in viewport corner

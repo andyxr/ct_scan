@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SprintExplainerModal from './SprintExplainerModal'
@@ -68,7 +67,6 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   const [explainerOpen, setExplainerOpen] = useState(false)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
-  const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -253,11 +251,11 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
-      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Process Behaviour Chart</h2>
+      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
+      : 'bg-white rounded-lg shadow p-6'}>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-900">Process Behaviour Chart</h2>
       {!maximised && (
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
+        <p className="text-gray-600 mb-6">
           Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.
         </p>
       )}
@@ -265,7 +263,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Individual Values Chart */}
       <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-8'}>
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Individual Values (Cycle Times)</h3>
+          <h3 className="text-lg font-medium text-gray-900">Individual Values (Cycle Times)</h3>
           <div className="flex items-center gap-2">
             {isMounted && processedData.length > 0 && (
               <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
@@ -369,7 +367,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Moving Range Chart */}
       {!maximised && (
       <div className="mb-6">
-        <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Moving Range</h3>
+        <h3 className="text-lg font-medium mb-3 text-gray-900">Moving Range</h3>
         <div className="h-64 w-full">
           {isMounted && movingRangeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={256}>

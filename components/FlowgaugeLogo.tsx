@@ -13,12 +13,12 @@ export default function FlowgaugeLogo({ loop = false }: { loop?: boolean }) {
         {bars.map((h, i) => (
           <span
             key={i}
-            className={`${loop ? 'splash-bar-loop' : 'splash-bar'} w-4 rounded-md bg-blue-600 dark:bg-blue-400`}
+            className={`${loop ? 'splash-bar-loop' : 'splash-bar'} w-4 rounded-md bg-blue-600`}
             style={{ height: h, animationDelay: `${110 * i}ms` }}
           />
         ))}
       </div>
-      <span className="splash-word text-lg font-semibold tracking-[0.3em] text-gray-900 dark:text-gray-100 uppercase">
+      <span className="splash-word text-lg font-semibold tracking-[0.3em] text-gray-900 uppercase">
         Flowgauge
       </span>
       <style jsx global>{`

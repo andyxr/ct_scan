@@ -79,19 +79,19 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
     <div className="flex flex-col items-center">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mb-8">
         <div className="flex gap-3">
-          <FileSpreadsheet className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <FileSpreadsheet className="h-6 w-6 shrink-0 text-blue-600" aria-hidden="true" />
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">1. Bring your CSV</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+            <h2 className="font-semibold text-gray-900">1. Bring your CSV</h2>
+            <p className="text-sm text-gray-600 mt-1">
               One row per completed work item, in this column order: ID, start
               date, end date, and an optional estimate.
             </p>
-            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-300">
+            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
               <code>{`ID,Start,End,Estimate
 DF-73,01/03/2025,15/03/2025,5
 DF-74,04/03/2025,11/03/2025,3`}</code>
             </pre>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-sm text-gray-600 mt-2">
               Columns are read by position, so the headers can be named anything —{' '}
               <code>Story ID</code> and <code>Start Date (In Progress)</code> work
               just as well. Date formats are detected per value, so DD/MM/YYYY and
@@ -103,10 +103,10 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
         </div>
 
         <div className="flex gap-3">
-          <BarChart3 className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <BarChart3 className="h-6 w-6 shrink-0 text-blue-600" aria-hidden="true" />
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">2. Pick an analysis</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+            <h2 className="font-semibold text-gray-900">2. Pick an analysis</h2>
+            <p className="text-sm text-gray-600 mt-1">
               Plot cycle times against an 85th percentile line, chart process
               behaviour to see whether delivery is stable, compare estimates with
               actual cycle times, or forecast delivery dates with a Monte Carlo
@@ -120,15 +120,15 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
       <div
         className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-900'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-300 hover:border-gray-400 bg-white'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
         <svg
-          className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3"
+          className="mx-auto h-8 w-8 text-gray-400 mb-3"
           stroke="currentColor"
           fill="none"
           viewBox="0 0 48 48"
@@ -142,10 +142,10 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
         </svg>
 
         <label htmlFor="file-upload" className="cursor-pointer">
-          <span className="text-base font-medium text-gray-900 dark:text-gray-100">
+          <span className="text-base font-medium text-gray-900">
             Drop CSV file here
           </span>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">or click to browse</p>
+          <p className="text-sm text-gray-600 mt-1">or click to browse</p>
           <input
             id="file-upload"
             name="file-upload"
@@ -157,7 +157,7 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
         </label>
 
         {error && (
-          <div className="mt-4 text-red-600 dark:text-red-400 text-sm">{error}</div>
+          <div className="mt-4 text-red-600 text-sm">{error}</div>
         )}
       </div>
 
@@ -167,16 +167,16 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
           setError(null)
           onUpload(DEMO_DATA)
         }}
-        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-900"
+        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 hover:border-gray-400 bg-white"
       >
         <Sparkles
-          className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-3"
+          className="mx-auto h-8 w-8 text-gray-400 mb-3"
           aria-hidden="true"
         />
-        <span className="text-base font-medium text-gray-900 dark:text-gray-100">
+        <span className="text-base font-medium text-gray-900">
           Use demo data
         </span>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+        <p className="text-sm text-gray-600 mt-1">
           30 sample items with estimates, spanning three months
         </p>
       </button>

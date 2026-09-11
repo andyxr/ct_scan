@@ -31,19 +31,19 @@ export default function Modal({ title, hideTitle = false, onClose, children }: M
         aria-modal="true"
         aria-labelledby="modal-title"
         onClick={event => event.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 shadow-lg p-8"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white border border-gray-300 shadow-lg p-8"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-3 right-3 p-1 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="absolute top-3 right-3 p-1 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100"
         >
           <X className="w-5 h-5" aria-hidden="true" />
         </button>
         <h2
           id="modal-title"
-          className={hideTitle ? 'sr-only' : 'text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4 pr-8'}
+          className={hideTitle ? 'sr-only' : 'text-xl font-semibold text-gray-900 mb-4 pr-8'}
         >
           {title}
         </h2>

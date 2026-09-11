@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-/* Tailwind v4 drives dark: from prefers-color-scheme by default. ThemeContext
-   toggles a .dark class on <html>, so bind the variant to that class instead. */
-@custom-variant dark (&:where(.dark, .dark *));
-
 /* Dice-shake for the Monte Carlo panel icon on hover. */
 @theme {
   --animate-wiggle: wiggle 0.6s ease-in-out infinite;
@@ -14,12 +10,12 @@
   }
 }
 
-/* The Mac OS 8 skin is a pure token remap: utilities like `bg-white` and
+/* The Mac OS 8 look is a pure token remap: utilities like `bg-white` and
    `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
-   rebinding those variables under .macos8 reskins every component without
+   rebinding those variables on :root reskins every component without
    touching a single Tailwind class. Shadows are the exception; `.shadow-md`
    inlines its value into --tw-shadow, so those are overridden per utility. */
-.macos8 {
+:root {
   --color-gray-50: #cccccc;
   --color-white: #ffffff;
   --color-gray-100: #dddddd;
@@ -46,33 +42,16 @@
   --radius-4xl: 0;
 }
 
-.macos8.dark {
-  --color-black: #1a1a1a;
-  --color-gray-900: #333333;
-  --color-gray-800: #444444;
-  --color-gray-700: #555555;
-  --color-gray-600: #999999;
-  --color-gray-100: #f0f0f0;
-  --color-gray-200: #dddddd;
-  --color-gray-300: #cccccc;
-  --color-gray-400: #aaaaaa;
-  --color-blue-200: #ccccee;
-  --color-blue-300: #b3b3e6;
-  --color-blue-400: #9999dd;
-  --color-blue-500: #8080d4;
-  --color-blue-900: #333366;
-}
-
-.macos8 .shadow-sm,
-.macos8 .shadow-md,
-.macos8 .shadow-lg,
-.macos8 .shadow-xl {
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
   --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
 }
 
-.macos8 .hover\:shadow-lg,
-.macos8 .hover\:shadow-md,
-.macos8 .hover\:shadow-xl {
+.hover\:shadow-lg,
+.hover\:shadow-md,
+.hover\:shadow-xl {
   &:hover {
     @media (hover: hover) {
       --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
@@ -81,18 +60,18 @@
 }
 
 /* Beat the next/font Inter class on <body>. */
-html.macos8 body {
+body {
   font-family: "Chicago", "ChicagoFLF", "Charcoal", "Geneva", "Verdana", sans-serif;
 }
 
-.macos8 main > div > h1 {
+main > div > h1 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.macos8 main > div > h1::before,
-.macos8 main > div > h1::after {
+main > div > h1::before,
+main > div > h1::after {
   content: "";
   flex: 1;
   height: 0.7em;

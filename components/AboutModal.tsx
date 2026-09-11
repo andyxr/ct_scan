@@ -8,7 +8,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
     <Modal title="About Flowgauge" hideTitle onClose={onClose}>
       <div className="max-w-md mx-auto">
         <FlowgaugeLogo loop />
-        <p className="mt-8 text-center text-gray-700 dark:text-gray-300 leading-relaxed">
+        <p className="mt-8 text-center text-gray-700 leading-relaxed">
           Flowgauge was developed by Andy Deighton of Ljomi Systems Ltd. Why spend
           money on 3rd party software when you can use Flowgauge instead? More
           features coming soon!

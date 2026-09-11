@@ -20,7 +20,7 @@ export default function ChartViewToggle({ view, onChange }: ChartViewToggleProps
       onClick={() => onChange(maximised ? 'normal' : 'maximised')}
       aria-label={label}
       title={label}
-      className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+      className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700"
     >
       {maximised ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
       {maximised ? 'Restore' : 'Maximise'}

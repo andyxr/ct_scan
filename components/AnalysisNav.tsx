@@ -30,10 +30,10 @@ export default function AnalysisNav({ current, onSelect, onReset, data }: Analys
             title={available ? undefined : ESTIMATE_REQUIRED_REASON}
             className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border transition-colors ${
               active
-                ? 'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500'
+                ? 'bg-blue-600 text-white border-blue-600'
                 : available
-                  ? 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 cursor-not-allowed'
+                  ? 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
             }`}
           >
             <analysis.Icon className="w-4 h-4" aria-hidden="true" />
@@ -44,7 +44,7 @@ export default function AnalysisNav({ current, onSelect, onReset, data }: Analys
       <button
         type="button"
         onClick={onReset}
-        className="ml-auto text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
+        className="ml-auto text-sm text-gray-600 hover:text-gray-900 underline"
       >
         Upload different file
       </button>

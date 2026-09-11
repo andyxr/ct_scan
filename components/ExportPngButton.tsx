@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Download } from 'lucide-react'
-import { useTheme } from '@/contexts/ThemeContext'
 import { exportSvgToPng } from '@/lib/png'
 
 type Status = 'idle' | 'exporting' | 'error'
@@ -20,7 +19,6 @@ interface ExportPngButtonProps {
 
 export default function ExportPngButton({ targetRef, filename }: ExportPngButtonProps) {
   const [status, setStatus] = useState<Status>('idle')
-  const { theme } = useTheme()
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -41,7 +39,7 @@ export default function ExportPngButton({ targetRef, filename }: ExportPngButton
 
     setStatus('exporting')
     try {
-      await exportSvgToPng(svg, filename, theme === 'dark' ? '#1f2937' : '#ffffff')
+      await exportSvgToPng(svg, filename, '#ffffff')
       setStatus('idle')
     } catch {
       setStatus('error')
@@ -54,7 +52,7 @@ export default function ExportPngButton({ targetRef, filename }: ExportPngButton
       type="button"
       onClick={handleClick}
       disabled={status === 'exporting'}
-      className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 disabled:opacity-50"
+      className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700 disabled:opacity-50"
     >
       <Download className="w-4 h-4" />
       {LABELS[status]}

@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, cycleTimeFor } from '@/lib/csv'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
@@ -52,7 +51,6 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
   const [isMounted, setIsMounted] = useState(false)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
-  const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -158,10 +156,10 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
-      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
+      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
+      : 'bg-white rounded-lg shadow p-6'}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Correlation Analysis</h2>
         <div className="flex items-center gap-2">
           {isMounted && processedData.length > 0 && (
             <ExportPngButton targetRef={chartRef} filename="correlation-analysis.png" />
@@ -170,7 +168,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         </div>
       </div>
       {!maximised && (
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
+        <p className="text-gray-600 mb-6">
           Shows the range of cycle times (CT) for each estimate value. Each marker spans the minimum to maximum cycle time for that estimate.
         </p>
       )}
@@ -181,11 +179,11 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
             <BarChart
               data={processedData}
               margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="estimate"
                 label={{ value: 'Estimate', position: 'insideBottom', offset: -10 }}
-                tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
+                tick={{ fontSize: 12, fill: '#6b7280' }}
               />
               <YAxis
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
@@ -202,13 +200,13 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
               <Bar
                 dataKey="range"
                 stackId="range"
-                shape={<RangeMarker color={theme === 'dark' ? '#60a5fa' : '#3b82f6'} />}
+                shape={<RangeMarker color="#3b82f6" />}
               />
             </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-500">
               {!isMounted
                 ? 'Loading chart...'
                 : 'No estimate column found in this CSV, so estimate-to-cycle-time correlation cannot be calculated.'}
@@ -240,7 +238,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
       )}
 
       {!maximised && (
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mt-4 text-sm text-gray-600">
           <p>Each marker shows the full range of cycle times for items with that estimate value. Hover over a marker for a detailed breakdown.</p>
         </div>
       )}

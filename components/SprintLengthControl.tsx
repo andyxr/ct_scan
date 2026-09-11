@@ -18,7 +18,7 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
   const percent = totalCount > 0 ? Math.round((withinCount / totalCount) * 100) : 0
 
   return (
-    <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700 dark:text-gray-300">
+    <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
@@ -36,11 +36,11 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
           max="365"
           value={days}
           onChange={e => onDaysChange(Math.max(1, Math.min(365, parseInt(e.target.value) || DEFAULT_SPRINT_DAYS)))}
-          className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 dark:text-gray-100"
+          className="w-20 px-2 py-1 border border-gray-300 rounded"
         />
       </label>
       {enabled && (
-        <span className="text-amber-700 dark:text-amber-400">
+        <span className="text-amber-700">
           {withinCount} of {totalCount} items ({percent}%) finished within {days} days
         </span>
       )}
@@ -48,7 +48,7 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
         <button
           type="button"
           onClick={onExplain}
-          className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300"
+          className="text-blue-600 underline hover:text-blue-800"
         >
           Explainer
         </button>

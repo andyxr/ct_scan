@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, formatDate } from '@/lib/csv'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
@@ -40,7 +39,6 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [runId, setRunId] = useState(0)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
-  const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEscapeToRestore(view, () => setView('normal'))
@@ -200,10 +198,10 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
       const data = payload[0].payload as SimulationResult
       const probability = ((data.frequency / stats.totalSimulations) * 100).toFixed(2)
       return (
-        <div className="bg-white dark:bg-gray-900 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
-          <p className="font-bold text-blue-600 dark:text-blue-400">{data.totalItems} items</p>
-          <p className="text-sm text-gray-900 dark:text-gray-100">Frequency: {data.frequency}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">Probability: {probability}%</p>
+        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
+          <p className="font-bold text-blue-600">{data.totalItems} items</p>
+          <p className="text-sm text-gray-900">Frequency: {data.frequency}</p>
+          <p className="text-sm text-gray-600">Probability: {probability}%</p>
         </div>
       )
     }
@@ -212,18 +210,18 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
-      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Monte Carlo Simulation</h2>
+      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
+      : 'bg-white rounded-lg shadow p-6'}>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-900">Monte Carlo Simulation</h2>
       {!maximised && (
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
+        <p className="text-gray-600 mb-6">
           Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
         </p>
       )}
 
       {throughputArray.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-gray-400">No throughput data available. Please ensure your CSV has valid end dates.</p>
+          <p className="text-gray-500">No throughput data available. Please ensure your CSV has valid end dates.</p>
         </div>
       ) : (
         <>
@@ -231,14 +229,14 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
           <>
           {/* Small Dataset Warning */}
           {dailyThroughput.length < 10 && (
-            <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-start">
-                <div className="text-yellow-600 dark:text-yellow-400 mr-3">⚠️</div>
+                <div className="text-yellow-600 mr-3">⚠️</div>
                 <div>
-                  <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-1">
                     Limited Historical Data
                   </h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  <p className="text-sm text-yellow-700">
                     Only {dailyThroughput.length} days of historical data available. For more accurate forecasts,
                     consider using at least 2-4 weeks of data. Current results may show unrealistic high values
                     due to small sample size.
@@ -250,56 +248,56 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
           {/* Historical Throughput Summary */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Historical Daily Throughput</h3>
+            <h3 className="text-lg font-medium mb-3 text-gray-900">Historical Daily Throughput</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                <div className="font-semibold text-gray-700 dark:text-gray-300">Total Days</div>
-                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{dailyThroughput.length}</div>
+              <div className="bg-gray-50 p-3 rounded">
+                <div className="font-semibold text-gray-700">Total Days</div>
+                <div className="text-lg font-bold text-blue-600">{dailyThroughput.length}</div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                <div className="font-semibold text-gray-700 dark:text-gray-300">Avg Daily</div>
-                <div className="text-lg font-bold text-green-600 dark:text-green-400">
+              <div className="bg-gray-50 p-3 rounded">
+                <div className="font-semibold text-gray-700">Avg Daily</div>
+                <div className="text-lg font-bold text-green-600">
                   {(throughputArray.reduce((a, b) => a + b, 0) / throughputArray.length).toFixed(1)}
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                <div className="font-semibold text-gray-700 dark:text-gray-300">Min Daily</div>
-                <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{Math.min(...throughputArray)}</div>
+              <div className="bg-gray-50 p-3 rounded">
+                <div className="font-semibold text-gray-700">Min Daily</div>
+                <div className="text-lg font-bold text-orange-600">{Math.min(...throughputArray)}</div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                <div className="font-semibold text-gray-700 dark:text-gray-300">Max Daily</div>
-                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{Math.max(...throughputArray)}</div>
+              <div className="bg-gray-50 p-3 rounded">
+                <div className="font-semibold text-gray-700">Max Daily</div>
+                <div className="text-lg font-bold text-purple-600">{Math.max(...throughputArray)}</div>
               </div>
             </div>
           </div>
 
           {/* Simulation Parameters */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Simulation Parameters</h3>
+            <h3 className="text-lg font-medium mb-3 text-gray-900">Simulation Parameters</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Number of Simulations
                 </label>
                 <input
                   type="number"
                   value={numSimulations}
                   onChange={(e) => setNumSimulations(Math.max(1000, Math.min(100000, parseInt(e.target.value) || 10000)))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1000"
                   max="100000"
                   step="1000"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Forecast Horizon (days)
                 </label>
                 <input
                   type="number"
                   value={forecastHorizon}
                   onChange={(e) => setForecastHorizon(Math.max(1, Math.min(365, parseInt(e.target.value) || 14)))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
                   max="365"
                 />
@@ -308,7 +306,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                 <button
                   onClick={runSimulation}
                   disabled={isRunning}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                   {isRunning ? 'Running...' : 'Run Simulation'}
                 </button>
@@ -324,36 +322,36 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {/* Statistics */}
               {!maximised && (
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Forecast Results</h3>
+                <h3 className="text-lg font-medium mb-3 text-gray-900">Forecast Results</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded border border-blue-200 dark:border-blue-800">
-                    <div className="font-semibold text-blue-700 dark:text-blue-300">50% Confidence</div>
-                    <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">{stats.p50}</div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400">items or more (median)</div>
+                  <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                    <div className="font-semibold text-blue-700">50% Confidence</div>
+                    <div className="text-2xl font-bold text-blue-800">{stats.p50}</div>
+                    <div className="text-xs text-blue-600">items or more (median)</div>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded border border-green-200 dark:border-green-800">
-                    <div className="font-semibold text-green-700 dark:text-green-300">85% Confidence</div>
-                    <div className="text-2xl font-bold text-green-800 dark:text-green-200">{stats.p85}</div>
-                    <div className="text-xs text-green-600 dark:text-green-400">items or more (conservative)</div>
+                  <div className="bg-green-50 p-4 rounded border border-green-200">
+                    <div className="font-semibold text-green-700">85% Confidence</div>
+                    <div className="text-2xl font-bold text-green-800">{stats.p85}</div>
+                    <div className="text-xs text-green-600">items or more (conservative)</div>
                   </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded border border-purple-200 dark:border-purple-800">
-                    <div className="font-semibold text-purple-700 dark:text-purple-300">95% Confidence</div>
-                    <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">{stats.p95}</div>
-                    <div className="text-xs text-purple-600 dark:text-purple-400">items or more (highly confident)</div>
+                  <div className="bg-purple-50 p-4 rounded border border-purple-200">
+                    <div className="font-semibold text-purple-700">95% Confidence</div>
+                    <div className="text-2xl font-bold text-purple-800">{stats.p95}</div>
+                    <div className="text-xs text-purple-600">items or more (highly confident)</div>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                    <div className="font-semibold text-gray-700 dark:text-gray-300">Average</div>
-                    <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.mean.toFixed(1)}</div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="font-semibold text-gray-700">Average</div>
+                    <div className="text-lg font-bold text-gray-800">{stats.mean.toFixed(1)}</div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                    <div className="font-semibold text-gray-700 dark:text-gray-300">Range</div>
-                    <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.min} - {stats.max}</div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="font-semibold text-gray-700">Range</div>
+                    <div className="text-lg font-bold text-gray-800">{stats.min} - {stats.max}</div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
-                    <div className="font-semibold text-gray-700 dark:text-gray-300">Simulations</div>
-                    <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{stats.totalSimulations.toLocaleString()}</div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="font-semibold text-gray-700">Simulations</div>
+                    <div className="text-lg font-bold text-gray-800">{stats.totalSimulations.toLocaleString()}</div>
                   </div>
                 </div>
               </div>
@@ -362,7 +360,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {/* Histogram */}
               <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-6'}>
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Probability Distribution</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Probability Distribution</h3>
                   <div className="flex items-center gap-2">
                     {isMounted && simulationResults.length > 0 && (
                       <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
@@ -377,36 +375,36 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                         data={simulationResults}
                         margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
                         key={`histogram-${stats.totalSimulations}-${forecastHorizon}`}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                           dataKey="totalItems"
                           label={{ value: 'Number of Items Completed', position: 'insideBottom', offset: -10 }}
-                          tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
+                          tick={{ fontSize: 12, fill: '#6b7280' }}
                         />
                         <YAxis
-                          label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: theme === 'dark' ? '#d1d5db' : '#6b7280' } }}
-                          tick={{ fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
+                          label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
+                          tick={{ fill: '#6b7280' }}
                         />
                         <Tooltip content={<CustomTooltip />} />
 
                         {/* Percentile lines - now correctly showing confidence levels */}
                         <ReferenceLine
                           x={stats.p95}
-                          stroke={theme === 'dark' ? '#a78bfa' : '#7c3aed'}
+                          stroke="#7c3aed"
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           label={{ value: "95% confident", position: "top", offset: 10 }}
                         />
                         <ReferenceLine
                           x={stats.p85}
-                          stroke={theme === 'dark' ? '#34d399' : '#059669'}
+                          stroke="#059669"
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           label={{ value: "85% confident", position: "top", offset: 10 }}
                         />
                         <ReferenceLine
                           x={stats.p50}
-                          stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
+                          stroke="#2563eb"
                           strokeWidth={2}
                           strokeDasharray="5 5"
                           label={{ value: "50% confident", position: "top", offset: 10 }}
@@ -414,15 +412,15 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
                         <Bar
                           dataKey="frequency"
-                          fill={theme === 'dark' ? '#3b82f6' : '#60a5fa'}
-                          stroke={theme === 'dark' ? '#1e40af' : '#2563eb'}
+                          fill="#60a5fa"
+                          stroke="#2563eb"
                           strokeWidth={1}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full">
-                      <p className="text-gray-500 dark:text-gray-400">
+                      <p className="text-gray-500">
                         {!isMounted ? 'Loading chart...' : 'No simulation data available'}
                       </p>
                     </div>
@@ -432,7 +430,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
               {/* Interpretation */}
               {!maximised && (
-              <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
+              <div className="text-sm text-gray-600 space-y-2">
                 <p>
                   <strong>Interpretation:</strong> Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} days,
                   there is an 85% probability of completing {stats.p85} or more items, and a 50% probability of completing {stats.p50} or more items.

@@ -27,7 +27,7 @@ export default function SprintExplainerModal({ facts, onClose }: { facts: Sprint
 
   return (
     <Modal title="What the sprint line tells you" onClose={onClose}>
-      <div className="space-y-5 text-gray-700 dark:text-gray-300 leading-relaxed">
+      <div className="space-y-5 text-gray-700 leading-relaxed">
         <Section heading="The sprint against the process">
           The amber line marks a {sprintDays}-day sprint. The Central Line for this process is {days(centralLine)},
           the 85th percentile is {days(p85)}, and the upper process limit is {days(upperProcessLimit)}.
@@ -78,7 +78,7 @@ export default function SprintExplainerModal({ facts, onClose }: { facts: Sprint
 function Section({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{heading}</h3>
+      <h3 className="font-semibold text-gray-900 mb-1">{heading}</h3>
       <p>{children}</p>
     </section>
   )

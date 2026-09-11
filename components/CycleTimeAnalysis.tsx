@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import ExportPngButton from './ExportPngButton'
@@ -35,7 +34,6 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
-  const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -86,13 +84,13 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-gray-900 p-3 border-2 border-gray-300 dark:border-gray-600 rounded shadow-lg">
-          <p className="font-bold text-blue-600 dark:text-blue-400">ID: {data.itemId}</p>
-          <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">{data.cycleTime} days</p>
+        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
+          <p className="font-bold text-blue-600">ID: {data.itemId}</p>
+          <p className="font-semibold text-lg text-gray-900">{data.cycleTime} days</p>
           {data.itemName !== data.itemId && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{data.itemName}</p>
+            <p className="text-sm text-gray-600 mt-1">{data.itemName}</p>
           )}
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed: {data.originalEndDate}</p>
+          <p className="text-xs text-gray-500 mt-1">Completed: {data.originalEndDate}</p>
         </div>
       )
     }
@@ -101,10 +99,10 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
-      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
+      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
+      : 'bg-white rounded-lg shadow p-6'}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">Cycle Time Analysis</h2>
         <div className="flex items-center gap-2">
           {isMounted && processedData.length > 0 && (
             <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
@@ -122,7 +120,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
           onToggle={setShowSprint}
           onDaysChange={setSprintDays}
         />
-        <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+        <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 cursor-pointer">
           <input
             type="checkbox"
             checked={showAverage}
@@ -139,7 +137,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
             <ScatterChart
               margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
               key={`chart-${processedData.length}`}>
-              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="endDate"
                 type="number"
@@ -150,17 +148,17 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 angle={-45}
                 textAnchor="end"
                 height={80}
-                tick={{ fontSize: 12, fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
+                tick={{ fontSize: 12, fill: '#6b7280' }}
               />
               <YAxis
                 dataKey="cycleTime"
-                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: theme === 'dark' ? '#d1d5db' : '#6b7280' } }}
-                tick={{ fill: theme === 'dark' ? '#d1d5db' : '#6b7280' }}
+                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
+                tick={{ fill: '#6b7280' }}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
               <ReferenceLine
                 y={percentile85}
-                stroke={theme === 'dark' ? '#60a5fa' : '#2563eb'}
+                stroke="#2563eb"
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "top", offset: 10 }}
@@ -168,44 +166,44 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
               {showAverage && (
                 <ReferenceLine
                   y={stats.average}
-                  stroke={theme === 'dark' ? '#c084fc' : '#9333ea'}
+                  stroke="#9333ea"
                   strokeWidth={2}
                   strokeDasharray="2 4"
-                  label={{ value: `Average (${stats.average.toFixed(1)}d) = ${ordinal(stats.averagePercentile)} percentile`, position: "insideTopRight", fill: theme === 'dark' ? '#c084fc' : '#9333ea' }}
+                  label={{ value: `Average (${stats.average.toFixed(1)}d) = ${ordinal(stats.averagePercentile)} percentile`, position: "insideTopRight", fill: '#9333ea' }}
                 />
               )}
               {showSprint && (
                 <ReferenceLine
                   y={sprintDays}
-                  stroke={theme === 'dark' ? '#fbbf24' : '#d97706'}
+                  stroke="#d97706"
                   strokeWidth={2}
                   strokeDasharray="8 4"
-                  label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: theme === 'dark' ? '#fbbf24' : '#d97706' }}
+                  label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
                 />
               )}
               <Scatter
                 name="Cycle time"
                 data={processedData}
                 dataKey="cycleTime"
-                fill={theme === 'dark' ? '#34d399' : '#22c55e'}
+                fill="#22c55e"
                 isAnimationActive={false}
               />
             </ScatterChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-500">
               {!isMounted ? 'Loading chart...' : 'No data to display'}
             </p>
             {!isMounted && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Chart data: {processedData.length} items</p>
+              <p className="text-xs text-gray-400 mt-2">Chart data: {processedData.length} items</p>
             )}
           </div>
         )}
       </div>
 
       {!maximised && (
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+        <div className="mt-4 text-sm text-gray-600">
           <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
           {showAverage && (
             <p>The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
