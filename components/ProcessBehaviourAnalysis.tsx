@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
@@ -41,6 +42,8 @@ interface ProcessStats {
 
 const RUN_LENGTH = 8
 
+type ChartView = 'normal' | 'maximised'
+
 /**
  * Wheeler's rule 2: a run of RUN_LENGTH successive points all on one side of
  * the centre line. Returns the index of every point that belongs to such a run.
@@ -65,12 +68,23 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   const [showSprint, setShowSprint] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [explainerOpen, setExplainerOpen] = useState(false)
+  const [view, setView] = useState<ChartView>('normal')
+  const maximised = view === 'maximised'
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!maximised) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !explainerOpen) setView('normal')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [maximised, explainerOpen])
 
   const { processedData, movingRangeData, stats } = useMemo(() => {
     const columns = detectColumns(data)
@@ -247,19 +261,35 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+    <div className={maximised
+      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-16 flex flex-col'
+      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Process Behaviour Chart</h2>
-      <p className="text-gray-600 dark:text-gray-300 mb-6">
-        Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.
-      </p>
+      {!maximised && (
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
+          Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.
+        </p>
+      )}
 
       {/* Individual Values Chart */}
-      <div className="mb-8">
+      <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-8'}>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Individual Values (Cycle Times)</h3>
-          {isMounted && processedData.length > 0 && (
-            <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
-          )}
+          <div className="flex items-center gap-2">
+            {isMounted && processedData.length > 0 && (
+              <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
+            )}
+            <button
+              type="button"
+              onClick={() => setView(maximised ? 'normal' : 'maximised')}
+              aria-label={maximised ? 'Restore normal view' : 'Maximise chart'}
+              title={maximised ? 'Restore normal view' : 'Maximise chart'}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+            >
+              {maximised ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {maximised ? 'Restore' : 'Maximise'}
+            </button>
+          </div>
         </div>
         <SprintLengthControl
           enabled={showSprint}
@@ -285,12 +315,10 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
             onClose={() => setExplainerOpen(false)}
           />
         )}
-        <div ref={chartRef} className="h-80 w-full">
+        <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-80 w-full'}>
           {isMounted && processedData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                width={800}
-                height={320}
                 data={processedData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                 key={`process-chart-${processedData.length}`}>
@@ -357,6 +385,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       </div>
 
       {/* Moving Range Chart */}
+      {!maximised && (
       <div className="mb-6">
         <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Moving Range</h3>
         <div className="h-64 w-full">
@@ -408,9 +437,10 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           )}
         </div>
       </div>
+      )}
 
       {/* Statistics Summary */}
-      {stats.totalItems > 0 && (
+      {!maximised && stats.totalItems > 0 && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="bg-gray-50 p-3 rounded">
@@ -443,6 +473,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         </div>
       )}
 
+      {!maximised && (
       <div className="mt-6 text-sm text-gray-600 space-y-2">
         <p>
           <strong>Limits:</strong> the centre line is the mean cycle time. The process limits sit 3.145 times
@@ -461,6 +492,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           <strong>Abbreviations:</strong> UPL = Upper Process Limit, CL = Central Line, LPL = Lower Process Limit, URL = Upper Range Limit
         </p>
       </div>
+      )}
     </div>
   )
 }
