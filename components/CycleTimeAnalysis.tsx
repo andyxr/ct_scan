@@ -21,6 +21,13 @@ interface ProcessedDataPoint {
   originalEndDate: string
 }
 
+function ordinal(n: number) {
+  const mod100 = n % 100
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`
+  const suffix = { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th'
+  return `${n}${suffix}`
+}
+
 export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [showSprint, setShowSprint] = useState(false)
@@ -52,13 +59,18 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
 
     const cycleTimes = processed.map(item => item.cycleTime)
     const p85 = percentile(cycleTimes, 0.85)
+    const average = cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length || 0
+    const averagePercentile = cycleTimes.length
+      ? Math.round((cycleTimes.filter(ct => ct <= average).length / cycleTimes.length) * 100)
+      : 0
 
     return {
       processedData: processed,
       percentile85: p85,
       stats: {
         count: processed.length,
-        average: cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length || 0,
+        average,
+        averagePercentile,
         min: cycleTimes.length ? Math.min(...cycleTimes) : 0,
         max: cycleTimes.length ? Math.max(...cycleTimes) : 0,
         p85: p85,
@@ -159,7 +171,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                   stroke={theme === 'dark' ? '#c084fc' : '#9333ea'}
                   strokeWidth={2}
                   strokeDasharray="2 4"
-                  label={{ value: `Average (${stats.average.toFixed(1)}d)`, position: "insideTopRight", fill: theme === 'dark' ? '#c084fc' : '#9333ea' }}
+                  label={{ value: `Average (${stats.average.toFixed(1)}d) = ${ordinal(stats.averagePercentile)} percentile`, position: "insideTopRight", fill: theme === 'dark' ? '#c084fc' : '#9333ea' }}
                 />
               )}
               {showSprint && (
@@ -196,7 +208,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
           <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
           {showAverage && (
-            <p>The average cycle time is {stats.average.toFixed(1)} days. Averages are pulled upward by a few slow items, so the 85th percentile is the safer figure for forecasting.</p>
+            <p>The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
           )}
         </div>
       )}
