@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, formatDate } from '@/lib/csv'
 import ExportPngButton from './ExportPngButton'
+import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface MonteCarloAnalysisProps {
   data: any[]
@@ -37,8 +38,12 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [forecastHorizon, setForecastHorizon] = useState(14)
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
+  const [view, setView] = useState<ChartView>('normal')
+  const maximised = view === 'maximised'
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
+
+  useEscapeToRestore(view, () => setView('normal'))
 
   useEffect(() => {
     setIsMounted(true)
@@ -206,11 +211,15 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+    <div className={maximised
+      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
+      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Monte Carlo Simulation</h2>
-      <p className="text-gray-600 dark:text-gray-300 mb-6">
-        Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
-      </p>
+      {!maximised && (
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
+          Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
+        </p>
+      )}
 
       {throughputArray.length === 0 ? (
         <div className="text-center py-8">
@@ -218,6 +227,8 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
         </div>
       ) : (
         <>
+          {!maximised && (
+          <>
           {/* Small Dataset Warning */}
           {dailyThroughput.length < 10 && (
             <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -304,11 +315,14 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               </div>
             </div>
           </div>
+          </>
+          )}
 
           {/* Results */}
           {stats.totalSimulations > 0 && (
             <>
               {/* Statistics */}
+              {!maximised && (
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Forecast Results</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -343,21 +357,23 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Histogram */}
-              <div className="mb-6">
+              <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-6'}>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Probability Distribution</h3>
-                  {isMounted && simulationResults.length > 0 && (
-                    <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isMounted && simulationResults.length > 0 && (
+                      <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
+                    )}
+                    <ChartViewToggle view={view} onChange={setView} />
+                  </div>
                 </div>
-                <div ref={chartRef} className="h-80 w-full">
+                <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-80 w-full'}>
                   {isMounted && simulationResults.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        width={800}
-                        height={320}
                         data={simulationResults}
                         margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
                         key={`histogram-${stats.totalSimulations}-${forecastHorizon}`}>
@@ -415,6 +431,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               </div>
 
               {/* Interpretation */}
+              {!maximised && (
               <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
                 <p>
                   <strong>Interpretation:</strong> Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} days,
@@ -425,6 +442,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   to model future performance variability and generate probabilistic forecasts.
                 </p>
               </div>
+              )}
             </>
           )}
         </>
