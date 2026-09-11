@@ -24,6 +24,7 @@ interface ProcessedDataPoint {
 export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [showSprint, setShowSprint] = useState(false)
+  const [showAverage, setShowAverage] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
@@ -100,14 +101,25 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         </div>
       </div>
 
-      <SprintLengthControl
-        enabled={showSprint}
-        days={sprintDays}
-        withinCount={withinSprint}
-        totalCount={processedData.length}
-        onToggle={setShowSprint}
-        onDaysChange={setSprintDays}
-      />
+      <div className="flex flex-wrap items-center gap-x-6">
+        <SprintLengthControl
+          enabled={showSprint}
+          days={sprintDays}
+          withinCount={withinSprint}
+          totalCount={processedData.length}
+          onToggle={setShowSprint}
+          onDaysChange={setSprintDays}
+        />
+        <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showAverage}
+            onChange={e => setShowAverage(e.target.checked)}
+            className="h-4 w-4 accent-purple-500"
+          />
+          Show average
+        </label>
+      </div>
 
       <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
         {isMounted && processedData.length > 0 ? (
@@ -141,6 +153,15 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                 strokeDasharray="5 5"
                 label={{ value: `85th Percentile`, position: "top", offset: 10 }}
               />
+              {showAverage && (
+                <ReferenceLine
+                  y={stats.average}
+                  stroke={theme === 'dark' ? '#c084fc' : '#9333ea'}
+                  strokeWidth={2}
+                  strokeDasharray="2 4"
+                  label={{ value: `Average (${stats.average.toFixed(1)}d)`, position: "insideTopRight", fill: theme === 'dark' ? '#c084fc' : '#9333ea' }}
+                />
+              )}
               {showSprint && (
                 <ReferenceLine
                   y={sprintDays}
@@ -174,6 +195,9 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
       {!maximised && (
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
           <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
+          {showAverage && (
+            <p>The average cycle time is {stats.average.toFixed(1)} days. Averages are pulled upward by a few slow items, so the 85th percentile is the safer figure for forecasting.</p>
+          )}
         </div>
       )}
     </div>
