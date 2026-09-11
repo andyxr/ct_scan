@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import ExportPngButton from './ExportPngButton'
+import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface CycleTimeAnalysisProps {
   data: any[]
@@ -24,12 +25,16 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [showSprint, setShowSprint] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
+  const [view, setView] = useState<ChartView>('normal')
+  const maximised = view === 'maximised'
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  useEscapeToRestore(view, () => setView('normal'))
 
   const { processedData, percentile85, stats } = useMemo(() => {
     const columns = detectColumns(data)
@@ -82,12 +87,17 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+    <div className={maximised
+      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
+      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Cycle Time Analysis</h2>
-        {isMounted && processedData.length > 0 && (
-          <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
-        )}
+        <div className="flex items-center gap-2">
+          {isMounted && processedData.length > 0 && (
+            <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
+          )}
+          <ChartViewToggle view={view} onChange={setView} />
+        </div>
       </div>
 
       <SprintLengthControl
@@ -99,12 +109,10 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         onDaysChange={setSprintDays}
       />
 
-      <div ref={chartRef} className="h-96 w-full">
+      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
         {isMounted && processedData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={384}>
+          <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              width={800}
-              height={384}
               margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
               key={`chart-${processedData.length}`}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
@@ -163,9 +171,11 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         )}
       </div>
 
-      <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-        <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
-      </div>
+      {!maximised && (
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+          <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
+        </div>
+      )}
     </div>
   )
 }

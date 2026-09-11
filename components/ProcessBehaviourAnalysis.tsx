@@ -2,12 +2,12 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { Maximize2, Minimize2 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SprintExplainerModal from './SprintExplainerModal'
 import ExportPngButton from './ExportPngButton'
+import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface ProcessBehaviourAnalysisProps {
   data: any[]
@@ -42,8 +42,6 @@ interface ProcessStats {
 
 const RUN_LENGTH = 8
 
-type ChartView = 'normal' | 'maximised'
-
 /**
  * Wheeler's rule 2: a run of RUN_LENGTH successive points all on one side of
  * the centre line. Returns the index of every point that belongs to such a run.
@@ -77,14 +75,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     setIsMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (!maximised) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !explainerOpen) setView('normal')
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [maximised, explainerOpen])
+  useEscapeToRestore(view, () => setView('normal'), explainerOpen)
 
   const { processedData, movingRangeData, stats } = useMemo(() => {
     const columns = detectColumns(data)
@@ -262,7 +253,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-16 flex flex-col'
+      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
       : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
       <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Process Behaviour Chart</h2>
       {!maximised && (
@@ -279,16 +270,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
             {isMounted && processedData.length > 0 && (
               <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
             )}
-            <button
-              type="button"
-              onClick={() => setView(maximised ? 'normal' : 'maximised')}
-              aria-label={maximised ? 'Restore normal view' : 'Maximise chart'}
-              title={maximised ? 'Restore normal view' : 'Maximise chart'}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-            >
-              {maximised ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              {maximised ? 'Restore' : 'Maximise'}
-            </button>
+            <ChartViewToggle view={view} onChange={setView} />
           </div>
         </div>
         <SprintLengthControl
