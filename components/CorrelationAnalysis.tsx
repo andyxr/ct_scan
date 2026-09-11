@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useTheme } from '@/contexts/ThemeContext'
 import { detectColumns, cycleTimeFor } from '@/lib/csv'
 import ExportPngButton from './ExportPngButton'
+import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface CorrelationAnalysisProps {
   data: any[]
@@ -29,14 +30,36 @@ interface CorrelationStats {
   estimateRange: string
 }
 
+// Draws the min-to-max span as a vertical line with horizontal caps at each end.
+// Recharts passes the bar's box; a zero-height box (single value) still gets a cap.
+function RangeMarker({ x = 0, y = 0, width = 0, height = 0, color }: {
+  x?: number; y?: number; width?: number; height?: number; color: string
+}) {
+  const cx = x + width / 2
+  const capHalf = Math.min(width / 2, 10)
+  const top = y
+  const bottom = y + height
+  return (
+    <g stroke={color} strokeWidth={2} strokeLinecap="round">
+      <line x1={cx} y1={top} x2={cx} y2={bottom} />
+      <line x1={cx - capHalf} y1={top} x2={cx + capHalf} y2={top} />
+      <line x1={cx - capHalf} y1={bottom} x2={cx + capHalf} y2={bottom} />
+    </g>
+  )
+}
+
 export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const [view, setView] = useState<ChartView>('normal')
+  const maximised = view === 'maximised'
   const { theme } = useTheme()
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  useEscapeToRestore(view, () => setView('normal'))
 
   const { processedData, stats } = useMemo((): { processedData: CorrelationDataPoint[], stats: CorrelationStats } => {
     const columns = detectColumns(data)
@@ -134,23 +157,28 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+    <div className={maximised
+      ? 'fixed inset-0 z-40 overflow-auto bg-white dark:bg-gray-900 p-6 pt-20 flex flex-col'
+      : 'bg-white dark:bg-gray-900 rounded-lg shadow p-6'}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Correlation Analysis</h2>
-        {isMounted && processedData.length > 0 && (
-          <ExportPngButton targetRef={chartRef} filename="correlation-analysis.png" />
-        )}
+        <div className="flex items-center gap-2">
+          {isMounted && processedData.length > 0 && (
+            <ExportPngButton targetRef={chartRef} filename="correlation-analysis.png" />
+          )}
+          <ChartViewToggle view={view} onChange={setView} />
+        </div>
       </div>
-      <p className="text-gray-600 dark:text-gray-300 mb-6">
-        Shows the range of cycle times (CT) for each estimate value. Each bar represents the minimum to maximum cycle time range for that estimate.
-      </p>
+      {!maximised && (
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
+          Shows the range of cycle times (CT) for each estimate value. Each marker spans the minimum to maximum cycle time for that estimate.
+        </p>
+      )}
 
-      <div ref={chartRef} className="h-96 w-full">
+      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
         {isMounted && processedData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={384}>
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              width={800}
-              height={384}
               data={processedData}
               margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} />
@@ -170,13 +198,11 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
                 stroke="transparent"
                 stackId="range"
               />
-              {/* Visible bar showing the range */}
+              {/* Range drawn as a vertical line with caps, like an error bar */}
               <Bar
                 dataKey="range"
-                fill={theme === 'dark' ? '#60a5fa' : '#3b82f6'}
-                stroke={theme === 'dark' ? '#3b82f6' : '#1e40af'}
-                strokeWidth={1}
                 stackId="range"
+                shape={<RangeMarker color={theme === 'dark' ? '#60a5fa' : '#3b82f6'} />}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -196,7 +222,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         )}
       </div>
 
-      {stats.totalItems > 0 && (
+      {!maximised && stats.totalItems > 0 && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div className="bg-gray-50 p-3 rounded">
             <div className="font-semibold text-gray-700">Total Items</div>
@@ -213,9 +239,11 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         </div>
       )}
 
-      <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-        <p>Each bar shows the full range of cycle times for items with that estimate value. Hover over bars for detailed breakdown.</p>
-      </div>
+      {!maximised && (
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+          <p>Each marker shows the full range of cycle times for items with that estimate value. Hover over a marker for a detailed breakdown.</p>
+        </div>
+      )}
     </div>
   )
 }
