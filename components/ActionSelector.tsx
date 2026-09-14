@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react'
 import { AnalysisAction } from '@/app/page'
-import { ANALYSES, ESTIMATE_REQUIRED_REASON } from '@/lib/analyses'
-import { detectColumns } from '@/lib/csv'
+import { ANALYSES, ESTIMATE_REQUIRED_REASON, ESTIMATE_NOT_NUMERIC_REASON } from '@/lib/analyses'
+import { detectColumns, hasUsableEstimate } from '@/lib/csv'
 
 interface ActionSelectorProps {
   onActionSelect: (action: AnalysisAction) => void
@@ -12,12 +12,13 @@ interface ActionSelectorProps {
 
 export default function ActionSelector({ onActionSelect, data }: ActionSelectorProps) {
   const columns = useMemo(() => detectColumns(data), [data])
-  const hasEstimate = Boolean(columns.estimate)
+  const estimateUsable = hasUsableEstimate(data, columns)
+  const estimateReason = columns.estimate ? ESTIMATE_NOT_NUMERIC_REASON : ESTIMATE_REQUIRED_REASON
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
       {ANALYSES.map((action) => {
-        const available = !action.requiresEstimate || hasEstimate
+        const available = !action.requiresEstimate || estimateUsable
         return (
         <button
           key={action.id}
@@ -36,7 +37,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
           <h3 className="text-xl font-semibold mb-2 text-gray-900">{action.title}</h3>
           <p className="text-gray-600 text-sm">{action.description}</p>
           {!available && (
-            <p className="text-xs text-gray-500 mt-2 italic">{ESTIMATE_REQUIRED_REASON}</p>
+            <p className="text-xs text-gray-500 mt-2 italic">{estimateReason}</p>
           )}
         </button>
         )

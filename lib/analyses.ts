@@ -49,3 +49,4 @@ export const ANALYSES: readonly Analysis[] = [
 ]
 
 export const ESTIMATE_REQUIRED_REASON = 'Needs an estimate column'
+export const ESTIMATE_NOT_NUMERIC_REASON = 'The estimate column has values that are not numbers'

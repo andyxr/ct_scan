@@ -1,2 +1,2 @@
-# ct_scan
+# Flowgauge
 A rough and ready Next.js app for analysing cycle time data and displaying it as useful charts.

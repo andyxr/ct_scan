@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
 import AnalysisNav from '@/components/AnalysisNav'
+import ItemTypeControl from '@/components/ItemTypeControl'
+import { ALL_ITEM_TYPES, detectColumns, filterByItemType, itemTypesIn } from '@/lib/csv'
 import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
 import SplashScreen from '@/components/SplashScreen'
@@ -34,12 +36,18 @@ export type AnalysisAction = AnalysisId | null
 export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
+  const [itemType, setItemType] = useState<string>(ALL_ITEM_TYPES)
+
+  const columns = useMemo(() => detectColumns(csvData), [csvData])
+  const itemTypes = useMemo(() => itemTypesIn(csvData, columns), [csvData, columns])
+  const filteredData = useMemo(() => filterByItemType(csvData, columns, itemType), [csvData, columns, itemType])
 
   const [showSplash, setShowSplash] = useState(true)
 
   const handleFileUpload = (data: any[]) => {
     setCsvData(data)
     setSelectedAction(null)
+    setItemType(ALL_ITEM_TYPES)
   }
 
   const handleActionSelect = (action: AnalysisAction) => {
@@ -49,6 +57,7 @@ export default function Home() {
   const handleReset = () => {
     setCsvData([])
     setSelectedAction(null)
+    setItemType(ALL_ITEM_TYPES)
   }
 
   return (
@@ -70,6 +79,7 @@ export default function Home() {
               Upload different file
             </button>
           </div>
+          {/* Unfiltered on purpose: availability is a property of the file, not the current filter. */}
           <ActionSelector onActionSelect={handleActionSelect} data={csvData} />
         </div>
       ) : (
@@ -78,23 +88,32 @@ export default function Home() {
             current={selectedAction}
             onSelect={handleActionSelect}
             onReset={handleReset}
+            // Unfiltered on purpose: a type selection must never disable the tab the user is on.
             data={csvData}
           />
 
+          <ItemTypeControl
+            types={itemTypes}
+            value={itemType}
+            onChange={setItemType}
+            matchedCount={filteredData.length}
+            totalCount={csvData.length}
+          />
+
           {selectedAction === 'cycle-time' && (
-            <CycleTimeAnalysis data={csvData} />
+            <CycleTimeAnalysis data={filteredData} />
           )}
 
           {selectedAction === 'process-behaviour' && (
-            <ProcessBehaviourAnalysis data={csvData} />
+            <ProcessBehaviourAnalysis data={filteredData} />
           )}
 
           {selectedAction === 'correlation' && (
-            <CorrelationAnalysis data={csvData} />
+            <CorrelationAnalysis data={filteredData} />
           )}
 
           {selectedAction === 'monte-carlo' && (
-            <MonteCarloAnalysis data={csvData} />
+            <MonteCarloAnalysis data={filteredData} />
           )}
         </div>
       )}

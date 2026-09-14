@@ -1,33 +1,77 @@
 /**
  * Shared CSV column reading and date parsing.
  *
- * Columns are identified by POSITION, not by header name:
+ * Columns are identified by HEADER NAME, matched against COLUMN_ALIASES below.
+ * Order does not matter. Required: item_id, start_date, end_date. Optional:
+ * estimate (Correlation only), item_type (adds the type filter), cycle_time
+ * (recognised so it does not trip the contract, but never read).
  *
- *   0: item ID   1: start date   2: end date   3: estimate (optional)
+ * Name matching used to live here once before, alongside content sniffing, and
+ * both guessed wrong on real files: parseFloat("2026-01-27T15:42:43Z") returns
+ * 2026, so an ISO date column passed a "looks numeric" test, was claimed as
+ * cycle time, and every item came out with a ~2027-day cycle time. That version
+ * guessed at headers it had never published and let content break ties.
  *
- * Header names and date formats vary between exports, so neither is reliable;
- * the column order is the contract. Name-based matching and content sniffing
- * both used to live here, and both guessed wrong on real files — an ISO
- * timestamp parses as the number 2026 under parseFloat, so a date column could
- * be claimed as cycle time and every item came out with a ~2027-day cycle time.
- * Position removes the guess entirely.
+ * This version is different in two ways. The names are a contract the user is
+ * told to meet, not a guess at an unknown header. And a header that matches
+ * nothing is a visible rejection at upload, never a silent wrong claim. Content
+ * checks (mostlyDates, mostlyNumeric) only ever validate a column already
+ * claimed by name; they never choose one.
  *
- * Cycle time is always derived from the start and end dates. A cycle time
- * column in the source is not read, because position 3 is the estimate.
+ * Cycle time is always derived from the two dates, so there is one source of
+ * truth for it.
  */
 
 export interface ColumnMap {
-  endDate?: string
-  startDate?: string
   id?: string
+  startDate?: string
+  endDate?: string
+  cycleTime?: string
   estimate?: string
+  itemType?: string
 }
 
-/** Column positions, fixed by the CSV contract above. */
-const ID = 0
-const START = 1
-const END = 2
-const ESTIMATE = 3
+type ColumnKey = keyof ColumnMap
+
+/** Lowercase with every non-alphanumeric stripped: "Item ID" and "item_id" both fold to "itemid". */
+export function normaliseHeader(header: string): string {
+  return header.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+/** Canonical name first, then accepted aliases, all in normalised form. Lists must be disjoint. */
+export const COLUMN_ALIASES: Record<ColumnKey, readonly string[]> = {
+  id: ['itemid', 'id', 'key', 'issuekey', 'issueid', 'ticket', 'ticketid', 'itemkey', 'reference', 'ref'],
+  startDate: ['startdate', 'start', 'started', 'startedat', 'inprogress', 'inprogressdate', 'begin', 'commitmentdate'],
+  endDate: ['enddate', 'end', 'ended', 'endedat', 'done', 'donedate', 'completed', 'completeddate', 'completiondate', 'resolved', 'resolutiondate', 'closed', 'closeddate', 'finish', 'finished'],
+  cycleTime: ['cycletime', 'cycletimedays', 'elapsed', 'elapseddays', 'duration'],
+  estimate: ['estimate', 'estimated', 'storypoints', 'storypoint', 'points', 'effort', 'estimatepoints'],
+  itemType: ['itemtype', 'type', 'issuetype', 'worktype', 'kind'],
+}
+
+const COLUMN_KEYS = Object.keys(COLUMN_ALIASES) as ColumnKey[]
+
+/** The header a user is told to add, per required column. */
+export const CANONICAL_HEADER: Record<ColumnKey, string> = {
+  id: 'item_id',
+  startDate: 'start_date',
+  endDate: 'end_date',
+  cycleTime: 'cycle_time',
+  estimate: 'estimate',
+  itemType: 'item_type',
+}
+
+const REQUIRED_KEYS: readonly ColumnKey[] = ['id', 'startDate', 'endDate']
+
+if (process.env.NODE_ENV !== 'production') {
+  const seen = new Map<string, ColumnKey>()
+  for (const key of COLUMN_KEYS) {
+    for (const alias of COLUMN_ALIASES[key]) {
+      const owner = seen.get(alias)
+      if (owner) throw new Error(`COLUMN_ALIASES: "${alias}" is claimed by both ${owner} and ${key}`)
+      seen.set(alias, key)
+    }
+  }
+}
 
 /**
  * Parse a date cell. Handles ISO 8601 (with or without a time component) and
@@ -65,74 +109,138 @@ export function parseDate(value: unknown): Date | null {
   return null
 }
 
-/** True if enough of a column's values parse as dates to call it a date column. */
-function mostlyDates(data: any[], column: string): boolean {
-  const values = data
+function sampleValues(data: any[], column: string): unknown[] {
+  return data
     .slice(0, 20)
     .map(row => row[column])
     .filter(v => v !== null && v !== undefined && v !== '')
+}
+
+/** True if enough of a claimed column's values parse as dates. Validates, never chooses. */
+function mostlyDates(data: any[], column: string): boolean {
+  const values = sampleValues(data, column)
   if (values.length === 0) return false
   return values.filter(v => parseDate(v) !== null).length >= values.length * 0.8
 }
 
-/** True if enough of a column's values are numbers to group by. */
+/** True if enough of a claimed column's values are numbers to group by. Validates, never chooses. */
 function mostlyNumeric(data: any[], column: string): boolean {
-  const values = data
-    .slice(0, 20)
-    .map(row => row[column])
-    .filter(v => v !== null && v !== undefined && v !== '')
+  const values = sampleValues(data, column)
   if (values.length === 0) return false
   // Whole string must be numeric: parseFloat alone accepts "2026-01-27T15:42:43Z".
   return values.filter(v => /^-?\d+(\.\d+)?$/.test(String(v).trim())).length >= values.length * 0.8
 }
 
 /**
- * Map the fixed column positions onto this file's header names.
+ * Map this file's header names onto column roles by name.
  *
- * Papaparse runs with `header: true` and preserves source column order, so the
- * Nth key of a row is the Nth column of the file.
+ * Each role takes the first unclaimed header matching its alias list, in alias
+ * priority order, so one header can never satisfy two roles. Content is not
+ * consulted here; a claimed estimate column is checked separately by
+ * hasUsableEstimate.
  */
 export function detectColumns(data: any[]): ColumnMap {
-  const columns = Object.keys(data[0] || {})
-
-  return {
-    id: columns[ID],
-    startDate: columns[START],
-    endDate: columns[END],
-    // Only offer an estimate when column 3 holds numbers to group by; a
-    // non-numeric 4th column would otherwise enable Correlation on empty data.
-    estimate: columns[ESTIMATE] && mostlyNumeric(data, columns[ESTIMATE])
-      ? columns[ESTIMATE]
-      : undefined,
+  const headers = Object.keys(data[0] || {})
+  const byNormalised = new Map<string, string>()
+  for (const header of headers) {
+    const key = normaliseHeader(header)
+    if (!byNormalised.has(key)) byNormalised.set(key, header)
   }
+
+  const claimed = new Set<string>()
+  const columns: ColumnMap = {}
+  for (const key of COLUMN_KEYS) {
+    for (const alias of COLUMN_ALIASES[key]) {
+      const header = byNormalised.get(alias)
+      if (header !== undefined && !claimed.has(header)) {
+        columns[key] = header
+        claimed.add(header)
+        break
+      }
+    }
+  }
+  return columns
+}
+
+/** An estimate column was named and holds numbers Correlation can group by. */
+export function hasUsableEstimate(data: any[], columns: ColumnMap): boolean {
+  return Boolean(columns.estimate) && mostlyNumeric(data, columns.estimate!)
 }
 
 /**
  * Why a CSV can't be analysed, or null when it is usable.
  *
- * The column contract is positional, so a file in the wrong shape can't be
- * salvaged by guessing — say so at upload instead of drawing an empty chart.
+ * Names are checked first, so a file that breaks the contract is told which
+ * headers to add rather than being drawn as an empty chart.
  */
 export function validationError(data: any[]): string | null {
   if (data.length === 0) return 'That file has no rows.'
 
-  const columns = Object.keys(data[0] || {})
-  if (columns.length < 3) {
-    return 'Expected at least 3 columns: item ID, start date, end date.'
+  const columns = detectColumns(data)
+  const missing = REQUIRED_KEYS.filter(key => !columns[key]).map(key => CANONICAL_HEADER[key])
+  if (missing.length === 1) {
+    return `That file has no ${missing[0]} column. Add a column headed "${missing[0]}" and upload it again.`
+  }
+  if (missing.length > 1) {
+    return `That file is missing these columns: ${missing.join(', ')}. Add them and upload it again.`
   }
 
-  if (!mostlyDates(data, columns[START])) {
-    return `Column 2 ("${columns[START]}") should be the start date, but its values aren't dates.`
+  if (!mostlyDates(data, columns.startDate!)) {
+    return `The "${columns.startDate}" column should hold start dates, but its values aren't dates.`
   }
-  if (!mostlyDates(data, columns[END])) {
-    return `Column 3 ("${columns[END]}") should be the end date, but its values aren't dates.`
+  if (!mostlyDates(data, columns.endDate!)) {
+    return `The "${columns.endDate}" column should hold end dates, but its values aren't dates.`
   }
 
-  if (toWorkItems(data, detectColumns(data)).length === 0) {
+  if (toWorkItems(data, columns).length === 0) {
     return 'No rows had a usable start and end date.'
   }
 
   return null
+}
+
+/** Dropdown sentinel: no type filter applied. */
+export const ALL_ITEM_TYPES = 'All'
+/** Dropdown sentinel: rows whose item_type cell is blank. */
+export const UNTYPED_ITEM_TYPE = '(Untyped)'
+
+function itemTypeOf(row: any, column: string): string {
+  return String(row[column] ?? '').trim()
+}
+
+/**
+ * Distinct item types in the data, sorted, with "(Untyped)" appended last when
+ * any row has a blank cell. Case-sensitive on purpose: folding "Story" and
+ * "story" would force a choice of which spelling to display.
+ */
+export function itemTypesIn(data: any[], columns: ColumnMap): string[] {
+  const column = columns.itemType
+  if (!column) return []
+
+  const types = new Set<string>()
+  let hasUntyped = false
+  for (const row of data) {
+    const type = itemTypeOf(row, column)
+    if (type) types.add(type)
+    else hasUntyped = true
+  }
+  const sorted = Array.from(types).sort((a, b) => a.localeCompare(b))
+  if (hasUntyped) sorted.push(UNTYPED_ITEM_TYPE)
+  return sorted
+}
+
+/**
+ * Rows matching the selected type. "All", a file with no item_type column, and
+ * a selection that matches nothing in the file all return the data unchanged,
+ * so a stale selection degrades to "no filter" rather than a blank chart.
+ */
+export function filterByItemType(data: any[], columns: ColumnMap, selected: string): any[] {
+  const column = columns.itemType
+  if (selected === ALL_ITEM_TYPES || !column) return data
+  if (!itemTypesIn(data, columns).includes(selected)) return data
+
+  const wanted = selected === UNTYPED_ITEM_TYPE ? '' : selected
+  return data.filter(row => itemTypeOf(row, column) === wanted)
 }
 
 export interface WorkItem {
@@ -147,9 +255,9 @@ export interface WorkItem {
  * finished on the same day is 1 day, so every value is elapsed days plus one.
  * This matches the Vacanti and ActionableAgile convention.
  *
- * Always derived from the start and end calendar dates. A cycle time column in
- * the source is not read: position 3 is the estimate, and an export's own
- * "active" cycle time measures something different from elapsed calendar days.
+ * Always derived from the start and end calendar dates. A cycle_time column in
+ * the source is not read: an export's own "active" cycle time measures
+ * something different from elapsed calendar days.
  */
 export function cycleTimeFor(row: any, columns: ColumnMap): number | null {
   if (!columns.startDate || !columns.endDate) return null

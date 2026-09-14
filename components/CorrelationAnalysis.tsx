@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { detectColumns, cycleTimeFor } from '@/lib/csv'
+import { detectColumns, cycleTimeFor, hasUsableEstimate } from '@/lib/csv'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
@@ -59,15 +59,24 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const { processedData, stats } = useMemo((): { processedData: CorrelationDataPoint[], stats: CorrelationStats } => {
+  const { processedData, stats, emptyReason } = useMemo((): { processedData: CorrelationDataPoint[], stats: CorrelationStats, emptyReason: string | null } => {
     const columns = detectColumns(data)
     const estimateColumn = columns.estimate
     const idColumn = columns.id
+    const emptyStats: CorrelationStats = { totalItems: 0, uniqueEstimates: 0, estimateRange: 'N/A' }
 
     if (!estimateColumn) {
       return {
         processedData: [],
-        stats: { totalItems: 0, uniqueEstimates: 0, estimateRange: 'N/A' }
+        stats: emptyStats,
+        emptyReason: 'No estimate column found in this CSV, so estimate-to-cycle-time correlation cannot be calculated.',
+      }
+    }
+    if (!hasUsableEstimate(data, columns)) {
+      return {
+        processedData: [],
+        stats: emptyStats,
+        emptyReason: `The "${estimateColumn}" column doesn't hold numbers, so estimates can't be grouped for correlation.`,
       }
     }
 
@@ -113,6 +122,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
     return {
       processedData: chartData,
+      emptyReason: null,
       stats: {
         totalItems: totalItems || 0,
         uniqueEstimates: chartData.length,
@@ -209,7 +219,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
             <p className="text-gray-500">
               {!isMounted
                 ? 'Loading chart...'
-                : 'No estimate column found in this CSV, so estimate-to-cycle-time correlation cannot be calculated.'}
+                : emptyReason}
             </p>
             {!isMounted && processedData.length > 0 && (
               <p className="text-xs text-gray-400 mt-2">

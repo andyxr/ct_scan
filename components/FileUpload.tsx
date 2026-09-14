@@ -83,21 +83,25 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
           <div>
             <h2 className="font-semibold text-gray-900">1. Bring your CSV</h2>
             <p className="text-sm text-gray-600 mt-1">
-              One row per completed work item, in this column order: ID, start
-              date, end date, and an optional estimate.
+              One row per completed work item, with a header row. Columns can be
+              in any order. Required: <code>item_id</code>, <code>start_date</code>,{' '}
+              <code>end_date</code>. Optional: <code>estimate</code> and{' '}
+              <code>item_type</code>.
             </p>
             <pre className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
-              <code>{`ID,Start,End,Estimate
-DF-73,01/03/2025,15/03/2025,5
-DF-74,04/03/2025,11/03/2025,3`}</code>
+              <code>{`item_type,end_date,estimate,item_id,start_date
+Story,15/03/2025,5,DF-73,01/03/2025
+Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
             </pre>
             <p className="text-sm text-gray-600 mt-2">
-              Columns are read by position, so the headers can be named anything —{' '}
-              <code>Story ID</code> and <code>Start Date (In Progress)</code> work
-              just as well. Date formats are detected per value, so DD/MM/YYYY and
-              ISO timestamps such as <code>2026-01-27T15:42:43Z</code> both parse.
-              Cycle time is worked out from the two dates. Include the fourth
-              column to unlock correlation analysis.
+              Header matching ignores case, spaces, underscores and hyphens, and
+              common alternatives such as <code>key</code>, <code>started</code>{' '}
+              and <code>completed</code> work too. Date formats are detected per
+              value, so DD/MM/YYYY and ISO timestamps such as{' '}
+              <code>2026-01-27T15:42:43Z</code> both parse. Cycle time is worked
+              out from the two dates; a <code>cycle_time</code> column is ignored.
+              An estimate unlocks correlation analysis, and an item type adds a
+              filter to every chart.
             </p>
           </div>
         </div>
@@ -164,8 +168,9 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
       <button
         type="button"
         onClick={() => {
-          setError(null)
-          onUpload(DEMO_DATA)
+          const problem = validationError(DEMO_DATA)
+          setError(problem)
+          if (!problem) onUpload(DEMO_DATA)
         }}
         className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 hover:border-gray-400 bg-white"
       >
@@ -177,7 +182,7 @@ DF-74,04/03/2025,11/03/2025,3`}</code>
           Use demo data
         </span>
         <p className="text-sm text-gray-600 mt-1">
-          30 sample items with estimates, spanning three months
+          30 sample items with estimates and types, spanning three months
         </p>
       </button>
       </div>
