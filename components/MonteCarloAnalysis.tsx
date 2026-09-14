@@ -2,7 +2,15 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { detectColumns, toWorkItems, formatDate } from '@/lib/csv'
+import { ArrowLeftRight } from 'lucide-react'
+import {
+  EMPTY_SIMULATION,
+  dateAfterDays,
+  simulateDaysToTarget,
+  simulateItemCount,
+  throughputFrom,
+  type HistogramBin,
+} from '@/lib/monteCarlo'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
@@ -10,36 +18,23 @@ interface MonteCarloAnalysisProps {
   data: any[]
 }
 
-interface DailyThroughput {
-  date: string
-  count: number
-  timestamp: number
-}
+/** "how-many" fixes the days and forecasts items; "when" fixes the items and forecasts days. */
+type ForecastMode = 'how-many' | 'when'
 
-interface SimulationResult {
-  totalItems: number
-  frequency: number
-}
-
-interface SimulationStats {
-  totalSimulations: number
-  p50: number
-  p85: number
-  p95: number
-  mean: number
-  min: number
-  max: number
-}
+const TOOLBAR_BUTTON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700'
 
 export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [numSimulations, setNumSimulations] = useState(10000)
   const [forecastHorizon, setForecastHorizon] = useState(14)
+  const [targetItems, setTargetItems] = useState(25)
+  const [mode, setMode] = useState<ForecastMode>('how-many')
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
+  const forecastingDays = mode === 'when'
 
   useEscapeToRestore(view, () => setView('normal'))
 
@@ -47,145 +42,16 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     setIsMounted(true)
   }, [])
 
-  const { dailyThroughput, throughputArray } = useMemo(() => {
-    const columns = detectColumns(data)
-    const items = toWorkItems(data, columns)
+  const { dailyThroughput, throughputArray } = useMemo(() => throughputFrom(data), [data])
 
-    if (items.length === 0) {
-      return { dailyThroughput: [], throughputArray: [] }
-    }
+  const { histogram, stats, unreachable } = useMemo(() => {
+    if (throughputArray.length === 0) return EMPTY_SIMULATION
 
-    // Count completions per calendar day
-    const dateGroups: { [key: string]: number } = {}
-    items.forEach(item => {
-      const d = new Date(item.endDate)
-      const dateKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
-      dateGroups[dateKey] = (dateGroups[dateKey] || 0) + 1
-    })
-
-    // Find the complete date range (min to max) and fill in all days including zeros
-    const dateKeys = Object.keys(dateGroups)
-    if (dateKeys.length === 0) {
-      return { dailyThroughput: [], throughputArray: [] }
-    }
-
-    // Find min and max dates
-    const timestamps = dateKeys.map(dateKey => {
-      const [year, month, day] = dateKey.split('-').map(Number)
-      return new Date(year, month - 1, day).getTime()
-    })
-
-    if (timestamps.length === 0) {
-      return { dailyThroughput: [], throughputArray: [] }
-    }
-
-    const minTimestamp = Math.min(...timestamps)
-    const maxTimestamp = Math.max(...timestamps)
-
-    // Generate all days between min and max (inclusive)
-    // Step by calendar day rather than by 24 hours: across a clock change a
-    // 24-hour step lands on the wrong day, double-counting one and dropping the last.
-    const dailyThroughputData: DailyThroughput[] = []
-
-    for (const currentDate = new Date(minTimestamp); currentDate.getTime() <= maxTimestamp; currentDate.setDate(currentDate.getDate() + 1)) {
-      const currentTimestamp = currentDate.getTime()
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth() + 1
-      const day = currentDate.getDate()
-
-      // Create the date key in YYYY-MM-DD format to match our dateGroups
-      const dateKey = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-
-      // Get count from dateGroups or default to 0
-      const count = dateGroups[dateKey] || 0
-
-      dailyThroughputData.push({
-        date: formatDate(currentDate),
-        count,
-        timestamp: currentTimestamp
-      })
-    }
-
-    // Already sorted by construction, but ensure chronological order
-    dailyThroughputData.sort((a, b) => a.timestamp - b.timestamp)
-
-    // Create throughput array for simulation (includes zero days)
-    const throughputValues = dailyThroughputData.map(d => d.count)
-
-    return {
-      dailyThroughput: dailyThroughputData,
-      throughputArray: throughputValues
-    }
-  }, [data])
-
-  const { simulationResults, stats } = useMemo(() => {
-    if (throughputArray.length === 0) {
-      return {
-        simulationResults: [],
-        stats: {
-          totalSimulations: 0,
-          p50: 0,
-          p85: 0,
-          p95: 0,
-          mean: 0,
-          min: 0,
-          max: 0
-        }
-      }
-    }
-
-    // Run Monte Carlo simulation
-    const results: number[] = []
-
-    for (let sim = 0; sim < numSimulations; sim++) {
-      let totalItems = 0
-
-      // For each day in the forecast horizon, randomly sample from historical throughput
-      for (let day = 0; day < forecastHorizon; day++) {
-        const randomIndex = Math.floor(Math.random() * throughputArray.length)
-        totalItems += throughputArray[randomIndex]
-      }
-
-      results.push(totalItems)
-    }
-
-    // Sort results for percentile calculation
-    results.sort((a, b) => a - b)
-
-    // Calculate statistics (percentiles represent "at least this many items")
-    // For confidence levels, we want the lower percentiles of the distribution
-    const p50Index = Math.floor(results.length * 0.50)  // 50% of runs exceeded this
-    const p15Index = Math.floor(results.length * 0.15)  // 85% of runs exceeded this (100-85=15)
-    const p5Index = Math.floor(results.length * 0.05)   // 95% of runs exceeded this (100-95=5)
-
-    const simulationStats: SimulationStats = {
-      totalSimulations: numSimulations,
-      p50: results[p50Index] || 0,
-      p85: results[p15Index] || 0,  // 85% confidence means 15th percentile
-      p95: results[p5Index] || 0,   // 95% confidence means 5th percentile
-      mean: results.reduce((sum, val) => sum + val, 0) / results.length,
-      min: results[0] || 0,
-      max: results[results.length - 1] || 0
-    }
-
-    // Create histogram data
-    const histogram: { [key: number]: number } = {}
-    results.forEach(result => {
-      histogram[result] = (histogram[result] || 0) + 1
-    })
-
-    const histogramData: SimulationResult[] = Object.entries(histogram)
-      .map(([totalItems, frequency]) => ({
-        totalItems: parseInt(totalItems),
-        frequency
-      }))
-      .sort((a, b) => a.totalItems - b.totalItems)
-
-    return {
-      simulationResults: histogramData,
-      stats: simulationStats
-    }
-  }, [throughputArray, numSimulations, forecastHorizon, runId])
+    return forecastingDays
+      ? simulateDaysToTarget(throughputArray, targetItems, numSimulations)
+      : simulateItemCount(throughputArray, forecastHorizon, numSimulations)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [throughputArray, numSimulations, forecastHorizon, targetItems, forecastingDays, runId])
 
   const runSimulation = () => {
     setIsRunning(true)
@@ -193,14 +59,19 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     setTimeout(() => setIsRunning(false), 100)
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload as SimulationResult
-      const probability = ((data.frequency / stats.totalSimulations) * 100).toFixed(2)
+      const bin = payload[0].payload as HistogramBin
+      const probability = ((bin.frequency / stats.totalSimulations) * 100).toFixed(2)
       return (
         <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">{data.totalItems} items</p>
-          <p className="text-sm text-gray-900">Frequency: {data.frequency}</p>
+          <p className="font-bold text-blue-600">
+            {forecastingDays ? `${bin.value} days` : `${bin.value} items`}
+          </p>
+          {forecastingDays && (
+            <p className="text-sm text-gray-900">by {dateAfterDays(bin.value)}</p>
+          )}
+          <p className="text-sm text-gray-900">Frequency: {bin.frequency}</p>
           <p className="text-sm text-gray-600">Probability: {probability}%</p>
         </div>
       )
@@ -289,19 +160,35 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   step="1000"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Forecast Horizon (days)
-                </label>
-                <input
-                  type="number"
-                  value={forecastHorizon}
-                  onChange={(e) => setForecastHorizon(Math.max(1, Math.min(365, parseInt(e.target.value) || 14)))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  min="1"
-                  max="365"
-                />
-              </div>
+              {forecastingDays ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Items wanted
+                  </label>
+                  <input
+                    type="number"
+                    value={targetItems}
+                    onChange={(e) => setTargetItems(Math.max(1, Math.min(1000, parseInt(e.target.value) || 25)))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="1"
+                    max="1000"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Forecast Horizon (days)
+                  </label>
+                  <input
+                    type="number"
+                    value={forecastHorizon}
+                    onChange={(e) => setForecastHorizon(Math.max(1, Math.min(365, parseInt(e.target.value) || 14)))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="1"
+                    max="365"
+                  />
+                </div>
+              )}
               <div className="flex items-end">
                 <button
                   onClick={runSimulation}
@@ -319,6 +206,18 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
           {/* Results */}
           {stats.totalSimulations > 0 && (
             <>
+              {/* A target the history can never reach: every confidence level would
+                  otherwise read as the iteration cap and look like a real forecast. */}
+              {unreachable && !maximised && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h4 className="text-sm font-semibold text-red-800 mb-1">Target out of reach</h4>
+                  <p className="text-sm text-red-700">
+                    Some simulations never completed {targetItems} items. Your historical throughput
+                    is too low to forecast this target — try a smaller number of items.
+                  </p>
+                </div>
+              )}
+
               {/* Statistics */}
               {!maximised && (
               <div className="mb-6">
@@ -326,18 +225,30 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="bg-blue-50 p-4 rounded border border-blue-200">
                     <div className="font-semibold text-blue-700">50% Confidence</div>
-                    <div className="text-2xl font-bold text-blue-800">{stats.p50}</div>
-                    <div className="text-xs text-blue-600">items or more (median)</div>
+                    <div className="text-2xl font-bold text-blue-800">
+                      {forecastingDays ? `${stats.p50} days` : stats.p50}
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      {forecastingDays ? `by ${dateAfterDays(stats.p50)} (median)` : 'items or more (median)'}
+                    </div>
                   </div>
                   <div className="bg-green-50 p-4 rounded border border-green-200">
                     <div className="font-semibold text-green-700">85% Confidence</div>
-                    <div className="text-2xl font-bold text-green-800">{stats.p85}</div>
-                    <div className="text-xs text-green-600">items or more (conservative)</div>
+                    <div className="text-2xl font-bold text-green-800">
+                      {forecastingDays ? `${stats.p85} days` : stats.p85}
+                    </div>
+                    <div className="text-xs text-green-600">
+                      {forecastingDays ? `by ${dateAfterDays(stats.p85)} (conservative)` : 'items or more (conservative)'}
+                    </div>
                   </div>
                   <div className="bg-purple-50 p-4 rounded border border-purple-200">
                     <div className="font-semibold text-purple-700">95% Confidence</div>
-                    <div className="text-2xl font-bold text-purple-800">{stats.p95}</div>
-                    <div className="text-xs text-purple-600">items or more (highly confident)</div>
+                    <div className="text-2xl font-bold text-purple-800">
+                      {forecastingDays ? `${stats.p95} days` : stats.p95}
+                    </div>
+                    <div className="text-xs text-purple-600">
+                      {forecastingDays ? `by ${dateAfterDays(stats.p95)} (highly confident)` : 'items or more (highly confident)'}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -362,23 +273,38 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-medium text-gray-900">Probability Distribution</h3>
                   <div className="flex items-center gap-2">
-                    {isMounted && simulationResults.length > 0 && (
+                    {/* Lives here rather than in the parameters card: that card is
+                        hidden while maximised, and the question must stay switchable. */}
+                    <button
+                      type="button"
+                      onClick={() => setMode(forecastingDays ? 'how-many' : 'when')}
+                      title={forecastingDays ? 'Switch to forecasting items' : 'Switch to forecasting dates'}
+                      className={TOOLBAR_BUTTON}
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                      {forecastingDays ? 'When?' : 'How many?'}
+                    </button>
+                    {isMounted && histogram.length > 0 && (
                       <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
                     )}
                     <ChartViewToggle view={view} onChange={setView} />
                   </div>
                 </div>
                 <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-80 w-full'}>
-                  {isMounted && simulationResults.length > 0 ? (
+                  {isMounted && histogram.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={simulationResults}
+                        data={histogram}
                         margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
-                        key={`histogram-${stats.totalSimulations}-${forecastHorizon}`}>
+                        key={`histogram-${mode}-${stats.totalSimulations}-${forecastHorizon}-${targetItems}`}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
-                          dataKey="totalItems"
-                          label={{ value: 'Number of Items Completed', position: 'insideBottom', offset: -10 }}
+                          dataKey="value"
+                          label={{
+                            value: forecastingDays ? `Days to Complete ${targetItems} Items` : 'Number of Items Completed',
+                            position: 'insideBottom',
+                            offset: -10,
+                          }}
                           tick={{ fontSize: 12, fill: '#6b7280' }}
                         />
                         <YAxis
@@ -432,8 +358,19 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {!maximised && (
               <div className="text-sm text-gray-600 space-y-2">
                 <p>
-                  <strong>Interpretation:</strong> Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} days,
-                  there is an 85% probability of completing {stats.p85} or more items, and a 50% probability of completing {stats.p50} or more items.
+                  <strong>Interpretation:</strong>{' '}
+                  {forecastingDays ? (
+                    <>
+                      Based on {stats.totalSimulations.toLocaleString()} simulations, 85% finished {targetItems} items
+                      within {stats.p85} days (by {dateAfterDays(stats.p85)}), and 50% finished
+                      within {stats.p50} days (by {dateAfterDays(stats.p50)}).
+                    </>
+                  ) : (
+                    <>
+                      Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} days,
+                      there is an 85% probability of completing {stats.p85} or more items, and a 50% probability of completing {stats.p50} or more items.
+                    </>
+                  )}
                 </p>
                 <p>
                   <strong>Methodology:</strong> This Monte Carlo simulation randomly samples from your historical daily throughput data

@@ -157,8 +157,15 @@ function groupPlotPoints(items: ProcessedDataPoint[], typeColours?: Record<strin
     .sort((a, b) => a.itemIds.length - b.itemIds.length)
 }
 
-function ScatterDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: PlotPoint }) {
-  if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) return null
+/**
+ * Recharts types `shape` as `(props: unknown) => Element`, so this takes unknown
+ * and narrows, rather than declaring its props and failing to be assignable.
+ * It must always return an element: `null` is not an Element, hence the empty
+ * `<g />` for a point Recharts has not finished positioning.
+ */
+function ScatterDot(props: unknown) {
+  const { cx, cy, payload } = (props ?? {}) as { cx?: number; cy?: number; payload?: PlotPoint }
+  if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) return <g />
   return (
     <circle
       cx={cx}
