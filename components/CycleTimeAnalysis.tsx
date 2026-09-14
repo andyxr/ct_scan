@@ -43,7 +43,28 @@ interface ZoomRange {
 const CLICK_SPAN_MS = 12 * 60 * 60 * 1000
 
 /** Shared by the chart and the pixel-to-date mapping, which must agree on the plot area. */
-const CHART_MARGIN = { top: 20, right: 20, bottom: 60, left: 60 }
+const CHART_MARGIN = { top: 20, right: 136, bottom: 60, left: 60 }
+
+/** Keep points and percentile labels off the plot edge, where Recharts clips them. */
+function paddedDomain(left: number, right: number): [number, number] {
+  const span = Math.max(right - left, 1)
+  const pad = span * 0.05
+  return [left - pad, right + pad]
+}
+
+/**
+ * Horizontal percentile lines drawn on the scatterplot.
+ *
+ * 85th stays the original blue dashed line. The others use different hues and
+ * dash patterns so they remain separable from each other and from the optional
+ * sprint (amber) and average (purple) overlays.
+ */
+const PERCENTILE_LINES = [
+  { p: 0.50, name: '50th', stroke: '#4b5563', dash: '2 4' },
+  { p: 0.75, name: '75th', stroke: '#0d9488', dash: '8 3' },
+  { p: 0.85, name: '85th', stroke: '#2563eb', dash: '5 5' },
+  { p: 0.95, name: '95th', stroke: '#be123c', dash: '12 4' },
+] as const
 
 function ordinal(n: number) {
   const mod100 = n % 100
@@ -90,7 +111,7 @@ export default function CycleTimeAnalysis({
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const { processedData, percentile85, stats, dataExtent } = useMemo(() => {
+  const { processedData, percentileLines, stats, dataExtent } = useMemo(() => {
     const columns = detectColumns(data)
     const items = toWorkItems(data, columns)
 
@@ -105,7 +126,11 @@ export default function CycleTimeAnalysis({
     }))
 
     const cycleTimes = processed.map(item => item.cycleTime)
-    const p85 = percentile(cycleTimes, 0.85)
+    const percentileLines = PERCENTILE_LINES.map(line => ({
+      ...line,
+      value: percentile(cycleTimes, line.p),
+    }))
+    const p85 = percentileLines.find(line => line.p === 0.85)?.value ?? 0
     const average = cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length || 0
     const averagePercentile = cycleTimes.length
       ? Math.round((cycleTimes.filter(ct => ct <= average).length / cycleTimes.length) * 100)
@@ -116,7 +141,7 @@ export default function CycleTimeAnalysis({
 
     return {
       processedData: processed,
-      percentile85: p85,
+      percentileLines,
       dataExtent: {
         min: dates.length ? Math.min(...dates) : 0,
         max: dates.length ? Math.max(...dates) : 0,
@@ -127,7 +152,7 @@ export default function CycleTimeAnalysis({
         averagePercentile,
         min: cycleTimes.length ? Math.min(...cycleTimes) : 0,
         max: cycleTimes.length ? Math.max(...cycleTimes) : 0,
-        p85: p85,
+        p85,
       },
     }
   }, [data])
@@ -145,6 +170,11 @@ export default function CycleTimeAnalysis({
   }, [processedData, typeColours])
 
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
+  const daysAt = (p: number) =>
+    (percentileLines.find(line => line.p === p)?.value ?? 0).toFixed(1)
+  const xDomain = zoom
+    ? paddedDomain(zoom.left, zoom.right)
+    : paddedDomain(dataExtent.min, dataExtent.max)
 
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
 
@@ -171,7 +201,7 @@ export default function CycleTimeAnalysis({
     const plot = grid.getBoundingClientRect()
     if (plot.width <= 0) return null
 
-    const [min, max] = zoom ? [zoom.left, zoom.right] : [dataExtent.min, dataExtent.max]
+    const [min, max] = xDomain
     if (max <= min) return null
 
     const ratio = (clientX - plot.left) / plot.width
@@ -295,7 +325,7 @@ export default function CycleTimeAnalysis({
         />
       )}
 
-      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-96 w-full select-none'}>
+      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-[48rem] w-full select-none'}>
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
@@ -311,7 +341,7 @@ export default function CycleTimeAnalysis({
                 // allowDataOverflow is what makes the zoom stick: without it the
                 // domain is widened back out to fit every point.
                 allowDataOverflow
-                domain={zoom ? [zoom.left, zoom.right] : ['dataMin', 'dataMax']}
+                domain={xDomain}
                 tickFormatter={formatXAxis}
                 label={{ value: 'End Date', position: 'insideBottom', offset: -10 }}
                 angle={-45}
@@ -321,17 +351,26 @@ export default function CycleTimeAnalysis({
               />
               <YAxis
                 dataKey="cycleTime"
+                domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.08)]}
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
                 tick={{ fill: '#6b7280' }}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-              <ReferenceLine
-                y={percentile85}
-                stroke="#2563eb"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                label={{ value: `85th Percentile`, position: "top", offset: 10 }}
-              />
+              {percentileLines.map(line => (
+                <ReferenceLine
+                  key={line.name}
+                  y={line.value}
+                  stroke={line.stroke}
+                  strokeWidth={2}
+                  strokeDasharray={line.dash}
+                  ifOverflow="visible"
+                  label={{
+                    value: `${line.name} (${line.value.toFixed(1)}d)`,
+                    position: 'right',
+                    fill: line.stroke,
+                  }}
+                />
+              ))}
               {showAverage && (
                 <ReferenceLine
                   y={stats.average}
@@ -395,7 +434,9 @@ export default function CycleTimeAnalysis({
 
       {!maximised && (
         <div className="mt-4 text-sm text-gray-600">
-          <p>The 85th percentile line indicates that 85% of items complete within {percentile85.toFixed(1)} days or less.</p>
+          <p>
+            50% of items finish within {daysAt(0.5)} days, 75% within {daysAt(0.75)}, 85% within {daysAt(0.85)}, and 95% within {daysAt(0.95)}.
+          </p>
           {showAverage && (
             <p>The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
           )}

@@ -111,7 +111,7 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
           <div>
             <h2 className="font-semibold text-gray-900">2. Pick an analysis</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Plot cycle times against an 85th percentile line, chart process
+              Plot cycle times against percentile lines, chart process
               behaviour to see whether delivery is stable, compare estimates with
               actual cycle times, or forecast delivery dates with a Monte Carlo
               simulation.
