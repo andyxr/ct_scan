@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
-import { detectColumns, toWorkItems, percentile, formatDate, UNTYPED_ITEM_TYPE } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
 import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import ExportPngButton from './ExportPngButton'
@@ -24,6 +24,16 @@ interface ProcessedDataPoint {
   itemId: string
   originalEndDate: string
   itemType: string
+}
+
+/** One mark on the scatterplot. Several items can share a date and cycle time. */
+interface PlotPoint {
+  key: string
+  endDate: number
+  cycleTime: number
+  originalEndDate: string
+  itemIds: string[]
+  fill: string
 }
 
 /** A committed zoom window on the X axis, as epoch ms. */
@@ -65,6 +75,83 @@ const PERCENTILE_LINES = [
   { p: 0.85, name: '85th', stroke: '#2563eb', dash: '5 5' },
   { p: 0.95, name: '95th', stroke: '#be123c', dash: '12 4' },
 ] as const
+
+const DEFAULT_POINT_COLOUR = '#22c55e'
+/** Stacked items of more than one type, so no swatch colour would be honest. */
+const MIXED_TYPE_COLOUR = '#374151'
+
+function startOfDayMs(ms: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
+function radiusForCount(count: number): number {
+  if (count <= 1) return 5
+  return 5 + 3 * Math.sqrt(count)
+}
+
+function colourForItems(items: ProcessedDataPoint[], typeColours?: Record<string, string>): string {
+  if (!typeColours || Object.keys(typeColours).length < 2) return DEFAULT_POINT_COLOUR
+  const type = items[0].itemType
+  if (items.some(item => item.itemType !== type)) return MIXED_TYPE_COLOUR
+  return typeColours[type] ?? DEFAULT_POINT_COLOUR
+}
+
+function groupPlotPoints(items: ProcessedDataPoint[], typeColours?: Record<string, string>): PlotPoint[] {
+  const groups = new Map<string, ProcessedDataPoint[]>()
+  for (const item of items) {
+    const key = `${item.endDate}|${item.cycleTime}`
+    const bucket = groups.get(key)
+    if (bucket) bucket.push(item)
+    else groups.set(key, [item])
+  }
+
+  return [...groups.values()]
+    .map(bucket => {
+      const first = bucket[0]
+      return {
+        key: `${first.endDate}-${first.cycleTime}`,
+        endDate: first.endDate,
+        cycleTime: first.cycleTime,
+        originalEndDate: first.originalEndDate,
+        itemIds: bucket.map(item => item.itemId),
+        fill: colourForItems(bucket, typeColours),
+      }
+    })
+    .sort((a, b) => a.itemIds.length - b.itemIds.length)
+}
+
+function ScatterDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: PlotPoint }) {
+  if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) return null
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={radiusForCount(payload.itemIds.length)}
+      fill={payload.fill}
+    />
+  )
+}
+
+function CycleTimeTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload?: PlotPoint }>
+}) {
+  if (!active || !payload?.[0]?.payload) return null
+  const point = payload[0].payload
+  return (
+    <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg max-h-64 overflow-y-auto">
+      {point.itemIds.map((id, index) => (
+        <p key={`${id}-${index}`} className="font-bold text-blue-600">{id}</p>
+      ))}
+      <p className="font-semibold text-lg text-gray-900 mt-1">{point.cycleTime} days</p>
+      <p className="text-xs text-gray-500 mt-1">Completed: {point.originalEndDate}</p>
+    </div>
+  )
+}
 
 function ordinal(n: number) {
   const mod100 = n % 100
@@ -117,7 +204,7 @@ export default function CycleTimeAnalysis({
 
     const processed: ProcessedDataPoint[] = items.map((item, index) => ({
       key: `${item.id}-${index}`,
-      endDate: item.endDate,
+      endDate: startOfDayMs(item.endDate),
       cycleTime: item.cycleTime,
       itemName: item.id,
       itemId: item.id,
@@ -157,17 +244,10 @@ export default function CycleTimeAnalysis({
     }
   }, [data])
 
-  /**
-   * One series per item type, ordered by the colour map so the chart and the swatch
-   * row agree. Empty when the file has no item types, which falls back to one flat series.
-   */
-  const seriesByType = useMemo(() => {
-    const names = Object.keys(typeColours ?? {})
-    if (names.length < 2) return []
-    return names
-      .map(type => ({ type, points: processedData.filter(point => point.itemType === type) }))
-      .filter(series => series.points.length > 0)
-  }, [processedData, typeColours])
+  const plotPoints = useMemo(
+    () => groupPlotPoints(processedData, typeColours),
+    [processedData, typeColours],
+  )
 
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
   const daysAt = (p: number) =>
@@ -249,26 +329,6 @@ export default function CycleTimeAnalysis({
     setDragStart(null)
     setDragEnd(null)
     setZoom(right - left < CLICK_SPAN_MS ? null : { left, right })
-  }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">ID: {data.itemId}</p>
-          <p className="font-semibold text-lg text-gray-900">{data.cycleTime} days</p>
-          {data.itemType && data.itemType !== UNTYPED_ITEM_TYPE && (
-            <p className="text-sm text-gray-600 mt-1">{data.itemType}</p>
-          )}
-          {data.itemName !== data.itemId && (
-            <p className="text-sm text-gray-600 mt-1">{data.itemName}</p>
-          )}
-          <p className="text-xs text-gray-500 mt-1">Completed: {data.originalEndDate}</p>
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -355,7 +415,7 @@ export default function CycleTimeAnalysis({
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
                 tick={{ fill: '#6b7280' }}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+              <Tooltip content={<CycleTimeTooltip />} cursor={{ strokeDasharray: '3 3' }} />
               {percentileLines.map(line => (
                 <ReferenceLine
                   key={line.name}
@@ -398,26 +458,13 @@ export default function CycleTimeAnalysis({
                   strokeOpacity={0}
                 />
               )}
-              {seriesByType.length > 0 ? (
-                seriesByType.map(series => (
-                  <Scatter
-                    key={series.type}
-                    name={series.type}
-                    data={series.points}
-                    dataKey="cycleTime"
-                    fill={typeColours![series.type]}
-                    isAnimationActive={false}
-                  />
-                ))
-              ) : (
-                <Scatter
-                  name="Cycle time"
-                  data={processedData}
-                  dataKey="cycleTime"
-                  fill="#22c55e"
-                  isAnimationActive={false}
-                />
-              )}
+              <Scatter
+                name="Cycle time"
+                data={plotPoints}
+                dataKey="cycleTime"
+                shape={ScatterDot}
+                isAnimationActive={false}
+              />
             </ScatterChart>
           </ResponsiveContainer>
         ) : (
