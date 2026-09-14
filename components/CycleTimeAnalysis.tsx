@@ -85,6 +85,42 @@ function startOfDayMs(ms: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 }
 
+/** Calendar-day arithmetic, so a step never drifts an hour across a DST boundary. */
+function addDays(ms: number, days: number): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days).getTime()
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const TICK_TARGET = 8
+/** Day steps a reader can hold in their head: days, then part-weeks, weeks, months, quarters. */
+const TICK_STEPS_DAYS = [1, 2, 3, 7, 14, 28, 56, 91, 182, 364]
+
+/**
+ * Evenly spaced, day-aligned ticks across the visible date span.
+ *
+ * Recharts will not produce these on its own. On a horizontal chart the X axis
+ * is the categorical one, and a categorical axis carrying a dataKey takes its
+ * ticks straight from the data values, whatever its type and scale. So the
+ * labels landed on completion dates rather than on regular intervals, and once
+ * the collision filter had thinned a clustered set of them, long stretches of
+ * the axis carried no label at all.
+ */
+function dateTicks([min, max]: [number, number]): number[] {
+  const span = max - min
+  if (span <= 0) return [startOfDayMs(min)]
+
+  const stepDays = TICK_STEPS_DAYS.find(days => span / (days * DAY_MS) <= TICK_TARGET)
+    ?? Math.ceil(span / DAY_MS / TICK_TARGET)
+
+  const first = startOfDayMs(min) >= min ? startOfDayMs(min) : addDays(startOfDayMs(min), 1)
+  const ticks: number[] = []
+  for (let tick = first; tick <= max; tick = addDays(tick, stepDays)) ticks.push(tick)
+
+  // A span too short to contain two day boundaries still needs its ends labelled.
+  return ticks.length >= 2 ? ticks : [min, max]
+}
+
 function radiusForCount(count: number): number {
   if (count <= 1) return 5
   return 5 + 3 * Math.sqrt(count)
@@ -252,9 +288,13 @@ export default function CycleTimeAnalysis({
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
   const daysAt = (p: number) =>
     (percentileLines.find(line => line.p === p)?.value ?? 0).toFixed(1)
-  const xDomain = zoom
-    ? paddedDomain(zoom.left, zoom.right)
-    : paddedDomain(dataExtent.min, dataExtent.max)
+  const xDomain = useMemo(
+    () => zoom
+      ? paddedDomain(zoom.left, zoom.right)
+      : paddedDomain(dataExtent.min, dataExtent.max),
+    [zoom, dataExtent.min, dataExtent.max],
+  )
+  const xTicks = useMemo(() => dateTicks(xDomain), [xDomain])
 
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
 
@@ -402,6 +442,7 @@ export default function CycleTimeAnalysis({
                 // domain is widened back out to fit every point.
                 allowDataOverflow
                 domain={xDomain}
+                ticks={xTicks}
                 tickFormatter={formatXAxis}
                 label={{ value: 'End Date', position: 'insideBottom', offset: -10 }}
                 angle={-45}
