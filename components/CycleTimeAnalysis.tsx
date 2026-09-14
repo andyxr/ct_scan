@@ -2,13 +2,18 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile, formatDate, UNTYPED_ITEM_TYPE } from '@/lib/csv'
+import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface CycleTimeAnalysisProps {
   data: any[]
+  /** Colour per item type, keyed by the file's full type list. Absent for files with no item_type column. */
+  typeColours?: Record<string, string>
+  onTypeColourChange?: (type: string, colour: string) => void
+  onResetTypeColours?: () => void
 }
 
 interface ProcessedDataPoint {
@@ -18,6 +23,7 @@ interface ProcessedDataPoint {
   itemName: string
   itemId: string
   originalEndDate: string
+  itemType: string
 }
 
 function ordinal(n: number) {
@@ -27,7 +33,12 @@ function ordinal(n: number) {
   return `${n}${suffix}`
 }
 
-export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
+export default function CycleTimeAnalysis({
+  data,
+  typeColours,
+  onTypeColourChange,
+  onResetTypeColours,
+}: CycleTimeAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [showSprint, setShowSprint] = useState(false)
   const [showAverage, setShowAverage] = useState(false)
@@ -53,6 +64,7 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
       itemName: item.id,
       itemId: item.id,
       originalEndDate: item.originalEndDate,
+      itemType: item.itemType,
     }))
 
     const cycleTimes = processed.map(item => item.cycleTime)
@@ -76,6 +88,18 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
     }
   }, [data])
 
+  /**
+   * One series per item type, ordered by the colour map so the chart and the swatch
+   * row agree. Empty when the file has no item types, which falls back to one flat series.
+   */
+  const seriesByType = useMemo(() => {
+    const names = Object.keys(typeColours ?? {})
+    if (names.length < 2) return []
+    return names
+      .map(type => ({ type, points: processedData.filter(point => point.itemType === type) }))
+      .filter(series => series.points.length > 0)
+  }, [processedData, typeColours])
+
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
 
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
@@ -87,6 +111,9 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
         <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
           <p className="font-bold text-blue-600">ID: {data.itemId}</p>
           <p className="font-semibold text-lg text-gray-900">{data.cycleTime} days</p>
+          {data.itemType && data.itemType !== UNTYPED_ITEM_TYPE && (
+            <p className="text-sm text-gray-600 mt-1">{data.itemType}</p>
+          )}
           {data.itemName !== data.itemId && (
             <p className="text-sm text-gray-600 mt-1">{data.itemName}</p>
           )}
@@ -130,6 +157,15 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
           Show average
         </label>
       </div>
+
+      {typeColours && onTypeColourChange && onResetTypeColours && (
+        <TypeColourControl
+          types={Object.keys(typeColours)}
+          colours={typeColours}
+          onChange={onTypeColourChange}
+          onReset={onResetTypeColours}
+        />
+      )}
 
       <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
         {isMounted && processedData.length > 0 ? (
@@ -181,13 +217,26 @@ export default function CycleTimeAnalysis({ data }: CycleTimeAnalysisProps) {
                   label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
                 />
               )}
-              <Scatter
-                name="Cycle time"
-                data={processedData}
-                dataKey="cycleTime"
-                fill="#22c55e"
-                isAnimationActive={false}
-              />
+              {seriesByType.length > 0 ? (
+                seriesByType.map(series => (
+                  <Scatter
+                    key={series.type}
+                    name={series.type}
+                    data={series.points}
+                    dataKey="cycleTime"
+                    fill={typeColours![series.type]}
+                    isAnimationActive={false}
+                  />
+                ))
+              ) : (
+                <Scatter
+                  name="Cycle time"
+                  data={processedData}
+                  dataKey="cycleTime"
+                  fill="#22c55e"
+                  isAnimationActive={false}
+                />
+              )}
             </ScatterChart>
           </ResponsiveContainer>
         ) : (

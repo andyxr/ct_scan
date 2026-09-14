@@ -7,6 +7,7 @@ import ActionSelector from '@/components/ActionSelector'
 import AnalysisNav from '@/components/AnalysisNav'
 import ItemTypeControl from '@/components/ItemTypeControl'
 import { ALL_ITEM_TYPES, detectColumns, filterByItemType, itemTypesIn } from '@/lib/csv'
+import { colourForIndex } from '@/lib/colours'
 import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
 import SplashScreen from '@/components/SplashScreen'
@@ -37,10 +38,16 @@ export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
   const [itemType, setItemType] = useState<string>(ALL_ITEM_TYPES)
+  /** User overrides only. Types without one fall back to the palette, so a new file leaves no stale keys. */
+  const [colourOverrides, setColourOverrides] = useState<Record<string, string>>({})
 
   const columns = useMemo(() => detectColumns(csvData), [csvData])
   const itemTypes = useMemo(() => itemTypesIn(csvData, columns), [csvData, columns])
   const filteredData = useMemo(() => filterByItemType(csvData, columns, itemType), [csvData, columns, itemType])
+  // Keyed off the unfiltered type list on purpose: a type keeps its colour whatever the filter shows.
+  const typeColours = useMemo(() => Object.fromEntries(
+    itemTypes.map((type, index) => [type, colourOverrides[type] ?? colourForIndex(index)])
+  ), [itemTypes, colourOverrides])
 
   const [showSplash, setShowSplash] = useState(true)
 
@@ -48,6 +55,7 @@ export default function Home() {
     setCsvData(data)
     setSelectedAction(null)
     setItemType(ALL_ITEM_TYPES)
+    setColourOverrides({})
   }
 
   const handleActionSelect = (action: AnalysisAction) => {
@@ -58,6 +66,7 @@ export default function Home() {
     setCsvData([])
     setSelectedAction(null)
     setItemType(ALL_ITEM_TYPES)
+    setColourOverrides({})
   }
 
   return (
@@ -101,7 +110,12 @@ export default function Home() {
           />
 
           {selectedAction === 'cycle-time' && (
-            <CycleTimeAnalysis data={filteredData} />
+            <CycleTimeAnalysis
+              data={filteredData}
+              typeColours={typeColours}
+              onTypeColourChange={(type, colour) => setColourOverrides(prev => ({ ...prev, [type]: colour }))}
+              onResetTypeColours={() => setColourOverrides({})}
+            />
           )}
 
           {selectedAction === 'process-behaviour' && (

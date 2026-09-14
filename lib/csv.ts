@@ -204,7 +204,7 @@ export const ALL_ITEM_TYPES = 'All'
 /** Dropdown sentinel: rows whose item_type cell is blank. */
 export const UNTYPED_ITEM_TYPE = '(Untyped)'
 
-function itemTypeOf(row: any, column: string): string {
+export function itemTypeOf(row: any, column: string): string {
   return String(row[column] ?? '').trim()
 }
 
@@ -248,6 +248,8 @@ export interface WorkItem {
   endDate: number
   cycleTime: number
   originalEndDate: string
+  /** Always set: UNTYPED_ITEM_TYPE when the cell is blank or the file has no item_type column. */
+  itemType: string
 }
 
 /**
@@ -295,6 +297,7 @@ export function toWorkItems(data: any[], columns: ColumnMap): WorkItem[] {
         endDate: endDate.getTime(),
         cycleTime,
         originalEndDate: formatDate(endDate),
+        itemType: (columns.itemType && itemTypeOf(row, columns.itemType)) || UNTYPED_ITEM_TYPE,
       }
     })
     .filter((item): item is WorkItem => item !== null)
