@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect } from 'react'
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
 import { detectColumns, toWorkItems, percentile, formatDate, UNTYPED_ITEM_TYPE } from '@/lib/csv'
 import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
@@ -26,6 +26,25 @@ interface ProcessedDataPoint {
   itemType: string
 }
 
+/** A committed zoom window on the X axis, as epoch ms. */
+interface ZoomRange {
+  left: number
+  right: number
+}
+
+/**
+ * Below this span a drag counts as a click, not a selection.
+ *
+ * Measured in milliseconds of the date axis rather than screen pixels, because
+ * the drag handlers only ever see axis values. Half a day is small enough that
+ * no deliberate selection lands under it, and large enough to absorb the jitter
+ * of a click that moves a pixel or two.
+ */
+const CLICK_SPAN_MS = 12 * 60 * 60 * 1000
+
+/** Shared by the chart and the pixel-to-date mapping, which must agree on the plot area. */
+const CHART_MARGIN = { top: 20, right: 20, bottom: 60, left: 60 }
+
 function ordinal(n: number) {
   const mod100 = n % 100
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`
@@ -44,6 +63,10 @@ export default function CycleTimeAnalysis({
   const [showAverage, setShowAverage] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [view, setView] = useState<ChartView>('normal')
+  const [zoom, setZoom] = useState<ZoomRange | null>(null)
+  /** The two edges of an in-progress drag. Null when no drag is under way. */
+  const [dragStart, setDragStart] = useState<number | null>(null)
+  const [dragEnd, setDragEnd] = useState<number | null>(null)
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
 
@@ -53,7 +76,7 @@ export default function CycleTimeAnalysis({
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const { processedData, percentile85, stats } = useMemo(() => {
+  const { processedData, percentile85, stats, dataExtent } = useMemo(() => {
     const columns = detectColumns(data)
     const items = toWorkItems(data, columns)
 
@@ -74,9 +97,16 @@ export default function CycleTimeAnalysis({
       ? Math.round((cycleTimes.filter(ct => ct <= average).length / cycleTimes.length) * 100)
       : 0
 
+    // toWorkItems returns items oldest-first, so the extent is just the ends.
+    const dates = processed.map(item => item.endDate)
+
     return {
       processedData: processed,
       percentile85: p85,
+      dataExtent: {
+        min: dates.length ? Math.min(...dates) : 0,
+        max: dates.length ? Math.max(...dates) : 0,
+      },
       stats: {
         count: processed.length,
         average,
@@ -103,6 +133,72 @@ export default function CycleTimeAnalysis({
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
 
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
+
+  /**
+   * Turn a chart mouse event into a date on the X axis.
+   *
+   * Recharts derives the first argument's `activeLabel` and `activeCoordinate`
+   * from its tooltip selectors, so on a scatter chart with no active tooltip
+   * both are undefined — useless for a free drag. The second argument is the
+   * real DOM event, so we take its clientX and map it across the plot area
+   * ourselves using the axis extent and the chart margins.
+   */
+  const dateAtCursor = (mouseEvent: SyntheticEvent | undefined): number | null => {
+    const clientX = (mouseEvent as MouseEvent | undefined)?.clientX
+    if (typeof clientX !== 'number' || !chartRef.current) return null
+
+    const svg = chartRef.current.querySelector('svg')
+    if (!svg) return null
+
+    const bounds = svg.getBoundingClientRect()
+    const plotLeft = bounds.left + CHART_MARGIN.left
+    const plotWidth = bounds.width - CHART_MARGIN.left - CHART_MARGIN.right
+    if (plotWidth <= 0) return null
+
+    const [min, max] = zoom ? [zoom.left, zoom.right] : [dataExtent.min, dataExtent.max]
+    if (max <= min) return null
+
+    const ratio = (clientX - plotLeft) / plotWidth
+    const clamped = Math.min(1, Math.max(0, ratio))
+    return min + clamped * (max - min)
+  }
+
+  /**
+   * Drag across the plot to zoom the date axis; click to restore the full span.
+   *
+   * Both gestures resolve in onMouseUp rather than splitting the click across
+   * Recharts' onClick, which also fires at the end of a drag and would throw
+   * away the selection the user just made.
+   */
+  const handleMouseDown = (_state: unknown, event: SyntheticEvent) => {
+    const value = dateAtCursor(event)
+    if (value === null) return
+    setDragStart(value)
+    setDragEnd(value)
+  }
+
+  const handleMouseMove = (_state: unknown, event: SyntheticEvent) => {
+    if (dragStart === null) return
+    const value = dateAtCursor(event)
+    if (value === null) return
+    setDragEnd(value)
+  }
+
+  const handleMouseUp = () => {
+    if (dragStart === null || dragEnd === null) {
+      setDragStart(null)
+      setDragEnd(null)
+      return
+    }
+
+    // Normalised so a right-to-left drag selects the same window as left-to-right.
+    const left = Math.min(dragStart, dragEnd)
+    const right = Math.max(dragStart, dragEnd)
+
+    setDragStart(null)
+    setDragEnd(null)
+    setZoom(right - left < CLICK_SPAN_MS ? null : { left, right })
+  }
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -156,6 +252,17 @@ export default function CycleTimeAnalysis({
           />
           Show average
         </label>
+        {zoom && (
+          <span className="flex items-center gap-2 mb-4 text-sm text-gray-700">
+            Zoomed: {formatDate(zoom.left)} – {formatDate(zoom.right)}
+            <button
+              onClick={() => setZoom(null)}
+              className="text-gray-600 hover:text-gray-900 underline"
+            >
+              Reset zoom
+            </button>
+          </span>
+        )}
       </div>
 
       {typeColours && onTypeColourChange && onResetTypeColours && (
@@ -167,18 +274,23 @@ export default function CycleTimeAnalysis({
         />
       )}
 
-      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
+      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-96 w-full select-none'}>
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 20, right: 20, bottom: 60, left: 60 }}
-              key={`chart-${processedData.length}`}>
+              margin={CHART_MARGIN}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="endDate"
                 type="number"
                 scale="time"
-                domain={['dataMin', 'dataMax']}
+                // allowDataOverflow is what makes the zoom stick: without it the
+                // domain is widened back out to fit every point.
+                allowDataOverflow
+                domain={zoom ? [zoom.left, zoom.right] : ['dataMin', 'dataMax']}
                 tickFormatter={formatXAxis}
                 label={{ value: 'End Date', position: 'insideBottom', offset: -10 }}
                 angle={-45}
@@ -215,6 +327,15 @@ export default function CycleTimeAnalysis({
                   strokeWidth={2}
                   strokeDasharray="8 4"
                   label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
+                />
+              )}
+              {dragStart !== null && dragEnd !== null && dragStart !== dragEnd && (
+                <ReferenceArea
+                  x1={dragStart}
+                  x2={dragEnd}
+                  fill="#2563eb"
+                  fillOpacity={0.1}
+                  strokeOpacity={0}
                 />
               )}
               {seriesByType.length > 0 ? (
