@@ -64,7 +64,15 @@ export default function CycleTimeAnalysis({
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [view, setView] = useState<ChartView>('normal')
   const [zoom, setZoom] = useState<ZoomRange | null>(null)
-  /** The two edges of an in-progress drag. Null when no drag is under way. */
+  /**
+   * The two edges of an in-progress drag. Null when no drag is under way.
+   *
+   * Held in a ref as well as state: the handlers fire faster than React commits,
+   * so a quick flick of the mouse would see a stale `dragStart` of null, drop
+   * every move, and the gesture would be mistaken for a click. The ref is the
+   * source of truth for the handlers; the state only drives the selection rectangle.
+   */
+  const dragEdges = useRef<{ start: number; end: number } | null>(null)
   const [dragStart, setDragStart] = useState<number | null>(null)
   const [dragEnd, setDragEnd] = useState<number | null>(null)
   const maximised = view === 'maximised'
@@ -73,6 +81,12 @@ export default function CycleTimeAnalysis({
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // A zoom held across a change of data can frame a window with nothing in it,
+  // so drop it and show the new file or filter in full.
+  useEffect(() => {
+    setZoom(null)
+  }, [data])
 
   useEscapeToRestore(view, () => setView('normal'))
 
@@ -147,18 +161,20 @@ export default function CycleTimeAnalysis({
     const clientX = (mouseEvent as MouseEvent | undefined)?.clientX
     if (typeof clientX !== 'number' || !chartRef.current) return null
 
-    const svg = chartRef.current.querySelector('svg')
-    if (!svg) return null
+    // Measured from the rendered grid, which Recharts draws exactly on the plot
+    // area. The chart margin alone is not the plot origin: the Y axis and its
+    // rotated label sit inside the margin box, so assuming it shifts every
+    // reading left and the selected dates drift off the cursor.
+    const grid = chartRef.current.querySelector('.recharts-cartesian-grid')
+    if (!grid) return null
 
-    const bounds = svg.getBoundingClientRect()
-    const plotLeft = bounds.left + CHART_MARGIN.left
-    const plotWidth = bounds.width - CHART_MARGIN.left - CHART_MARGIN.right
-    if (plotWidth <= 0) return null
+    const plot = grid.getBoundingClientRect()
+    if (plot.width <= 0) return null
 
     const [min, max] = zoom ? [zoom.left, zoom.right] : [dataExtent.min, dataExtent.max]
     if (max <= min) return null
 
-    const ratio = (clientX - plotLeft) / plotWidth
+    const ratio = (clientX - plot.left) / plot.width
     const clamped = Math.min(1, Math.max(0, ratio))
     return min + clamped * (max - min)
   }
@@ -173,27 +189,32 @@ export default function CycleTimeAnalysis({
   const handleMouseDown = (_state: unknown, event: SyntheticEvent) => {
     const value = dateAtCursor(event)
     if (value === null) return
+    dragEdges.current = { start: value, end: value }
     setDragStart(value)
     setDragEnd(value)
   }
 
   const handleMouseMove = (_state: unknown, event: SyntheticEvent) => {
-    if (dragStart === null) return
+    if (dragEdges.current === null) return
     const value = dateAtCursor(event)
     if (value === null) return
+    dragEdges.current.end = value
     setDragEnd(value)
   }
 
   const handleMouseUp = () => {
-    if (dragStart === null || dragEnd === null) {
+    const edges = dragEdges.current
+    dragEdges.current = null
+
+    if (edges === null) {
       setDragStart(null)
       setDragEnd(null)
       return
     }
 
     // Normalised so a right-to-left drag selects the same window as left-to-right.
-    const left = Math.min(dragStart, dragEnd)
-    const right = Math.max(dragStart, dragEnd)
+    const left = Math.min(edges.start, edges.end)
+    const right = Math.max(edges.start, edges.end)
 
     setDragStart(null)
     setDragEnd(null)

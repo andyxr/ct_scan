@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
 import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SprintExplainerModal from './SprintExplainerModal'
@@ -41,6 +41,23 @@ interface ProcessStats {
 
 const RUN_LENGTH = 8
 
+/** A committed zoom window on the sequence axis, as inclusive item numbers. */
+interface ZoomRange {
+  from: number
+  to: number
+}
+
+/**
+ * Below this span a drag counts as a click, not a selection.
+ *
+ * Measured in sequence positions: a selection has to cover at least a couple of
+ * items to be worth zooming to, and anything narrower is a stray click.
+ */
+const CLICK_SPAN_ITEMS = 2
+
+/** Shared by both charts and the pixel-to-sequence mapping, which must agree on the plot area. */
+const CHART_MARGIN = { top: 20, right: 30, left: 20, bottom: 20 }
+
 /**
  * Wheeler's rule 2: a run of RUN_LENGTH successive points all on one side of
  * the centre line. Returns the index of every point that belongs to such a run.
@@ -66,12 +83,31 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [explainerOpen, setExplainerOpen] = useState(false)
   const [view, setView] = useState<ChartView>('normal')
+  const [zoom, setZoom] = useState<ZoomRange | null>(null)
+  /**
+   * The two edges of an in-progress drag, as sequence positions. Null when no
+   * drag is under way.
+   *
+   * Held in a ref as well as state: the handlers fire faster than React commits,
+   * so a quick flick of the mouse would see a stale `dragStart` of null, drop
+   * every move, and the gesture would be mistaken for a click. The ref is the
+   * source of truth for the handlers; the state only drives the selection rectangle.
+   */
+  const dragEdges = useRef<{ start: number; end: number } | null>(null)
+  const [dragStart, setDragStart] = useState<number | null>(null)
+  const [dragEnd, setDragEnd] = useState<number | null>(null)
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Sequence numbers are positions in the current dataset, so a zoom held across
+  // a change of data can point past the end of it and leave both charts blank.
+  useEffect(() => {
+    setZoom(null)
+  }, [data])
 
   useEscapeToRestore(view, () => setView('normal'), explainerOpen)
 
@@ -186,6 +222,100 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
   const withinSprint = processedData.filter(point => point.cycleTime <= sprintDays).length
 
+  /**
+   * The points each chart draws. Filtering the arrays rather than setting an axis
+   * domain, because the sequence axis is a category axis and ignores a numeric
+   * domain. The limits in `stats` are computed over the whole dataset in the memo
+   * above, so narrowing these arrays never moves CL, UPL, LPL or the signal counts.
+   */
+  const visibleData = useMemo(
+    () => (zoom ? processedData.filter(p => p.sequence >= zoom.from && p.sequence <= zoom.to) : processedData),
+    [processedData, zoom]
+  )
+  const visibleMovingRangeData = useMemo(
+    () => (zoom ? movingRangeData.filter(p => p.sequence >= zoom.from && p.sequence <= zoom.to) : movingRangeData),
+    [movingRangeData, zoom]
+  )
+
+  /**
+   * Turn a chart mouse event into a sequence position.
+   *
+   * Recharts derives the first argument's `activeLabel` from its tooltip
+   * selectors, so it is unreliable mid-drag. The second argument is the real DOM
+   * event, so we take its clientX and map it across the plot area ourselves.
+   */
+  const sequenceAtCursor = (mouseEvent: SyntheticEvent | undefined): number | null => {
+    const clientX = (mouseEvent as MouseEvent | undefined)?.clientX
+    if (typeof clientX !== 'number' || !chartRef.current) return null
+
+    // Measured from the rendered grid, which Recharts draws exactly on the plot
+    // area. The chart margin alone is not the plot origin: the Y axis and its
+    // rotated label sit inside the margin box, so assuming it puts every reading
+    // about a pixel-per-item too far left, and the axis ticks drift by 1-2.
+    const grid = chartRef.current.querySelector('.recharts-cartesian-grid')
+    if (!grid) return null
+
+    const plot = grid.getBoundingClientRect()
+    if (plot.width <= 0) return null
+
+    const [first, last] = zoom
+      ? [zoom.from, zoom.to]
+      : [1, processedData.length]
+    if (last <= first) return null
+
+    const ratio = (clientX - plot.left) / plot.width
+    const clamped = Math.min(1, Math.max(0, ratio))
+    return Math.round(first + clamped * (last - first))
+  }
+
+  /**
+   * Drag across either chart to zoom both to that span of items; click to restore.
+   *
+   * Both gestures resolve in onMouseUp rather than splitting the click across
+   * Recharts' onClick, which also fires at the end of a drag and would throw
+   * away the selection the user just made.
+   */
+  const handleMouseDown = (_state: unknown, event: SyntheticEvent) => {
+    const value = sequenceAtCursor(event)
+    if (value === null) return
+    dragEdges.current = { start: value, end: value }
+    setDragStart(value)
+    setDragEnd(value)
+  }
+
+  const handleMouseMove = (_state: unknown, event: SyntheticEvent) => {
+    if (dragEdges.current === null) return
+    const value = sequenceAtCursor(event)
+    if (value === null) return
+    dragEdges.current.end = value
+    setDragEnd(value)
+  }
+
+  const handleMouseUp = () => {
+    const edges = dragEdges.current
+    dragEdges.current = null
+
+    if (edges === null) {
+      setDragStart(null)
+      setDragEnd(null)
+      return
+    }
+
+    // Normalised so a right-to-left drag selects the same span as left-to-right.
+    const from = Math.min(edges.start, edges.end)
+    const to = Math.max(edges.start, edges.end)
+
+    setDragStart(null)
+    setDragEnd(null)
+    setZoom(to - from < CLICK_SPAN_ITEMS ? null : { from, to })
+  }
+
+  const dragHandlers = {
+    onMouseDown: handleMouseDown,
+    onMouseMove: handleMouseMove,
+    onMouseUp: handleMouseUp,
+  }
+
   const SpecialCauseDot = ({ cx, cy, payload }: any) => {
     if (cx === undefined || cy === undefined) return null
     const special = (payload as ProcessDataPoint).isSpecialCause
@@ -280,6 +410,17 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           onDaysChange={setSprintDays}
           onExplain={() => setExplainerOpen(true)}
         />
+        {zoom && (
+          <span className="flex items-center gap-2 mb-4 text-sm text-gray-700">
+            Zoomed: items {zoom.from}–{zoom.to}
+            <button
+              onClick={() => setZoom(null)}
+              className="text-gray-600 hover:text-gray-900 underline"
+            >
+              Reset zoom
+            </button>
+          </span>
+        )}
         {explainerOpen && (
           <SprintExplainerModal
             facts={{
@@ -295,13 +436,13 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
             onClose={() => setExplainerOpen(false)}
           />
         )}
-        <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-80 w-full'}>
+        <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-80 w-full select-none'}>
           {isMounted && processedData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={processedData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                key={`process-chart-${processedData.length}`}>
+                data={visibleData}
+                margin={CHART_MARGIN}
+                {...dragHandlers}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="sequence"
@@ -344,6 +485,16 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   />
                 )}
 
+                {dragStart !== null && dragEnd !== null && dragStart !== dragEnd && (
+                  <ReferenceArea
+                    x1={dragStart}
+                    x2={dragEnd}
+                    fill="#2563eb"
+                    fillOpacity={0.1}
+                    strokeOpacity={0}
+                  />
+                )}
+
                 {/* Main process line */}
                 <Line
                   type="monotone"
@@ -368,14 +519,15 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {!maximised && (
       <div className="mb-6">
         <h3 className="text-lg font-medium mb-3 text-gray-900">Moving Range</h3>
-        <div className="h-64 w-full">
+        <div className="h-64 w-full select-none">
           {isMounted && movingRangeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={256}>
               <LineChart
                 width={800}
                 height={256}
-                data={movingRangeData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                data={visibleMovingRangeData}
+                margin={CHART_MARGIN}
+                {...dragHandlers}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="sequence"
