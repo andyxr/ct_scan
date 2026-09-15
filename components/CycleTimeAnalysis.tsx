@@ -396,6 +396,7 @@ export default function CycleTimeAnalysis({
   const [showSle, setShowSle] = useState(false)
   const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
   const [slePercentile, setSlePercentile] = useState<SlePercentile>(DEFAULT_SLE_PERCENTILE)
+  const [hiddenPercentiles, setHiddenPercentiles] = useState<ReadonlySet<string>>(() => new Set())
   const [hoveredPercentile, setHoveredPercentile] = useState<string | null>(null)
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null)
   const [view, setView] = useState<ChartView>('normal')
@@ -497,6 +498,29 @@ export default function CycleTimeAnalysis({
   const xTicks = useMemo(() => dateTicks(xDomain), [xDomain])
 
   const formatXAxis = (tickItem: number) => formatDate(tickItem)
+
+  const togglePercentile = (name: string) => {
+    setHiddenPercentiles(hidden => {
+      const next = new Set(hidden)
+      if (!next.delete(name)) next.add(name)
+      return next
+    })
+  }
+
+  /**
+   * "All" is derived from the individual switches rather than held as its own
+   * state, so clicking the four boxes down to none can never leave it stuck on.
+   * Mixed means some but not all are shown, which drives the indeterminate tick.
+   */
+  const shownCount = PERCENTILE_LINES.length - hiddenPercentiles.size
+  const allShown = shownCount === PERCENTILE_LINES.length
+  const someShown = shownCount > 0 && !allShown
+
+  // Showing all is the useful destination from both "none" and "some", so only
+  // a full set turns them off.
+  const toggleAll = () => {
+    setHiddenPercentiles(allShown ? new Set(PERCENTILE_LINES.map(line => line.name)) : new Set())
+  }
 
   /**
    * Turn a chart mouse event into a date on the X axis.
@@ -627,14 +651,63 @@ export default function CycleTimeAnalysis({
         )}
       </div>
 
-      {typeColours && onTypeColourChange && onResetTypeColours && (
-        <TypeColourControl
-          types={Object.keys(typeColours)}
-          colours={typeColours}
-          onChange={onTypeColourChange}
-          onReset={onResetTypeColours}
-        />
-      )}
+      {/* Colour pickers and percentile switches share one row. The pickers hide
+          themselves for files with fewer than two item types; the switches
+          always show, because the lines they control are always drawn. */}
+      <div className="flex flex-wrap items-center gap-x-6">
+        {typeColours && onTypeColourChange && onResetTypeColours && (
+          <TypeColourControl
+            types={Object.keys(typeColours)}
+            colours={typeColours}
+            onChange={onTypeColourChange}
+            onReset={onResetTypeColours}
+          />
+        )}
+        <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
+          <span>Percentiles</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allShown}
+              /* Indeterminate is a DOM property with no JSX attribute, so it is
+                 set on the node itself. It marks a part-selected state that a
+                 bare checked/unchecked tick would misreport as "none shown". */
+              ref={input => {
+                if (input) input.indeterminate = someShown
+              }}
+              onChange={toggleAll}
+              className="h-4 w-4"
+              style={{ accentColor: SHEET_INK.ink }}
+            />
+            All
+          </label>
+          {PERCENTILE_LINES.map(line => (
+            <label key={line.name} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!hiddenPercentiles.has(line.name)}
+                onChange={() => togglePercentile(line.name)}
+                className="h-4 w-4"
+                style={{ accentColor: line.stroke }}
+              />
+              {/* The swatch repeats the line's own colour and dash pattern, so a
+                  switch can be matched to its line without reading the labels. */}
+              <svg aria-hidden="true" width="20" height="4" className="shrink-0">
+                <line
+                  x1="0"
+                  y1="2"
+                  x2="20"
+                  y2="2"
+                  stroke={line.stroke}
+                  strokeWidth={PERCENTILE_STROKE}
+                  strokeDasharray={line.dash}
+                />
+              </svg>
+              {line.name}
+            </label>
+          ))}
+        </div>
+      </div>
 
       <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full select-none' : 'sheet-plot h-[48rem] w-full select-none'}>
         {isMounted && processedData.length > 0 ? (
@@ -669,7 +742,7 @@ export default function CycleTimeAnalysis({
                 tick={{ fill: SHEET_INK.inkSoft }}
               />
               <Tooltip content={<CycleTimeTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-              {percentileLines.map(line => (
+              {percentileLines.filter(line => !hiddenPercentiles.has(line.name)).map(line => (
                 <ReferenceLine
                   key={line.name}
                   y={line.value}
