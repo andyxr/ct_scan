@@ -6,7 +6,7 @@ import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
 import AnalysisNav from '@/components/AnalysisNav'
 import ItemTypeControl from '@/components/ItemTypeControl'
-import { ALL_ITEM_TYPES, detectColumns, filterByItemType, itemTypesIn } from '@/lib/csv'
+import { ALL_ITEM_TYPES, detectColumns, filterByItemType, itemTypesIn, toWorkItems } from '@/lib/csv'
 import { colourForIndex } from '@/lib/colours'
 import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
@@ -69,12 +69,45 @@ export default function Home() {
     setColourOverrides({})
   }
 
+  const dateRange = useMemo(() => {
+    const items = toWorkItems(csvData, columns)
+    if (items.length === 0) return null
+    // toWorkItems returns items oldest-first by end date, so the ends are the span.
+    return `${items[0].originalEndDate} – ${items[items.length - 1].originalEndDate}`
+  }, [csvData, columns])
+
   return (
-    <main className="min-h-screen bg-gray-50">
+    // Column layout so the footer rule closes the sheet at the foot of the
+    // viewport rather than floating directly under short content.
+    <main className="flex min-h-screen flex-col">
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-      <AboutLink />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Flowgauge</h1>
+
+      {/* The sheet's printed banner. A form states what it is and what was
+          entered on it before any of the entries. */}
+      <header className="sheet-banner">
+        <div className="container mx-auto flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+          <h1 className="text-2xl font-bold uppercase tracking-[0.2em]">Flowgauge</h1>
+          <p className="text-xs uppercase tracking-[0.14em] opacity-75">
+            Delivery flow record
+          </p>
+          {/* The stamped fields record what was entered on the sheet, so they
+              appear once there is an entry rather than standing empty. */}
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-[0.6875rem]">
+            {csvData.length > 0 && (
+              <>
+                <SheetField label="Items" value={String(csvData.length)} />
+                {dateRange && <SheetField label="Span" value={dateRange} />}
+                {itemTypes.length > 0 && (
+                  <SheetField label="Types" value={String(itemTypes.length)} />
+                )}
+              </>
+            )}
+            <AboutLink />
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto flex-1 px-4 py-8">
 
       {csvData.length === 0 ? (
         <FileUpload onUpload={handleFileUpload} />
@@ -132,6 +165,26 @@ export default function Home() {
         </div>
       )}
       </div>
+
+      {/* The footer rule closes the sheet, the way a printed form states its own
+          provenance at the bottom of the page. */}
+      <footer className="container mx-auto px-4 pb-8">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t-2 border-gray-900 pt-2 text-[0.6875rem] uppercase tracking-[0.12em] text-gray-600">
+          <span>Flowgauge</span>
+          <span className="sheet-figure">Ljomi Systems</span>
+          <span className="ml-auto">Read for deviation, not for comfort</span>
+        </div>
+      </footer>
     </main>
+  )
+}
+
+/** A stamped field on the sheet's banner: boxed label, value set in mono. */
+function SheetField({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="sheet-field flex items-baseline gap-1.5 px-2 py-1">
+      <span className="opacity-70">{label}</span>
+      <span className="font-bold">{value}</span>
+    </span>
   )
 }

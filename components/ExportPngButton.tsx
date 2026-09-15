@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download } from 'lucide-react'
 import { exportSvgToPng } from '@/lib/png'
+import { SHEET_INK } from '@/lib/colours'
 
 type Status = 'idle' | 'exporting' | 'error'
 
@@ -39,7 +40,9 @@ export default function ExportPngButton({ targetRef, filename }: ExportPngButton
 
     setStatus('exporting')
     try {
-      await exportSvgToPng(svg, filename, '#ffffff')
+      // The exported chart keeps the sheet's stock, so a PNG dropped into a deck
+      // still reads as the sheet it was taken from rather than as a white tile.
+      await exportSvgToPng(svg, filename, SHEET_INK.stockRaised)
       setStatus('idle')
     } catch {
       setStatus('error')

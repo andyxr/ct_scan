@@ -18,6 +18,7 @@ import {
   type TypeBreakdown,
 } from '@/lib/sle'
 import { TREND_WINDOW_SIZE, TREND_WINDOW_STEP, sleTrend, type SleTrend } from '@/lib/sleTrend'
+import { SHEET_INK } from '@/lib/colours'
 import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SleControl from './SleControl'
@@ -86,10 +87,10 @@ function paddedDomain(left: number, right: number): [number, number] {
  * sprint (amber) and average (purple) overlays.
  */
 const PERCENTILE_LINES = [
-  { p: 0.50, name: '50th', stroke: '#4b5563', dash: '2 4' },
-  { p: 0.75, name: '75th', stroke: '#0d9488', dash: '8 3' },
-  { p: 0.85, name: '85th', stroke: '#2563eb', dash: '5 5' },
-  { p: 0.95, name: '95th', stroke: '#be123c', dash: '12 4' },
+  { p: 0.50, name: '50th', stroke: SHEET_INK.inkSoft, dash: '2 4' },
+  { p: 0.75, name: '75th', stroke: SHEET_INK.green, dash: '8 3' },
+  { p: 0.85, name: '85th', stroke: SHEET_INK.blue, dash: '5 5' },
+  { p: 0.95, name: '95th', stroke: SHEET_INK.red, dash: '12 4' },
 ] as const
 
 /** Resting thickness of a percentile line, in px. The throb keyframes scale off this. */
@@ -161,9 +162,9 @@ function PercentileLineShape({
   )
 }
 
-const DEFAULT_POINT_COLOUR = '#22c55e'
+const DEFAULT_POINT_COLOUR = SHEET_INK.green
 /** Stacked items of more than one type, so no swatch colour would be honest. */
-const MIXED_TYPE_COLOUR = '#374151'
+const MIXED_TYPE_COLOUR = SHEET_INK.inkSoft
 
 function startOfDayMs(ms: number): number {
   const d = new Date(ms)
@@ -572,10 +573,10 @@ export default function CycleTimeAnalysis({
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
-      : 'bg-white rounded-lg shadow p-6'}>
+      ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
+      : 'sheet-panel p-6'}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-900">Cycle Time Analysis</h2>
+        <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-gray-900">Cycle Time Analysis</h2>
         <div className="flex items-center gap-2">
           {isMounted && processedData.length > 0 && (
             <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
@@ -584,7 +585,9 @@ export default function CycleTimeAnalysis({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-6">
+      {/* The control block: a ruled strip of the operator's settings, seated
+          under the field's heading the way a form groups its entry boxes. */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 border-y border-gray-300 bg-gray-100/60 px-3 pt-3">
         <SprintLengthControl
           enabled={showSprint}
           days={sprintDays}
@@ -633,7 +636,7 @@ export default function CycleTimeAnalysis({
         />
       )}
 
-      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-[48rem] w-full select-none'}>
+      <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full select-none' : 'sheet-plot h-[48rem] w-full select-none'}>
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
@@ -641,7 +644,7 @@ export default function CycleTimeAnalysis({
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke={SHEET_INK.rule} />
               <XAxis
                 dataKey="endDate"
                 type="number"
@@ -656,14 +659,14 @@ export default function CycleTimeAnalysis({
                 angle={-45}
                 textAnchor="end"
                 height={80}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tick={{ fontSize: 12, fill: SHEET_INK.inkSoft }}
               />
               <YAxis
                 dataKey="cycleTime"
                 // The SLE is a target, not data, so it has to be pulled into the range or it draws off the chart.
                 domain={[0, (dataMax: number) => Math.ceil(Math.max(dataMax, showSle ? sleDays : 0) * 1.08)]}
-                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
-                tick={{ fill: '#6b7280' }}
+                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
+                tick={{ fill: SHEET_INK.inkSoft }}
               />
               <Tooltip content={<CycleTimeTooltip />} cursor={{ strokeDasharray: '3 3' }} />
               {percentileLines.map(line => (
@@ -694,19 +697,19 @@ export default function CycleTimeAnalysis({
               {showAverage && (
                 <ReferenceLine
                   y={stats.average}
-                  stroke="#9333ea"
+                  stroke={SHEET_INK.blue}
                   strokeWidth={2}
                   strokeDasharray="2 4"
-                  label={{ value: `Average (${stats.average.toFixed(1)}d) = ${ordinal(stats.averagePercentile)} percentile`, position: "insideTopRight", fill: '#9333ea' }}
+                  label={{ value: `Average (${stats.average.toFixed(1)}d) = ${ordinal(stats.averagePercentile)} percentile`, position: "insideTopRight", fill: SHEET_INK.blue }}
                 />
               )}
               {showSprint && (
                 <ReferenceLine
                   y={sprintDays}
-                  stroke="#d97706"
+                  stroke={SHEET_INK.amber}
                   strokeWidth={2}
                   strokeDasharray="8 4"
-                  label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
+                  label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: SHEET_INK.amber }}
                 />
               )}
               {showSle && (
@@ -723,8 +726,8 @@ export default function CycleTimeAnalysis({
                 <ReferenceArea
                   x1={dragStart}
                   x2={dragEnd}
-                  fill="#2563eb"
-                  fillOpacity={0.1}
+                  fill={SHEET_INK.blue}
+                  fillOpacity={0.12}
                   strokeOpacity={0}
                 />
               )}
@@ -752,32 +755,46 @@ export default function CycleTimeAnalysis({
       </div>
 
       {!maximised && (
-        <div className="mt-4 text-sm text-gray-600">
+        /* The reading recorded at the foot of the field, the way a form states
+           its finding under the entry it was read from. */
+        <div className="mt-4 border-t border-gray-300 pt-3 text-sm text-gray-700">
+          <span className="sheet-figure mr-2 text-xs uppercase tracking-[0.12em] text-gray-400">
+            Reading
+          </span>
           {showSle ? (
-            <p>{sleSummary(sle.assessment)}</p>
+            <p className="mt-1">{sleSummary(sle.assessment)}</p>
           ) : (
-            <p>
+            <p className="mt-1">
               50% of items finish within {daysAt(0.5)} days, 75% within {daysAt(0.75)}, 85% within {daysAt(0.85)}, and 95% within {daysAt(0.95)}.
             </p>
           )}
           {showAverage && (
-            <p>The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
+            <p className="mt-1">The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
           )}
         </div>
       )}
 
       {!maximised && showSle && (
-        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-gray-700">
-          <h3 className="font-semibold text-gray-900 mb-2">What the data says</h3>
-          <ul className="list-disc pl-5 space-y-1">
+        /* The annotation block: a pencilled note against the entry. Ink is
+           tinted from the amber ground rather than grey, which washes out on a
+           coloured stock. */
+        <div className="mt-4 border-y-2 border-yellow-700 bg-yellow-50 p-4 text-sm text-yellow-800">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-yellow-800">
+            What the data says
+          </h3>
+          <ul className="list-disc space-y-1 pl-5">
             {sleFindings(sle).map(finding => (
               <li key={finding}>{finding}</li>
             ))}
           </ul>
-          <div className="mt-3 p-4 bg-white border border-gray-300 rounded-lg">
-            <h4 className="font-semibold text-gray-900">General guidance</h4>
-            <p className="text-xs text-gray-500 mb-2">Not derived from your data.</p>
-            <ul className="list-disc pl-5 space-y-1">
+          <div className="mt-3 border border-gray-300 bg-gray-50 p-4 text-gray-700">
+            <h4 className="text-xs font-bold uppercase tracking-[0.14em] text-gray-900">
+              General guidance
+            </h4>
+            <p className="sheet-figure mb-2 text-[0.6875rem] uppercase tracking-[0.06em] text-gray-500">
+              Not derived from your data
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
               {GENERAL_GUIDANCE.map(line => (
                 <li key={line}>{line}</li>
               ))}

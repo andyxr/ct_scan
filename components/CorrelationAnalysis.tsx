@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { detectColumns, cycleTimeFor, hasUsableEstimate } from '@/lib/csv'
+import { SHEET_INK } from '@/lib/colours'
+import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
@@ -166,10 +168,10 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
-      : 'bg-white rounded-lg shadow p-6'}>
+      ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
+      : 'sheet-panel p-6'}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold text-gray-900">Correlation Analysis</h2>
+        <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-gray-900">Correlation Analysis</h2>
         <div className="flex items-center gap-2">
           {isMounted && processedData.length > 0 && (
             <ExportPngButton targetRef={chartRef} filename="correlation-analysis.png" />
@@ -183,20 +185,21 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
         </p>
       )}
 
-      <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-96 w-full'}>
+      <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full' : 'sheet-plot h-96 w-full'}>
         {isMounted && processedData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={processedData}
               margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke={SHEET_INK.rule} />
               <XAxis
                 dataKey="estimate"
-                label={{ value: 'Estimate', position: 'insideBottom', offset: -10 }}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                label={{ value: 'Estimate', position: 'insideBottom', offset: -10, fill: SHEET_INK.inkSoft }}
+                tick={{ fontSize: 12, fill: SHEET_INK.inkSoft }}
               />
               <YAxis
-                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
+                label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
+                tick={{ fill: SHEET_INK.inkSoft }}
               />
               <Tooltip content={<CustomTooltip />} />
               {/* Invisible bar to position the baseline at minCT */}
@@ -206,11 +209,26 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
                 stroke="transparent"
                 stackId="range"
               />
-              {/* Range drawn as a vertical line with caps, like an error bar */}
+              {/*
+                Range drawn as a vertical line with caps, like an error bar.
+
+                KNOWN DEFECT (pre-existing, not introduced by the restyle): the
+                span renders collapsed — an estimate spanning 24 days draws as a
+                flat dash. The custom shape receives a box whose height arrives
+                at or near zero from the stacked pair above. Three approaches were
+                tried and failed: reading `height` (original), deriving the span
+                from `payload` plus `yAxis.scale` (scale never arrives on the
+                shape props), and dropping the shape for a plain stacked bar
+                (`barSize` sets width, not height, and the stack still collapsed).
+                Fixing it properly needs a different structure — most likely a
+                ComposedChart with a Scatter per endpoint, or ErrorBar wired to a
+                [low, high] tuple dataKey — which is a functional change beyond a
+                style overhaul.
+              */}
               <Bar
                 dataKey="range"
                 stackId="range"
-                shape={<RangeMarker color="#3b82f6" />}
+                shape={<RangeMarker color={SHEET_INK.blue} />}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -231,20 +249,11 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
       </div>
 
       {!maximised && stats.totalItems > 0 && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Total Items</div>
-            <div className="text-lg font-bold text-blue-600">{stats.totalItems}</div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Unique Estimates</div>
-            <div className="text-lg font-bold text-green-600">{stats.uniqueEstimates}</div>
-          </div>
-          <div className="bg-gray-50 p-3 rounded">
-            <div className="font-semibold text-gray-700">Estimate Range</div>
-            <div className="text-lg font-bold text-purple-600">{stats.estimateRange}</div>
-          </div>
-        </div>
+        <dl className="mt-6 grid grid-cols-1 border-l border-t border-gray-300 md:grid-cols-3">
+          <Reading label="Total Items" value={String(stats.totalItems)} />
+          <Reading label="Unique Estimates" value={String(stats.uniqueEstimates)} />
+          <Reading label="Estimate Range" value={stats.estimateRange} />
+        </dl>
       )}
 
       {!maximised && (

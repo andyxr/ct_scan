@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-15T18:15:00Z",
+  "title": "Design System: Flowgauge",
+  "extensions": {
+    "colorMeta": {
+      "ledger-stock": {
+        "role": "neutral",
+        "displayName": "Ledger Stock",
+        "canonical": "#f2efe4",
+        "tonalRamp": ["#2a2823", "#454238", "#605c4e", "#7d7863", "#a8a08a", "#c9c3ad", "#e8e4d5", "#faf8f1"]
+      },
+      "ledger-stock-deep": {
+        "role": "neutral",
+        "displayName": "Ledger Stock Deep",
+        "canonical": "#e8e4d5",
+        "tonalRamp": ["#26241f", "#403d34", "#5a564a", "#767061", "#a09a84", "#c2bca6", "#e8e4d5", "#f6f3e9"]
+      },
+      "ledger-stock-raised": {
+        "role": "neutral",
+        "displayName": "Ledger Stock Raised",
+        "canonical": "#faf8f1",
+        "tonalRamp": ["#2d2b26", "#48453b", "#635f51", "#807a65", "#aaa38d", "#cdc7b1", "#eae7da", "#faf8f1"]
+      },
+      "printed-rule": {
+        "role": "neutral",
+        "displayName": "Printed Rule",
+        "canonical": "#c9c3ad",
+        "tonalRamp": ["#24221c", "#3c392f", "#545045", "#6e695a", "#918b76", "#b0aa93", "#c9c3ad", "#e4e0d1"]
+      },
+      "printed-rule-strong": {
+        "role": "neutral",
+        "displayName": "Printed Rule Strong",
+        "canonical": "#a8a08a",
+        "tonalRamp": ["#1e1c17", "#332f27", "#484338", "#5e594a", "#7c7663", "#98917b", "#a8a08a", "#c6c0ae"]
+      },
+      "press-ink": {
+        "role": "neutral",
+        "displayName": "Press Ink",
+        "canonical": "#191813",
+        "tonalRamp": ["#191813", "#232118", "#333025", "#494435", "#605a47", "#7d7863", "#a8a08a", "#d5d0be"]
+      },
+      "press-ink-soft": {
+        "role": "neutral",
+        "displayName": "Press Ink Soft",
+        "canonical": "#55513f",
+        "tonalRamp": ["#17150f", "#26231a", "#393526", "#4a4635", "#55513f", "#736e57", "#9a9479", "#c6c1a8"]
+      },
+      "press-ink-faint": {
+        "role": "neutral",
+        "displayName": "Press Ink Faint",
+        "canonical": "#7d7863",
+        "tonalRamp": ["#1b1a14", "#2d2b21", "#413e2f", "#56523e", "#6b664f", "#7d7863", "#a29c84", "#c8c3ac"]
+      },
+      "process-red": {
+        "role": "secondary",
+        "displayName": "Process Red",
+        "canonical": "#a8321f",
+        "tonalRamp": ["#2a0c06", "#45140b", "#601c11", "#7d2416", "#a8321f", "#c4492f", "#dd7a63", "#f3c4b8"]
+      },
+      "process-red-deep": {
+        "role": "secondary",
+        "displayName": "Process Red Deep",
+        "canonical": "#7d2416",
+        "tonalRamp": ["#210904", "#360f08", "#4c150c", "#621b11", "#7d2416", "#9c3423", "#c86a55", "#eab8ab"]
+      },
+      "ledger-green": {
+        "role": "secondary",
+        "displayName": "Ledger Green",
+        "canonical": "#2f6b4f",
+        "tonalRamp": ["#0b1d15", "#132f23", "#1c4433", "#255740", "#2f6b4f", "#3f8d68", "#6db795", "#b6dcc8"]
+      },
+      "operator-blue": {
+        "role": "primary",
+        "displayName": "Operator Blue",
+        "canonical": "#24527a",
+        "tonalRamp": ["#0a1622", "#111f30", "#16334c", "#1b3e5c", "#24527a", "#35688f", "#4a7ba6", "#a9c1d6"]
+      },
+      "pencil-amber": {
+        "role": "tertiary",
+        "displayName": "Pencil Amber",
+        "canonical": "#9a6a15",
+        "tonalRamp": ["#241806", "#3a270a", "#51360e", "#6a4a0f", "#7f5711", "#9a6a15", "#c69233", "#e6cd8c"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Panel Heading", "purpose": "Analysis titles, sitting on a heading rule that runs to the margin." },
+      "headline": { "displayName": "Wordmark", "purpose": "FLOWGAUGE in the banner, reversed out of press ink." },
+      "title": { "displayName": "Section Title", "purpose": "Subsections inside a panel: Moving Range, Forecast Results." },
+      "body": { "displayName": "Body", "purpose": "Explanatory prose, findings and methodology notes." },
+      "label": { "displayName": "Field Label", "purpose": "Reading labels, stamped banner fields, footer marks. Always uppercase." },
+      "figure": { "displayName": "Figure", "purpose": "Every number a user reads as data. Mono, tabular, lining." }
+    },
+    "shadows": [
+      {
+        "name": "crease",
+        "value": "1px 1px 0 0 #a8a08a",
+        "purpose": "The impression of one sheet resting on another. Rebinds every Tailwind shadow utility at rest."
+      },
+      {
+        "name": "crease-hover",
+        "value": "2px 2px 0 0 #a8a08a",
+        "purpose": "The same crease deepened on hover, for hoverable surfaces only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "percentile-throb",
+        "value": "percentile-throb 1.1s ease-in-out infinite",
+        "purpose": "A hovered percentile line thickens and thins. Animates stroke-width, not transform, so the line stays pinned to the cycle time it represents."
+      },
+      {
+        "name": "scatter-dot-pulse",
+        "value": "scatter-dot-pulse 0.5s ease-in-out infinite",
+        "purpose": "Confirms which stacked point the pointer holds. Bottoms out at true plotted radius so the dot never reads permanently inflated."
+      },
+      {
+        "name": "signal-halo",
+        "value": "signal-halo 1.6s ease-out infinite",
+        "purpose": "An expanding fading ring behind a special-cause point, so a signal is findable without hunting for a red dot. Under reduced motion it holds as a static ring."
+      },
+      {
+        "name": "arrow-advance",
+        "value": "transform 150ms ease-out",
+        "purpose": "The analyses-index arrow slides right and takes full ink on row hover."
+      }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Sheet Banner",
+      "kind": "nav",
+      "refersTo": "sheet-banner",
+      "description": "The form's printed title bar, carrying the wordmark and the loaded file's stamped fields.",
+      "html": "<header class=\"ds-banner\"><span class=\"ds-banner-mark\">Flowgauge</span><span class=\"ds-banner-desc\">Delivery flow record</span><span class=\"ds-field\"><span class=\"ds-field-label\">Items</span><span class=\"ds-field-value\">30</span></span></header>",
+      "css": ".ds-banner { display: flex; align-items: center; gap: 24px; background: var(--sheet-ink, #191813); color: var(--sheet-stock, #f2efe4); border-bottom: 2px solid var(--sheet-ink, #191813); padding: 12px 16px; font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-banner-mark { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; } .ds-banner-desc { font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.75; } .ds-field { display: inline-flex; align-items: baseline; gap: 6px; margin-left: auto; border: 1px solid currentColor; padding: 4px 8px; font-family: 'Roboto Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums lining-nums; font-size: 0.6875rem; letter-spacing: 0.04em; text-transform: uppercase; } .ds-field-label { opacity: 0.7; } .ds-field-value { font-weight: 700; }"
+    },
+    {
+      "name": "Reading",
+      "kind": "custom",
+      "refersTo": "reading",
+      "description": "One boxed value in a results row. Label in small caps, figure in mono, ink carrying its meaning.",
+      "html": "<dl class=\"ds-readings\"><div class=\"ds-reading\"><dt>Total Items</dt><dd>30</dd></div><div class=\"ds-reading\"><dt>Central Line</dt><dd class=\"ds-ink-green\">9.0 d</dd></div><div class=\"ds-reading\"><dt>Control Limits</dt><dd class=\"ds-ink-red\">0.0 – 18.5</dd></div><div class=\"ds-reading\"><dt>Special Causes</dt><dd class=\"ds-ink-red\">2</dd></div></dl>",
+      "css": ".ds-readings { display: grid; grid-template-columns: repeat(4, 1fr); border-left: 1px solid var(--sheet-rule, #c9c3ad); border-top: 1px solid var(--sheet-rule, #c9c3ad); margin: 0; font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-reading { border-right: 1px solid var(--sheet-rule, #c9c3ad); border-bottom: 1px solid var(--sheet-rule, #c9c3ad); padding: 8px 12px; } .ds-reading dt { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sheet-ink-soft, #55513f); } .ds-reading dd { margin: 0; font-family: 'Roboto Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums lining-nums; font-size: 1.125rem; font-weight: 700; color: var(--sheet-ink, #191813); } .ds-ink-green { color: var(--sheet-green, #2f6b4f) !important; } .ds-ink-red { color: var(--sheet-red, #a8321f) !important; }"
+    },
+    {
+      "name": "Navigation Tab",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Analysis switcher. Square bordered tabs; the active one takes operator blue.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-tab ds-tab-active\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"7.5\" cy=\"15.5\" r=\"1.5\"/><circle cx=\"11\" cy=\"9\" r=\"1.5\"/><circle cx=\"16.5\" cy=\"13.5\" r=\"1.5\"/><path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/></svg>Cycle Time Analysis</button><button class=\"ds-tab\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"/></svg>Process Behaviour Chart</button></nav>",
+      "css": ".ds-nav { display: flex; flex-wrap: wrap; gap: 8px; font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-tab { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 0.875rem; background: var(--sheet-stock-raised, #faf8f1); color: var(--sheet-ink-soft, #55513f); border: 1px solid var(--sheet-rule-strong, #a8a08a); border-radius: 0; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out; } .ds-tab:hover { background: var(--sheet-stock-deep, #e8e4d5); } .ds-tab:focus-visible { outline: 2px solid var(--sheet-blue, #24527a); outline-offset: 1px; } .ds-tab-active { background: var(--sheet-blue, #24527a); color: var(--sheet-stock-raised, #faf8f1); border-color: var(--sheet-blue, #24527a); }"
+    },
+    {
+      "name": "Sheet Panel",
+      "kind": "card",
+      "refersTo": "sheet-panel",
+      "description": "A ruled field on the sheet. Transparent ground so the stock's printing continues through it.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-heading\">Cycle Time Analysis</h2><p class=\"ds-panel-body\">Percentile lines are drawn at the 50th, 75th, 85th and 95th.</p></section>",
+      "css": ".ds-panel { background: transparent; border-top: 2px solid var(--sheet-ink, #191813); border-bottom: 2px solid var(--sheet-ink, #191813); border-left: 1px solid var(--sheet-rule-strong, #a8a08a); border-right: 1px solid var(--sheet-rule-strong, #a8a08a); border-radius: 0; padding: 24px; font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-panel-heading { display: flex; align-items: baseline; gap: 12px; margin: 0 0 16px; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sheet-ink, #191813); } .ds-panel-heading::after { content: ''; flex: 1; border-top: 1px solid var(--sheet-rule-strong, #a8a08a); transform: translateY(-0.2em); } .ds-panel-body { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--sheet-ink-soft, #55513f); }"
+    },
+    {
+      "name": "Entry Field",
+      "kind": "input",
+      "refersTo": "entry-field",
+      "description": "The upload target: a ruled box waiting to be filled in, never a dashed card.",
+      "html": "<div class=\"ds-entry\"><svg width=\"32\" height=\"32\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"0\"/><path d=\"M3 15l4-4 4 4 3-3 4 4\"/><circle cx=\"9\" cy=\"8\" r=\"1.5\"/></svg><span class=\"ds-entry-title\">Drop CSV file here</span><span class=\"ds-entry-note\">or click to browse</span></div>",
+      "css": ".ds-entry { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 320px; padding: 24px; text-align: center; background: color-mix(in srgb, var(--sheet-stock-deep, #e8e4d5) 50%, transparent); border: 1px solid var(--sheet-ink, #191813); border-radius: 0; color: var(--sheet-ink-faint, #7d7863); cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out; font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-entry:hover { background: var(--sheet-stock-deep, #e8e4d5); } .ds-entry-title { font-size: 1rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sheet-ink, #191813); } .ds-entry-note { font-size: 0.875rem; color: var(--sheet-ink-soft, #55513f); }"
+    },
+    {
+      "name": "Analyses Index Row",
+      "kind": "custom",
+      "refersTo": "nav-tab",
+      "description": "The analyses picker as numbered ruled rows rather than a card grid.",
+      "html": "<ul class=\"ds-index\"><li><button class=\"ds-index-row\"><span class=\"ds-index-num\">01</span><svg class=\"ds-index-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"7.5\" cy=\"15.5\" r=\"1.5\"/><circle cx=\"11\" cy=\"9\" r=\"1.5\"/><circle cx=\"16.5\" cy=\"13.5\" r=\"1.5\"/><path d=\"M3 3v16a2 2 0 0 0 2 2h16\"/></svg><span class=\"ds-index-text\"><span class=\"ds-index-title\">Cycle Time Analysis</span><span class=\"ds-index-desc\">Analyse cycle times with 85th percentile visualization</span></span><svg class=\"ds-index-arrow\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></button></li></ul>",
+      "css": ".ds-index { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sheet-ink, #191813); font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif; } .ds-index li { border-bottom: 1px solid var(--sheet-rule-strong, #a8a08a); } .ds-index-row { display: flex; align-items: baseline; gap: 16px; width: 100%; padding: 16px 8px; background: transparent; border: 0; text-align: left; cursor: pointer; transition: background 150ms ease-out; } .ds-index-row:hover { background: var(--sheet-stock-deep, #e8e4d5); } .ds-index-num { width: 32px; flex: none; font-family: 'Roboto Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums lining-nums; font-size: 0.875rem; color: var(--sheet-ink-faint, #7d7863); } .ds-index-icon { flex: none; transform: translateY(4px); color: var(--sheet-blue, #24527a); } .ds-index-text { flex: 1; } .ds-index-title { display: block; font-size: 1.125rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sheet-ink, #191813); } .ds-index-desc { display: block; margin-top: 2px; font-size: 0.875rem; color: var(--sheet-ink-soft, #55513f); } .ds-index-arrow { flex: none; transform: translateY(4px); color: var(--sheet-ink-faint, #7d7863); transition: transform 150ms ease-out, color 150ms ease-out; } .ds-index-row:hover .ds-index-arrow { transform: translateY(4px) translateX(4px); color: var(--sheet-ink, #191813); }"
+    },
+    {
+      "name": "Rubber Stamp",
+      "kind": "chip",
+      "refersTo": "sheet-field",
+      "description": "Status marked onto the sheet rather than printed with it. The one non-orthogonal gesture in the system.",
+      "html": "<span class=\"ds-stamp ds-stamp-red\">Fail</span>",
+      "css": ".ds-stamp { display: inline-block; border: 2px solid currentColor; border-radius: 0; padding: 0.15rem 0.5rem; font-family: 'Roboto Mono', ui-monospace, monospace; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; transform: rotate(-2.5deg); opacity: 0.92; } .ds-stamp-red { color: var(--sheet-red, #a8321f); } .ds-stamp-green { color: var(--sheet-green, #2f6b4f); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quality Office Log Sheet",
+    "overview": "Flowgauge is drawn as the ruled form a quality office pins by the production line: ledger stock under a printed rule, hairline borders, square corners, and ink that only ever means something. Shewhart invented the control chart and Flowgauge implements his limits, so the world and the mathematics share a lineage — this is not a paper texture applied to a dashboard, it is the artefact the analysis actually comes from.\n\nThe system refuses two neighbouring defaults: the dark analytics dashboard with neon accents and card tiles, and its clean-SaaS opposite. Nothing floats on a neutral ground here. A sheet has edges, a header and a footer rule, and every panel sits on the printing rather than hovering above it. Density is high and deliberate; whitespace is the unfilled part of a form, not luxury.\n\nThe surface is read aloud. The primary user is a delivery coach presenting to a team on a shared screen, and every chart is a future PNG in someone else's deck — so type holds at projection distance, figures are monospaced and tabular, and the export path carries the stock and the mono face with it rather than reverting to a white tile.",
+    "keyCharacteristics": [
+      "Ledger stock with a continuous 30px printed rule, visible in every margin",
+      "Zero radius everywhere; a printed form has no rounded corners",
+      "Three working inks with fixed meanings, and nothing else coloured",
+      "Every number set in monospace with tabular lining figures",
+      "Hairline rules and 2px field boundaries instead of shadows"
+    ],
+    "rules": [
+      {
+        "name": "The Three Inks Rule",
+        "body": "Red means deviation, green means the process, blue means the operator's hand. A colour never carries a second meaning, and a fourth working ink is never introduced. If a new element needs colour, it must map to one of the three or take ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Meaningless Hue Rule",
+        "body": "Hues with no role on a log sheet are folded into a working ink rather than allowed through: purple and orange resolve to operator blue and pencil amber respectively, so a stray utility class still lands inside the world.",
+        "section": "colors"
+      },
+      {
+        "name": "The Series Separability Rule",
+        "body": "Item-type series vary in hue and lightness, never by hue alone, so the scatterplot stays readable under common colour-vision deficiencies and in greyscale print.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Figures Rule",
+        "body": "Any number a user reads as data sets in Roboto Mono with tabular-nums lining-nums — readings, inputs, selects, code, and all Recharts axis text. SVG chart text is outside the body cascade and is targeted explicitly; a chart whose axes fall back to the sans face has broken the rule.",
+        "section": "typography"
+      },
+      {
+        "name": "The Export Parity Rule",
+        "body": "The PNG export names the same mono family and tabular figures the screen uses, resolved from the live custom property. An exported chart that renders in a different face than the screen it was taken from is a defect, not a cosmetic difference.",
+        "section": "typography"
+      },
+      {
+        "name": "The Crease-Not-Float Rule",
+        "body": "Depth is expressed by rule weight and tonal fill. If an element needs to feel lifted, give it a heavier boundary rule, never a blur.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Browser Surfaces Rule",
+        "body": "Selection, caret, focus ring, placeholder and scrollbars are themed from the palette — blue selection wash at 22%, rule-strong scrollbar thumbs on a stock-deep track with a hairline border. Default browser chrome belongs to no design system.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do restyle by rebinding tokens in app/globals.css. Utilities across every component resolve through :root, so a whole-app change is a single-file change.",
+      "Do set every user-readable number in mono with tabular lining figures, including SVG chart text.",
+      "Do map any new coloured element to one of the three working inks, or leave it in ink.",
+      "Do bound regions with rule weight — 2px press ink for a field boundary, 1px hairline for a division.",
+      "Do keep the printed rule visible through panels; a panel boxes the ruling, it does not cover it.",
+      "Do vary hue and lightness when adding a series colour, and check it in greyscale.",
+      "Do carry the sheet into the PNG export — raised-stock ground and the mono face, resolved live.",
+      "Do honour prefers-reduced-motion for every animation; existing ones degrade to a static state that still marks the signal."
+    ],
+    "donts": [
+      "Don't introduce a radius anywhere. Every rounded-* resolves to 0 and should stay that way.",
+      "Don't add a soft or coloured shadow. Depth is a hairline crease and tonal fill.",
+      "Don't let a working ink drift from its meaning, or add a fourth.",
+      "Don't use same-size cards of icon-plus-heading-plus-text as page structure; the analyses index is ruled rows for this reason.",
+      "Don't float a panel on a neutral fill. Transparent ground, ruled boundary.",
+      "Don't let grey text sit on a coloured ground — tint the ink from that ground instead.",
+      "Don't substitute a Unicode glyph for an icon. Icons come from Lucide at a consistent stroke.",
+      "Don't hard-code an export background or font; both resolve from the live tokens."
+    ]
+  }
+}

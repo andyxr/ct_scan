@@ -81,7 +81,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
         <div className="flex gap-3">
           <FileSpreadsheet className="h-6 w-6 shrink-0 text-blue-600" aria-hidden="true" />
           <div>
-            <h2 className="font-semibold text-gray-900">1. Bring your CSV</h2>
+            <h2 className="font-bold uppercase tracking-[0.1em] text-gray-900">1. Bring your CSV</h2>
             <p className="text-sm text-gray-600 mt-1">
               One row per completed work item, with a header row. Columns can be
               in any order. Required: <code>item_id</code>, <code>start_date</code>,{' '}
@@ -109,7 +109,7 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
         <div className="flex gap-3">
           <BarChart3 className="h-6 w-6 shrink-0 text-blue-600" aria-hidden="true" />
           <div>
-            <h2 className="font-semibold text-gray-900">2. Pick an analysis</h2>
+            <h2 className="font-bold uppercase tracking-[0.1em] text-gray-900">2. Pick an analysis</h2>
             <p className="text-sm text-gray-600 mt-1">
               Plot cycle times against percentile lines, chart process
               behaviour to see whether delivery is stable, compare estimates with
@@ -121,11 +121,13 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-stretch">
+      {/* The sheet's entry fields: ruled boxes waiting to be filled in, not
+          dashed cards floating on the stock. */}
       <div
-        className={`w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        className={`w-80 border p-6 text-center transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-white'
+            ? 'border-blue-600 bg-blue-50'
+            : 'border-gray-900 bg-gray-100/50 hover:bg-gray-100'
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -146,7 +148,7 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
         </svg>
 
         <label htmlFor="file-upload" className="cursor-pointer">
-          <span className="text-base font-medium text-gray-900">
+          <span className="text-base font-bold uppercase tracking-[0.08em] text-gray-900">
             Drop CSV file here
           </span>
           <p className="text-sm text-gray-600 mt-1">or click to browse</p>
@@ -172,13 +174,13 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
           setError(problem)
           if (!problem) onUpload(DEMO_DATA)
         }}
-        className="w-80 border-2 border-dashed rounded-lg p-6 text-center transition-colors border-gray-300 hover:border-gray-400 bg-white"
+        className="w-80 border border-gray-900 bg-gray-100/50 p-6 text-center transition-colors hover:bg-gray-100"
       >
         <Sparkles
           className="mx-auto h-8 w-8 text-gray-400 mb-3"
           aria-hidden="true"
         />
-        <span className="text-base font-medium text-gray-900">
+        <span className="text-base font-bold uppercase tracking-[0.08em] text-gray-900">
           Use demo data
         </span>
         <p className="text-sm text-gray-600 mt-1">

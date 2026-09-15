@@ -101,28 +101,104 @@
   }
 }
 
-/* The Mac OS 8 look is a pure token remap: utilities like `bg-white` and
-   `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
-   rebinding those variables on :root reskins every component without
-   touching a single Tailwind class. Shadows are the exception; `.shadow-md`
-   inlines its value into --tw-shadow, so those are overridden per utility. */
-:root {
-  --color-gray-50: #cccccc;
-  --color-white: #ffffff;
-  --color-gray-100: #dddddd;
-  --color-gray-200: #bbbbbb;
-  --color-gray-300: #000000;
-  --color-gray-400: #333333;
-  --color-gray-500: #222222;
-  --color-gray-600: #1a1a1a;
-  --color-gray-700: #111111;
-  --color-gray-800: #0a0a0a;
-  --color-gray-900: #000000;
-  --color-blue-400: #6666cc;
-  --color-blue-500: #4d4dbf;
-  --color-blue-600: #333399;
-  --color-blue-700: #222266;
+/* ---------------------------------------------------------------------------
+   THE SHEET
+   ---------------------------------------------------------------------------
 
+   Flowgauge is drawn as a quality office's log sheet: ledger stock, a printed
+   rule, hairline borders, square corners, and ink that only ever means
+   something. The whole look is a Tailwind token remap — utilities like
+   `bg-white`, `text-gray-600` and `rounded-lg` compile to `var(--color-white)`
+   and `var(--radius-lg)`, so rebinding those variables here reskins every
+   component without editing a single class. Shadows are the exception:
+   `.shadow-md` inlines its value into --tw-shadow, so those are overridden per
+   utility below.
+
+   The named sheet tokens are the source of truth; the Tailwind names are bound
+   to them so both vocabularies stay in step.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Stock and ink */
+  --sheet-stock: #f2efe4;
+  --sheet-stock-deep: #e8e4d5;
+  --sheet-stock-raised: #faf8f1;
+  --sheet-rule: #c9c3ad;
+  --sheet-rule-strong: #a8a08a;
+  --sheet-ink: #191813;
+  --sheet-ink-soft: #55513f;
+  --sheet-ink-faint: #7d7863;
+
+  /* The three working inks. Red is deviation, green is the process itself,
+     blue is anything the operator set by hand. Nothing else is coloured. */
+  --sheet-red: #a8321f;
+  --sheet-red-deep: #7d2416;
+  --sheet-green: #2f6b4f;
+  --sheet-blue: #24527a;
+  --sheet-amber: #9a6a15;
+
+  /* The printed rule. 8mm at 96dpi ≈ 30px; the grid is the sheet's spine and
+     every panel sits on it rather than floating above a neutral ground. */
+  --sheet-grid: 30px;
+
+  /* Tailwind greys rebound onto the stock, so existing utilities land on the
+     sheet. bg-white becomes raised stock (a filled field), bg-gray-50 the
+     stock itself, and the grey text ramp becomes the ink ramp. */
+  --color-white: #faf8f1;
+  --color-gray-50: #f2efe4;
+  --color-gray-100: #e8e4d5;
+  --color-gray-200: #c9c3ad;
+  --color-gray-300: #a8a08a;
+  --color-gray-400: #7d7863;
+  --color-gray-500: #55513f;
+  --color-gray-600: #55513f;
+  --color-gray-700: #333025;
+  --color-gray-800: #232118;
+  --color-gray-900: #191813;
+
+  /* Blue utilities carry the operator's hand: set values, active tabs, links. */
+  --color-blue-50: #e4ecf3;
+  --color-blue-100: #cfdce8;
+  --color-blue-200: #a9c1d6;
+  --color-blue-400: #4a7ba6;
+  --color-blue-500: #35688f;
+  --color-blue-600: #24527a;
+  --color-blue-700: #1b3e5c;
+  --color-blue-800: #16334c;
+
+  /* Red is deviation, everywhere it appears. */
+  --color-red-50: #f6e6e2;
+  --color-red-200: #e0b5ab;
+  --color-red-600: #a8321f;
+  --color-red-700: #8c2a1a;
+  --color-red-800: #7d2416;
+
+  /* Green is the process line. */
+  --color-green-50: #e5ede8;
+  --color-green-200: #b0c8bb;
+  --color-green-600: #2f6b4f;
+  --color-green-700: #275a43;
+  --color-green-800: #1f4835;
+
+  /* Amber is the operator's pencil annotation — the sprint line, warnings. */
+  --color-yellow-50: #f4eeda;
+  --color-yellow-200: #ddd0a4;
+  --color-yellow-600: #9a6a15;
+  --color-yellow-700: #7f5711;
+  --color-yellow-800: #6a4a0f;
+  --color-amber-500: #9a6a15;
+  --color-amber-700: #7f5711;
+
+  /* Purple has no meaning on a log sheet; fold it into the operator's blue so
+     any stray utility still lands inside the world. */
+  --color-purple-50: #e4ecf3;
+  --color-purple-200: #a9c1d6;
+  --color-purple-500: #35688f;
+  --color-purple-600: #24527a;
+  --color-purple-700: #1b3e5c;
+  --color-purple-800: #16334c;
+  --color-orange-600: #9a6a15;
+
+  /* A printed form has no rounded corners. */
   --radius-xs: 0;
   --radius-sm: 0;
   --radius-md: 0;
@@ -131,13 +207,19 @@
   --radius-2xl: 0;
   --radius-3xl: 0;
   --radius-4xl: 0;
+
+  color-scheme: light;
+  accent-color: var(--sheet-blue);
 }
 
+/* Depth on paper is a crease, not a float: one hairline offset down and right,
+   the colour of the rule rather than a grey halo. */
 .shadow-sm,
+.shadow,
 .shadow-md,
 .shadow-lg,
 .shadow-xl {
-  --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
+  --tw-shadow: 1px 1px 0 0 var(--sheet-rule-strong);
 }
 
 .hover\:shadow-lg,
@@ -145,26 +227,167 @@
 .hover\:shadow-xl {
   &:hover {
     @media (hover: hover) {
-      --tw-shadow: 2px 2px 0 0 var(--color-gray-300);
+      --tw-shadow: 2px 2px 0 0 var(--sheet-rule-strong);
     }
   }
 }
 
-/* Beat the next/font Inter class on <body>. */
+/* ---- The stock itself ---------------------------------------------------- */
+
 body {
-  font-family: "Chicago", "ChicagoFLF", "Charcoal", "Geneva", "Verdana", sans-serif;
+  font-family: var(--font-sheet-sans), "Roboto Condensed", "Arial Narrow", sans-serif;
+  background-color: var(--sheet-stock);
+  color: var(--sheet-ink);
+  /* The printed rule. Horizontal lines at the grid pitch with a lighter vertical
+     cross-rule, so the page reads as ruled stock everywhere, including the
+     margins the panels do not cover. */
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--sheet-rule) 55%, transparent) 0 1px,
+      transparent 1px var(--sheet-grid)
+    ),
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--sheet-rule) 28%, transparent) 0 1px,
+      transparent 1px var(--sheet-grid)
+    );
+  background-position: 0 0;
 }
 
-main > div > h1 {
+/* Every number sets in mono, so columns of figures line up as columns.
+   Tabular figures and lining numerals are what make a ledger readable. */
+input[type="number"],
+input[type="text"],
+select,
+code,
+pre,
+.sheet-figure {
+  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Recharts axis ticks and labels are SVG text, outside the body cascade. */
+.recharts-cartesian-axis-tick-value,
+.recharts-label,
+.recharts-reference-line text,
+.recharts-text {
+  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---- Sheet furniture ----------------------------------------------------- */
+
+/* The banner across the top of the sheet: solid ink, reversed out, the way a
+   form prints its own title bar. */
+.sheet-banner {
+  background-color: var(--sheet-ink);
+  color: var(--sheet-stock);
+  border-bottom: 2px solid var(--sheet-ink);
+}
+
+/* A stamped field: a boxed label with its value, as a form prints its fields. */
+.sheet-field {
+  border: 1px solid currentColor;
+  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A panel is a ruled field on the sheet, not a card floating above it: the
+   stock's own printing continues through it, so the chart is drawn ON the rule
+   the way an entry on a log sheet is. The heavier top and bottom rules are the
+   field's boundaries, as a printed form boxes a section. */
+.sheet-panel {
+  background-color: transparent;
+  border-top: 2px solid var(--sheet-ink);
+  border-bottom: 2px solid var(--sheet-ink);
+  border-left: 1px solid var(--sheet-rule-strong);
+  border-right: 1px solid var(--sheet-rule-strong);
+}
+
+/* The plot itself sits in a lightly knocked-back field, so the data reads
+   clearly against the sheet's ruling without erasing it. */
+.sheet-plot {
+  background-color: color-mix(in srgb, var(--sheet-stock-raised) 82%, transparent);
+  outline: 1px solid var(--sheet-rule);
+}
+
+/* The rubber stamp: status set at an angle in a ruled box, as a QA office marks
+   a sheet. Colour is passed in by the caller so the meaning stays honest. */
+.sheet-stamp {
+  display: inline-block;
+  border: 2px solid currentColor;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(-2.5deg);
+  opacity: 0.92;
+}
+
+/* The heading rule: a form's section headings sit on a printed line that runs to
+   the margin, with the label knocked out of it. Replaces the dithered rule the
+   previous world flanked its h1 with. */
+.sheet-heading {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: 0.75rem;
 }
 
-main > div > h1::before,
-main > div > h1::after {
+.sheet-heading::after {
   content: "";
   flex: 1;
-  height: 0.7em;
-  background: repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 2px);
+  height: 0;
+  border-top: 1px solid var(--sheet-rule-strong);
+  transform: translateY(-0.2em);
+}
+
+/* ---- Browser surfaces ---------------------------------------------------- */
+
+::selection {
+  background-color: color-mix(in srgb, var(--sheet-blue) 22%, transparent);
+  color: var(--sheet-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sheet-blue);
+  outline-offset: 1px;
+}
+
+::placeholder {
+  color: var(--sheet-ink-faint);
+  opacity: 1;
+}
+
+* {
+  scrollbar-color: var(--sheet-rule-strong) var(--sheet-stock-deep);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sheet-stock-deep);
+  border-left: 1px solid var(--sheet-rule);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sheet-rule-strong);
+  border: 2px solid var(--sheet-stock-deep);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sheet-ink-faint);
+}
+
+/* Native form controls carry the operator's blue rather than the platform's. */
+input[type="checkbox"] {
+  accent-color: var(--sheet-blue);
 }

@@ -11,6 +11,8 @@ import {
   throughputFrom,
   type HistogramBin,
 } from '@/lib/monteCarlo'
+import { SHEET_INK } from '@/lib/colours'
+import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
@@ -53,6 +55,18 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [throughputArray, numSimulations, forecastHorizon, targetItems, forecastingDays, runId])
 
+  /**
+   * Top of the frequency axis: the tallest bin plus a little headroom, rounded
+   * to a readable step. Derived here rather than left to the chart, so the bars
+   * fill the plot whatever shape the forecast takes.
+   */
+  const frequencyCeiling = useMemo(() => {
+    const tallest = histogram.reduce((max, bin) => Math.max(max, bin.frequency), 0)
+    if (tallest === 0) return 10
+    const step = Math.max(10, Math.pow(10, Math.floor(Math.log10(tallest))) / 2)
+    return Math.ceil((tallest * 1.1) / step) * step
+  }, [histogram])
+
   const runSimulation = () => {
     setIsRunning(true)
     setRunId(id => id + 1)
@@ -81,9 +95,9 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
-      : 'bg-white rounded-lg shadow p-6'}>
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900">Monte Carlo Simulation</h2>
+      ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
+      : 'sheet-panel p-6'}>
+      <h2 className="sheet-heading text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Monte Carlo Simulation</h2>
       {!maximised && (
         <p className="text-gray-600 mb-6">
           Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
@@ -119,32 +133,22 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
           {/* Historical Throughput Summary */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3 text-gray-900">Historical Daily Throughput</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="font-semibold text-gray-700">Total Days</div>
-                <div className="text-lg font-bold text-blue-600">{dailyThroughput.length}</div>
-              </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="font-semibold text-gray-700">Avg Daily</div>
-                <div className="text-lg font-bold text-green-600">
-                  {(throughputArray.reduce((a, b) => a + b, 0) / throughputArray.length).toFixed(1)}
-                </div>
-              </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="font-semibold text-gray-700">Min Daily</div>
-                <div className="text-lg font-bold text-orange-600">{Math.min(...throughputArray)}</div>
-              </div>
-              <div className="bg-gray-50 p-3 rounded">
-                <div className="font-semibold text-gray-700">Max Daily</div>
-                <div className="text-lg font-bold text-purple-600">{Math.max(...throughputArray)}</div>
-              </div>
-            </div>
+            <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Historical Daily Throughput</h3>
+            <dl className="grid grid-cols-2 border-l border-t border-gray-300 md:grid-cols-4">
+              <Reading label="Total Days" value={String(dailyThroughput.length)} />
+              <Reading
+                label="Avg Daily"
+                value={(throughputArray.reduce((a, b) => a + b, 0) / throughputArray.length).toFixed(1)}
+                ink="text-green-700"
+              />
+              <Reading label="Min Daily" value={String(Math.min(...throughputArray))} />
+              <Reading label="Max Daily" value={String(Math.max(...throughputArray))} />
+            </dl>
           </div>
 
           {/* Simulation Parameters */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3 text-gray-900">Simulation Parameters</h3>
+            <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Simulation Parameters</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -221,57 +225,41 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {/* Statistics */}
               {!maximised && (
               <div className="mb-6">
-                <h3 className="text-lg font-medium mb-3 text-gray-900">Forecast Results</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-blue-50 p-4 rounded border border-blue-200">
-                    <div className="font-semibold text-blue-700">50% Confidence</div>
-                    <div className="text-2xl font-bold text-blue-800">
-                      {forecastingDays ? `${stats.p50} days` : stats.p50}
-                    </div>
-                    <div className="text-xs text-blue-600">
-                      {forecastingDays ? `by ${dateAfterDays(stats.p50)} (median)` : 'items or more (median)'}
-                    </div>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded border border-green-200">
-                    <div className="font-semibold text-green-700">85% Confidence</div>
-                    <div className="text-2xl font-bold text-green-800">
-                      {forecastingDays ? `${stats.p85} days` : stats.p85}
-                    </div>
-                    <div className="text-xs text-green-600">
-                      {forecastingDays ? `by ${dateAfterDays(stats.p85)} (conservative)` : 'items or more (conservative)'}
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded border border-purple-200">
-                    <div className="font-semibold text-purple-700">95% Confidence</div>
-                    <div className="text-2xl font-bold text-purple-800">
-                      {forecastingDays ? `${stats.p95} days` : stats.p95}
-                    </div>
-                    <div className="text-xs text-purple-600">
-                      {forecastingDays ? `by ${dateAfterDays(stats.p95)} (highly confident)` : 'items or more (highly confident)'}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="font-semibold text-gray-700">Average</div>
-                    <div className="text-lg font-bold text-gray-800">{stats.mean.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="font-semibold text-gray-700">Range</div>
-                    <div className="text-lg font-bold text-gray-800">{stats.min} - {stats.max}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="font-semibold text-gray-700">Simulations</div>
-                    <div className="text-lg font-bold text-gray-800">{stats.totalSimulations.toLocaleString()}</div>
-                  </div>
-                </div>
+                <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Forecast Results</h3>
+                {/* The three confidence levels are the sheet's headline reading,
+                    so they take the wider boxes and the working inks. */}
+                <dl className="grid grid-cols-1 border-l border-t border-gray-300 md:grid-cols-3">
+                  <Reading
+                    label="50% Confidence"
+                    value={forecastingDays ? `${stats.p50} days` : String(stats.p50)}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p50)} (median)` : 'items or more (median)'}
+                    ink="text-blue-700"
+                  />
+                  <Reading
+                    label="85% Confidence"
+                    value={forecastingDays ? `${stats.p85} days` : String(stats.p85)}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p85)} (conservative)` : 'items or more (conservative)'}
+                    ink="text-green-700"
+                  />
+                  <Reading
+                    label="95% Confidence"
+                    value={forecastingDays ? `${stats.p95} days` : String(stats.p95)}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p95)} (highly confident)` : 'items or more (highly confident)'}
+                    ink="text-red-700"
+                  />
+                </dl>
+                <dl className="mt-4 grid grid-cols-1 border-l border-t border-gray-300 md:grid-cols-3">
+                  <Reading label="Average" value={stats.mean.toFixed(1)} />
+                  <Reading label="Range" value={`${stats.min} – ${stats.max}`} />
+                  <Reading label="Simulations" value={stats.totalSimulations.toLocaleString()} />
+                </dl>
               </div>
               )}
 
               {/* Histogram */}
               <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-6'}>
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-medium text-gray-900">Probability Distribution</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-gray-700">Probability Distribution</h3>
                   <div className="flex items-center gap-2">
                     {/* Lives here rather than in the parameters card: that card is
                         hidden while maximised, and the question must stay switchable. */}
@@ -290,56 +278,66 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                     <ChartViewToggle view={view} onChange={setView} />
                   </div>
                 </div>
-                <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full' : 'h-80 w-full'}>
+                <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full' : 'sheet-plot h-80 w-full'}>
                   {isMounted && histogram.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={histogram}
                         margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
                         key={`histogram-${mode}-${stats.totalSimulations}-${forecastHorizon}-${targetItems}`}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={SHEET_INK.rule} />
                         <XAxis
                           dataKey="value"
                           label={{
                             value: forecastingDays ? `Days to Complete ${targetItems} Items` : 'Number of Items Completed',
                             position: 'insideBottom',
                             offset: -10,
+                            fill: SHEET_INK.inkSoft,
                           }}
-                          tick={{ fontSize: 12, fill: '#6b7280' }}
+                          tick={{ fontSize: 12, fill: SHEET_INK.inkSoft }}
                         />
                         <YAxis
-                          label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
-                          tick={{ fill: '#6b7280' }}
+                          // Scaled from the tallest bin we hold, not from Recharts'
+                          // own dataMax: on a spread-out forecast its default domain
+                          // reaches far above every bar and leaves them as a stripe
+                          // along the axis with the plot empty above.
+                          domain={[0, frequencyCeiling]}
+                          label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
+                          tick={{ fill: SHEET_INK.inkSoft }}
                         />
                         <Tooltip content={<CustomTooltip />} />
 
                         {/* Percentile lines - now correctly showing confidence levels */}
+                        {/* Labelled down the line rather than along the top: the
+                            three confidence marks can sit one item apart, and
+                            horizontal labels there overlap into each other. */}
                         <ReferenceLine
                           x={stats.p95}
-                          stroke="#7c3aed"
+                          stroke={SHEET_INK.red}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "95% confident", position: "top", offset: 10 }}
+                          label={{ value: "95%", position: "insideTopLeft", offset: 8, fill: SHEET_INK.red }}
                         />
                         <ReferenceLine
                           x={stats.p85}
-                          stroke="#059669"
+                          stroke={SHEET_INK.green}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "85% confident", position: "top", offset: 10 }}
+                          label={{ value: "85%", position: "insideTopLeft", offset: 8, fill: SHEET_INK.green }}
                         />
                         <ReferenceLine
                           x={stats.p50}
-                          stroke="#2563eb"
+                          stroke={SHEET_INK.blue}
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          label={{ value: "50% confident", position: "top", offset: 10 }}
+                          label={{ value: "50%", position: "insideTopLeft", offset: 8, fill: SHEET_INK.blue }}
                         />
 
                         <Bar
                           dataKey="frequency"
-                          fill="#60a5fa"
-                          stroke="#2563eb"
+                          fill={SHEET_INK.blue}
+                          fillOpacity={0.35}
+                          stroke={SHEET_INK.blue}
                           strokeWidth={1}
                         />
                       </BarChart>

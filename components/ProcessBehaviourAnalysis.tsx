@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
 import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
+import { SHEET_INK } from '@/lib/colours'
+import Reading from './Reading'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SprintExplainerModal from './SprintExplainerModal'
 import ExportPngButton from './ExportPngButton'
@@ -321,13 +323,13 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     const special = (payload as ProcessDataPoint).isSpecialCause
     return (
       <g>
-        {special && <circle cx={cx} cy={cy} r={5} fill="#dc2626" className="signal-halo" />}
+        {special && <circle cx={cx} cy={cy} r={5} fill={SHEET_INK.red} className="signal-halo" />}
         <circle
           cx={cx}
           cy={cy}
           r={special ? 5 : 4}
-          fill={special ? '#dc2626' : '#3b82f6'}
-          stroke={special ? '#991b1b' : '#1e40af'}
+          fill={special ? SHEET_INK.red : SHEET_INK.blue}
+          stroke={special ? SHEET_INK.redDeep : SHEET_INK.ink}
           strokeWidth={2}
         />
       </g>
@@ -384,9 +386,9 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
   return (
     <div className={maximised
-      ? 'fixed inset-0 z-40 overflow-auto bg-white p-6 pt-20 flex flex-col'
-      : 'bg-white rounded-lg shadow p-6'}>
-      <h2 className="text-2xl font-semibold mb-4 text-gray-900">Process Behaviour Chart</h2>
+      ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
+      : 'sheet-panel p-6'}>
+      <h2 className="sheet-heading text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Process Behaviour Chart</h2>
       {!maximised && (
         <p className="text-gray-600 mb-6">
           Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.
@@ -396,7 +398,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Individual Values Chart */}
       <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-8'}>
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-medium text-gray-900">Individual Values (Cycle Times)</h3>
+          <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-gray-700">Individual Values (Cycle Times)</h3>
           <div className="flex items-center gap-2">
             {isMounted && processedData.length > 0 && (
               <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
@@ -439,52 +441,56 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
             onClose={() => setExplainerOpen(false)}
           />
         )}
-        <div ref={chartRef} className={maximised ? 'flex-1 min-h-[16rem] w-full select-none' : 'h-80 w-full select-none'}>
+        <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full select-none' : 'sheet-plot h-80 w-full select-none'}>
           {isMounted && processedData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={visibleData}
                 margin={CHART_MARGIN}
                 {...dragHandlers}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke={SHEET_INK.rule} />
                 <XAxis
                   dataKey="sequence"
-                  label={{ value: 'Sequence (Chronological Order)', position: 'insideBottom', offset: -10 }}
-                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Sequence (Chronological Order)', position: 'insideBottom', offset: -10, fill: SHEET_INK.inkSoft }}
+                  tick={{ fontSize: 12, fill: SHEET_INK.inkSoft }}
                 />
                 <YAxis
-                  label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
+                  tick={{ fill: SHEET_INK.inkSoft }}
                 />
                 <Tooltip content={<CustomTooltip />} />
 
                 {/* Control Lines */}
                 <ReferenceLine
                   y={stats.upperProcessLimit}
-                  stroke="#dc2626"
+                  stroke={SHEET_INK.red}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "UPL", position: "top", offset: 5 }}
+                  label={{ value: "UPL", position: "top", offset: 5, fill: SHEET_INK.red }}
                 />
                 <ReferenceLine
                   y={stats.centralLine}
-                  stroke="#059669"
+                  stroke={SHEET_INK.green}
                   strokeWidth={2}
-                  label={{ value: "CL", position: "top", offset: 5 }}
+                  label={{ value: "CL", position: "top", offset: 5, fill: SHEET_INK.green }}
                 />
                 <ReferenceLine
                   y={stats.lowerProcessLimit}
-                  stroke="#dc2626"
+                  stroke={SHEET_INK.red}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "LPL", position: "bottom", offset: 5 }}
+                  // Labelled above the line rather than below it: a lower limit of
+                  // zero sits on the axis, and a `bottom` label there lands in the
+                  // middle of the sequence ticks.
+                  label={{ value: "LPL", position: "insideBottomLeft", offset: 6, fill: SHEET_INK.red }}
                 />
                 {showSprint && (
                   <ReferenceLine
                     y={sprintDays}
-                    stroke="#d97706"
+                    stroke={SHEET_INK.amber}
                     strokeWidth={2}
                     strokeDasharray="8 4"
-                    label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
+                    label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: SHEET_INK.amber }}
                   />
                 )}
 
@@ -492,8 +498,8 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   <ReferenceArea
                     x1={dragStart}
                     x2={dragEnd}
-                    fill="#2563eb"
-                    fillOpacity={0.1}
+                    fill={SHEET_INK.blue}
+                    fillOpacity={0.12}
                     strokeOpacity={0}
                   />
                 )}
@@ -502,7 +508,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                 <Line
                   type="monotone"
                   dataKey="cycleTime"
-                  stroke="#3b82f6"
+                  stroke={SHEET_INK.blue}
                   strokeWidth={2}
                   dot={<SpecialCauseDot />}
                 />
@@ -521,8 +527,8 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Moving Range Chart */}
       {!maximised && (
       <div className="mb-6">
-        <h3 className="text-lg font-medium mb-3 text-gray-900">Moving Range</h3>
-        <div className="h-64 w-full select-none">
+        <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Moving Range</h3>
+        <div className="sheet-plot h-64 w-full select-none">
           {isMounted && movingRangeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={256}>
               <LineChart
@@ -531,37 +537,38 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                 data={visibleMovingRangeData}
                 margin={CHART_MARGIN}
                 {...dragHandlers}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke={SHEET_INK.rule} />
                 <XAxis
                   dataKey="sequence"
-                  label={{ value: 'Sequence', position: 'insideBottom', offset: -10 }}
-                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Sequence', position: 'insideBottom', offset: -10, fill: SHEET_INK.inkSoft }}
+                  tick={{ fontSize: 12, fill: SHEET_INK.inkSoft }}
                 />
                 <YAxis
-                  label={{ value: 'Moving Range', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Moving Range', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
+                  tick={{ fill: SHEET_INK.inkSoft }}
                 />
                 <Tooltip content={<MovingRangeTooltip />} />
 
                 <ReferenceLine
                   y={stats.upperRangeLimit}
-                  stroke="#dc2626"
+                  stroke={SHEET_INK.red}
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: "URL", position: "top", offset: 5 }}
+                  label={{ value: "URL", position: "top", offset: 5, fill: SHEET_INK.red }}
                 />
                 <ReferenceLine
                   y={stats.limitMethod === 'median' ? stats.medianMovingRange : stats.averageMovingRange}
-                  stroke="#059669"
+                  stroke={SHEET_INK.green}
                   strokeWidth={2}
-                  label={{ value: stats.limitMethod === 'median' ? "Median mR" : "Average mR", position: "top", offset: 5 }}
+                  label={{ value: stats.limitMethod === 'median' ? "Median mR" : "Average mR", position: "top", offset: 5, fill: SHEET_INK.green }}
                 />
 
                 <Line
                   type="monotone"
                   dataKey="movingRange"
-                  stroke="#f59e0b"
+                  stroke={SHEET_INK.amber}
                   strokeWidth={2}
-                  dot={{ fill: '#f59e0b', stroke: '#d97706', strokeWidth: 2, r: 3 }}
+                  dot={{ fill: SHEET_INK.amber, stroke: SHEET_INK.ink, strokeWidth: 1, r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -576,36 +583,24 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
 
       {/* Statistics Summary */}
       {!maximised && stats.totalItems > 0 && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Total Items</div>
-              <div className="text-lg font-bold text-blue-600">{stats.totalItems}</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Central Line</div>
-              <div className="text-lg font-bold text-green-600">{stats.centralLine.toFixed(1)} days</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Control Limits</div>
-              <div className="text-sm font-bold text-red-600">
-                {stats.lowerProcessLimit.toFixed(1)} - {stats.upperProcessLimit.toFixed(1)}
-              </div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Special Causes</div>
-              <div className="text-lg font-bold text-orange-600">{stats.specialCauseCount}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 text-sm">
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Upper Range Limit (URL)</div>
-              <div className="text-lg font-bold text-purple-600">
-                {stats.upperRangeLimit.toFixed(1)}
-              </div>
-            </div>
-          </div>
-        </div>
+        /* The readings taken off the chart, boxed as a form's result fields:
+           hairline rules, mono figures, each ink meaning what it means
+           everywhere else on the sheet. */
+        <dl className="mt-6 grid grid-cols-2 border-l border-t border-gray-300 md:grid-cols-5">
+          <Reading label="Total Items" value={String(stats.totalItems)} />
+          <Reading label="Central Line" value={`${stats.centralLine.toFixed(1)} d`} ink="text-green-700" />
+          <Reading
+            label="Control Limits"
+            value={`${stats.lowerProcessLimit.toFixed(1)} – ${stats.upperProcessLimit.toFixed(1)}`}
+            ink="text-red-700"
+          />
+          <Reading
+            label="Special Causes"
+            value={String(stats.specialCauseCount)}
+            ink={stats.specialCauseCount > 0 ? 'text-red-700' : undefined}
+          />
+          <Reading label="Upper Range Limit" value={stats.upperRangeLimit.toFixed(1)} />
+        </dl>
       )}
 
       {!maximised && (

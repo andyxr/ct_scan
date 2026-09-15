@@ -13,3 +13,9 @@ node_modules
 # Agent worktrees
 .claude
 notes/pcb-sprints.md
+
+# Impeccable working files. design.json is the design system sidecar and is
+# tracked; the rest is per-run scratch (inspection screenshots, decision logs,
+# hook state) that should not follow the repo.
+.impeccable/*
+!.impeccable/design.json

@@ -32,6 +32,8 @@ export default function SplashScreen({ onDone }: { onDone?: () => void }) {
   return (
     <div
       aria-hidden
+      // Opaque stock, no rule: the sheet's printed grid arrives with the sheet,
+      // so the boot overlay is the blank stock it gets printed on.
       className={`fixed inset-0 z-50 flex items-center justify-center bg-gray-50 transition-opacity duration-[400ms] ${
         leaving ? 'opacity-0' : 'opacity-100'
       }`}
