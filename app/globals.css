@@ -10,6 +10,30 @@
   }
 }
 
+/* Throb for a hovered percentile line. Animating stroke-width rather than
+   transform keeps the line pinned to its y value; a scale would slide it off
+   the cycle time it represents. Width is driven by --throb-base so one
+   keyframe serves lines of any resting thickness. */
+@keyframes percentile-throb {
+  0%, 100% { stroke-width: calc(var(--throb-base) * 2); }
+  50% { stroke-width: calc(var(--throb-base) * 3.1); }
+}
+
+.percentile-line {
+  transition: stroke-width 150ms ease-out;
+}
+
+.percentile-line--active {
+  animation: percentile-throb 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .percentile-line--active {
+    animation: none;
+    stroke-width: calc(var(--throb-base) * 2);
+  }
+}
+
 /* The Mac OS 8 look is a pure token remap: utilities like `bg-white` and
    `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
    rebinding those variables on :root reskins every component without

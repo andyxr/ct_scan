@@ -92,6 +92,75 @@ const PERCENTILE_LINES = [
   { p: 0.95, name: '95th', stroke: '#be123c', dash: '12 4' },
 ] as const
 
+/** Resting thickness of a percentile line, in px. The throb keyframes scale off this. */
+const PERCENTILE_STROKE = 2
+/**
+ * Invisible hover target laid over each percentile line.
+ *
+ * A 2px line is far too thin to hit with a mouse, so the shape draws a wide
+ * transparent companion along the same geometry and hangs the pointer handlers
+ * off that instead.
+ */
+const PERCENTILE_HIT_STROKE = 14
+
+/**
+ * Custom shape for a percentile ReferenceLine: the visible dashed line plus a
+ * fat transparent one that catches the pointer.
+ *
+ * Recharts hands the shape its resolved endpoints, so both lines share exactly
+ * the geometry the chart already computed. The dash pattern is dropped from the
+ * hit line: a dashed stroke only registers hits on its dashes, leaving gaps the
+ * pointer falls through.
+ */
+function PercentileLineShape({
+  x1,
+  y1,
+  x2,
+  y2,
+  stroke,
+  dash,
+  active,
+  onEnter,
+  onLeave,
+}: {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  stroke: string
+  dash: string
+  active: boolean
+  onEnter: () => void
+  onLeave: () => void
+}) {
+  return (
+    <g>
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={stroke}
+        strokeDasharray={dash}
+        strokeWidth={PERCENTILE_STROKE}
+        className={`percentile-line${active ? ' percentile-line--active' : ''}`}
+        style={{ ['--throb-base' as string]: PERCENTILE_STROKE }}
+      />
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="transparent"
+        strokeWidth={PERCENTILE_HIT_STROKE}
+        style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+      />
+    </g>
+  )
+}
+
 const DEFAULT_POINT_COLOUR = '#22c55e'
 /** Stacked items of more than one type, so no swatch colour would be honest. */
 const MIXED_TYPE_COLOUR = '#374151'
@@ -323,6 +392,7 @@ export default function CycleTimeAnalysis({
   const [showSle, setShowSle] = useState(false)
   const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
   const [slePercentile, setSlePercentile] = useState<SlePercentile>(DEFAULT_SLE_PERCENTILE)
+  const [hoveredPercentile, setHoveredPercentile] = useState<string | null>(null)
   const [view, setView] = useState<ChartView>('normal')
   const [zoom, setZoom] = useState<ZoomRange | null>(null)
   /**
@@ -597,9 +667,19 @@ export default function CycleTimeAnalysis({
                   key={line.name}
                   y={line.value}
                   stroke={line.stroke}
-                  strokeWidth={2}
+                  strokeWidth={PERCENTILE_STROKE}
                   strokeDasharray={line.dash}
                   ifOverflow="visible"
+                  shape={(props: any) => (
+                    <PercentileLineShape
+                      {...props}
+                      stroke={line.stroke}
+                      dash={line.dash}
+                      active={hoveredPercentile === line.name}
+                      onEnter={() => setHoveredPercentile(line.name)}
+                      onLeave={() => setHoveredPercentile(null)}
+                    />
+                  )}
                   label={{
                     value: `${line.name} (${line.value.toFixed(1)}d)`,
                     position: 'right',
