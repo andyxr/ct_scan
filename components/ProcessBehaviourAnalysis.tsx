@@ -320,14 +320,17 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     if (cx === undefined || cy === undefined) return null
     const special = (payload as ProcessDataPoint).isSpecialCause
     return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={special ? 5 : 4}
-        fill={special ? '#dc2626' : '#3b82f6'}
-        stroke={special ? '#991b1b' : '#1e40af'}
-        strokeWidth={2}
-      />
+      <g>
+        {special && <circle cx={cx} cy={cy} r={5} fill="#dc2626" className="signal-halo" />}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={special ? 5 : 4}
+          fill={special ? '#dc2626' : '#3b82f6'}
+          stroke={special ? '#991b1b' : '#1e40af'}
+          strokeWidth={2}
+        />
+      </g>
     )
   }
 

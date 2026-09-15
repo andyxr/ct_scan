@@ -68,6 +68,39 @@
   }
 }
 
+/* Signal points on a process behaviour chart pulse continuously, so a special
+   cause is visible without hunting along the series for a red dot.
+
+   The pulse is a halo behind the mark, not a scale on the mark itself: radius
+   there already distinguishes a signal (5) from an ordinary point (4), and
+   animating it would blur that reading and make the point's position harder to
+   fix by eye. The halo fades as it expands so the eye is drawn outward and the
+   dot stays the thing in focus. */
+/* Scale, not `r`: Safari does not animate the SVG `r` property, and a halo
+   pinned at its base radius would sit invisible behind the dot there. The
+   circle carries a fixed r=5 and grows to 3x, reaching the same 15px outer
+   edge. fill-box origin expands it about the dot rather than the SVG origin. */
+@keyframes signal-halo {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.signal-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: signal-halo 1.6s ease-out infinite;
+}
+
+/* A permanent animation is what reduced-motion exists to silence. The halo
+   stays as a static ring, so the signal is still marked beyond its colour. */
+@media (prefers-reduced-motion: reduce) {
+  .signal-halo {
+    animation: none;
+    transform: scale(1.8);
+    opacity: 0.35;
+  }
+}
+
 /* The Mac OS 8 look is a pure token remap: utilities like `bg-white` and
    `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
    rebinding those variables on :root reskins every component without
