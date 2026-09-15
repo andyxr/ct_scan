@@ -9,11 +9,11 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
       <div className="max-w-md mx-auto">
         <FlowgaugeLogo loop />
         <p className="mt-8 text-center text-gray-700 leading-relaxed">
-          Flowgauge was developed by Andy Deighton of Ljomi Systems Ltd. Why spend
+          Flowgauge was developed by Andy Deighton of <a href="https://ljomi-systems.com" target="_blank" rel="noopener noreferrer">Ljomi Systems Ltd</a>. Why spend
           money on 3rd party software when you can use Flowgauge instead?<br/>
           Recently addded:
         </p>
-        <ul className="list-disc list-inside">
+        <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
            <li>Scatterplot item colouring</li>
            <li>Zooming in on a date range in the scatterplot</li>
            <li>Zooming in on a sequence range in the PBC</li>

@@ -26,12 +26,20 @@ export default function Modal({ title, hideTitle = false, onClose, children }: M
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
+      {/* The ink and the text size on the panel are both load-bearing, not
+          decoration. A modal is a fixed overlay but still a DOM child of
+          whatever opened it, and the About and sprint dialogs open from a
+          control inside .sheet-banner — so without these, the banner's
+          reversed-out stock ink paints every unclassed child stock-on-stock,
+          and its 0.6875rem field-label size shrinks the dialog's prose to 11px.
+          Setting both here means a modal never depends on the ground it opened
+          from, and anything added to one later inherits a readable default. */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         onClick={event => event.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white border border-gray-300 shadow-lg p-8"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white border border-gray-300 shadow-lg p-8 text-gray-700 text-[1.1rem]"
       >
         <button
           type="button"

@@ -238,18 +238,26 @@ body {
   font-family: var(--font-sheet-sans), "Roboto Condensed", "Arial Narrow", sans-serif;
   background-color: var(--sheet-stock);
   color: var(--sheet-ink);
-  /* The printed rule. Horizontal lines at the grid pitch with a lighter vertical
-     cross-rule, so the page reads as ruled stock everywhere, including the
-     margins the panels do not cover. */
+  /* The printed rule. Horizontal lines at the grid pitch with a much fainter
+     vertical cross-rule, so the page reads as ruled stock everywhere, including
+     the margins the panels do not cover.
+
+     The two weights are deliberately unequal. Ruled stock is ruled horizontally;
+     the vertical is a margin rule, not a second axis. Matching the two — or
+     fading both by the same amount — tiles the page into squares and reads as
+     graph paper, which is a different artefact from the one this world is. The
+     verticals are kept only as far as they hint at a column structure behind the
+     panels, and the ruling stays well under the chart grids so the sheet never
+     competes with the data drawn on it. */
   background-image:
     repeating-linear-gradient(
       to bottom,
-      color-mix(in srgb, var(--sheet-rule) 55%, transparent) 0 1px,
+      color-mix(in srgb, var(--sheet-rule) 26%, transparent) 0 1px,
       transparent 1px var(--sheet-grid)
     ),
     repeating-linear-gradient(
       to right,
-      color-mix(in srgb, var(--sheet-rule) 28%, transparent) 0 1px,
+      color-mix(in srgb, var(--sheet-rule) 9%, transparent) 0 1px,
       transparent 1px var(--sheet-grid)
     );
   background-position: 0 0;
