@@ -2,9 +2,25 @@
 
 import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
-import { detectColumns, toWorkItems, percentile, formatDate } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile, formatDate, type WorkItem } from '@/lib/csv'
+import {
+  DEFAULT_SLE_DAYS,
+  DEFAULT_SLE_PERCENTILE,
+  MIN_ITEMS_FOR_ASSESSMENT,
+  SLE_STATUS,
+  assessSle,
+  percentileName,
+  tailContribution,
+  typeBreakdown,
+  type SleAssessment,
+  type SlePercentile,
+  type TailContribution,
+  type TypeBreakdown,
+} from '@/lib/sle'
+import { TREND_WINDOW_SIZE, TREND_WINDOW_STEP, sleTrend, type SleTrend } from '@/lib/sleTrend'
 import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
+import SleControl from './SleControl'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
@@ -196,6 +212,97 @@ function CycleTimeTooltip({
   )
 }
 
+interface SleReport {
+  assessment: SleAssessment
+  tail: TailContribution
+  types: TypeBreakdown[]
+  trend: SleTrend
+  medianDays: number
+}
+
+function buildSleReport(items: WorkItem[], targetDays: number, targetPercentile: SlePercentile): SleReport {
+  return {
+    assessment: assessSle(items, targetDays, targetPercentile),
+    tail: tailContribution(items, targetDays),
+    types: typeBreakdown(items, targetDays, targetPercentile),
+    trend: sleTrend(items, targetPercentile),
+    medianDays: percentile(items.map(item => item.cycleTime), 0.5),
+  }
+}
+
+function trendFinding(trend: SleTrend, name: string): string {
+  const windows = trend.windows.length
+  switch (trend.direction) {
+    case 'improving':
+      return `The ${name} percentile is falling by ${Math.abs(trend.slope).toFixed(1)} days per ${TREND_WINDOW_STEP} completions across the last ${windows} windows of ${TREND_WINDOW_SIZE} items.`
+    case 'worsening':
+      return `The ${name} percentile is rising by ${trend.slope.toFixed(1)} days per ${TREND_WINDOW_STEP} completions across the last ${windows} windows of ${TREND_WINDOW_SIZE} items.`
+    case 'flat':
+      return `The ${name} percentile has been flat across the last ${windows} windows of ${TREND_WINDOW_SIZE} items.`
+    case 'not-enough-data':
+      return `No trend yet. ${trend.reason}`
+  }
+}
+
+function sleFindings({ assessment, tail, types, trend, medianDays }: SleReport): string[] {
+  const { status, targetDays, gapDays, itemCount } = assessment
+  const name = percentileName(assessment.targetPercentile)
+  const findings: string[] = []
+
+  if (status === 'insufficient') {
+    findings.push(`Only ${itemCount} items. At least ${MIN_ITEMS_FOR_ASSESSMENT} are needed before the data can say anything about this SLE.`)
+  }
+
+  if (status === 'marginal' && gapDays <= 0) {
+    const { low, high } = assessment.hitRateInterval
+    findings.push(`The ${name} percentile is inside the target, but with ${itemCount} items the true hit rate could be anywhere from ${Math.round(low * 100)}% to ${Math.round(high * 100)}%, so this is not yet a confirmed pass.`)
+  }
+
+  if (status === 'marginal' || status === 'fail') {
+    if (gapDays > 0) {
+      findings.push(`Trim ${gapDays.toFixed(1)} days off the ${name} percentile to meet the SLE.`)
+    }
+    if (tail.breachCount > 0) {
+      findings.push(tail.concentrated
+        ? `${tail.worstK} of the ${tail.breachCount} items over target account for half the total overrun past the SLE. A few outliers drive the miss.`
+        : `The overrun past the SLE is spread across all ${tail.breachCount} breaching items. No small group of outliers explains it.`)
+    }
+    if (types.length >= 2) {
+      const worst = types[0]
+      const best = types[types.length - 1]
+      if (worst.percentileDays - best.percentileDays >= 2) {
+        findings.push(`${worst.itemType} items reach ${worst.percentileDays.toFixed(1)} days at the ${name} percentile, against ${best.percentileDays.toFixed(1)} for ${best.itemType}.`)
+      }
+    }
+    if (medianDays > targetDays) {
+      findings.push('The whole distribution sits above the target, not just the tail.')
+    } else if (gapDays > 0 && targetDays - medianDays > gapDays / 2) {
+      findings.push('Most items are well inside the target; the miss comes from a long tail.')
+    }
+  }
+
+  findings.push(trendFinding(trend, name))
+  return findings
+}
+
+function sleSummary({ status, targetDays, targetPercentile, actualDays, gapDays, hitCount, itemCount, hitRate }: SleAssessment): string {
+  const finished = `${hitCount} of ${itemCount} (${Math.round(hitRate * 100)}%) finished within ${targetDays} days.`
+  if (status === 'insufficient') {
+    return `Only ${itemCount} items, so the SLE cannot be assessed; at least ${MIN_ITEMS_FOR_ASSESSMENT} are needed. ${finished}`
+  }
+  const percent = Math.round(targetPercentile * 100)
+  const gap = gapDays > 0
+    ? `${gapDays.toFixed(1)} days over it`
+    : `${Math.abs(gapDays).toFixed(1)} days inside it`
+  return `${percent}% of items finish within ${actualDays.toFixed(1)} days. Your SLE asks for ${targetDays}, so you are ${gap}. ${finished}`
+}
+
+const GENERAL_GUIDANCE = [
+  'Limit work in progress so items finish before new ones start.',
+  'Split large items before starting them.',
+  'Look at where items wait rather than where they are worked.',
+]
+
 function ordinal(n: number) {
   const mod100 = n % 100
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`
@@ -213,6 +320,9 @@ export default function CycleTimeAnalysis({
   const [showSprint, setShowSprint] = useState(false)
   const [showAverage, setShowAverage] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
+  const [showSle, setShowSle] = useState(false)
+  const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
+  const [slePercentile, setSlePercentile] = useState<SlePercentile>(DEFAULT_SLE_PERCENTILE)
   const [view, setView] = useState<ChartView>('normal')
   const [zoom, setZoom] = useState<ZoomRange | null>(null)
   /**
@@ -241,7 +351,7 @@ export default function CycleTimeAnalysis({
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const { processedData, percentileLines, stats, dataExtent } = useMemo(() => {
+  const { items, processedData, percentileLines, stats, dataExtent } = useMemo(() => {
     const columns = detectColumns(data)
     const items = toWorkItems(data, columns)
 
@@ -270,6 +380,7 @@ export default function CycleTimeAnalysis({
     const dates = processed.map(item => item.endDate)
 
     return {
+      items,
       processedData: processed,
       percentileLines,
       dataExtent: {
@@ -291,6 +402,13 @@ export default function CycleTimeAnalysis({
     () => groupPlotPoints(processedData, typeColours),
     [processedData, typeColours],
   )
+
+  const sle = useMemo(
+    () => buildSleReport(items, sleDays, slePercentile),
+    [items, sleDays, slePercentile],
+  )
+  const sleStatus = SLE_STATUS[sle.assessment.status]
+  const sleName = percentileName(slePercentile)
 
   const withinSprint = processedData.filter(item => item.cycleTime <= sprintDays).length
   const daysAt = (p: number) =>
@@ -401,6 +519,15 @@ export default function CycleTimeAnalysis({
           onToggle={setShowSprint}
           onDaysChange={setSprintDays}
         />
+        <SleControl
+          enabled={showSle}
+          days={sleDays}
+          percentile={slePercentile}
+          status={sle.assessment.status}
+          onToggle={setShowSle}
+          onDaysChange={setSleDays}
+          onPercentileChange={setSlePercentile}
+        />
         <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 cursor-pointer">
           <input
             type="checkbox"
@@ -459,7 +586,8 @@ export default function CycleTimeAnalysis({
               />
               <YAxis
                 dataKey="cycleTime"
-                domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.08)]}
+                // The SLE is a target, not data, so it has to be pulled into the range or it draws off the chart.
+                domain={[0, (dataMax: number) => Math.ceil(Math.max(dataMax, showSle ? sleDays : 0) * 1.08)]}
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#6b7280' } }}
                 tick={{ fill: '#6b7280' }}
               />
@@ -497,6 +625,16 @@ export default function CycleTimeAnalysis({
                   label={{ value: `Sprint (${sprintDays}d)`, position: "insideTopLeft", fill: '#d97706' }}
                 />
               )}
+              {showSle && (
+                <ReferenceLine
+                  y={sleDays}
+                  stroke={sleStatus.stroke}
+                  strokeWidth={3}
+                  strokeDasharray="6 3"
+                  ifOverflow="visible"
+                  label={{ value: `SLE ${sleDays}d @ ${sleName}`, position: 'insideBottomRight', fill: sleStatus.stroke }}
+                />
+              )}
               {dragStart !== null && dragEnd !== null && dragStart !== dragEnd && (
                 <ReferenceArea
                   x1={dragStart}
@@ -529,12 +667,36 @@ export default function CycleTimeAnalysis({
 
       {!maximised && (
         <div className="mt-4 text-sm text-gray-600">
-          <p>
-            50% of items finish within {daysAt(0.5)} days, 75% within {daysAt(0.75)}, 85% within {daysAt(0.85)}, and 95% within {daysAt(0.95)}.
-          </p>
+          {showSle ? (
+            <p>{sleSummary(sle.assessment)}</p>
+          ) : (
+            <p>
+              50% of items finish within {daysAt(0.5)} days, 75% within {daysAt(0.75)}, 85% within {daysAt(0.85)}, and 95% within {daysAt(0.95)}.
+            </p>
+          )}
           {showAverage && (
             <p>The average cycle time is {stats.average.toFixed(1)} days, which sits at the {ordinal(stats.averagePercentile)} percentile. A forecast based on the average would be right for only {stats.averagePercentile}% of items.</p>
           )}
+        </div>
+      )}
+
+      {!maximised && showSle && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-gray-700">
+          <h3 className="font-semibold text-gray-900 mb-2">What the data says</h3>
+          <ul className="list-disc pl-5 space-y-1">
+            {sleFindings(sle).map(finding => (
+              <li key={finding}>{finding}</li>
+            ))}
+          </ul>
+          <div className="mt-3 p-4 bg-white border border-gray-300 rounded-lg">
+            <h4 className="font-semibold text-gray-900">General guidance</h4>
+            <p className="text-xs text-gray-500 mb-2">Not derived from your data.</p>
+            <ul className="list-disc pl-5 space-y-1">
+              {GENERAL_GUIDANCE.map(line => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>
