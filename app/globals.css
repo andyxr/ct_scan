@@ -34,6 +34,40 @@
   }
 }
 
+/* Hovered scatterplot points pulse, to confirm which one the pointer has.
+   The size change is a transform rather than a bigger `r` so it animates
+   consistently across browsers; fill-box origin keeps the circle centred on
+   its data coordinates instead of sliding toward the SVG origin.
+
+   The pulse bottoms out at the dot's true size, so it still reads as its
+   plotted radius on every beat rather than sitting permanently inflated. */
+@keyframes scatter-dot-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+.scatter-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 120ms ease-out;
+}
+
+.scatter-dot--active {
+  animation: scatter-dot-pulse 0.5s ease-in-out infinite;
+}
+
+/* Reduced motion keeps the confirmation, as a steady size bump with no pulse. */
+@media (prefers-reduced-motion: reduce) {
+  .scatter-dot {
+    transition: none;
+  }
+
+  .scatter-dot--active {
+    animation: none;
+    transform: scale(1.18);
+  }
+}
+
 /* The Mac OS 8 look is a pure token remap: utilities like `bg-white` and
    `rounded-lg` compile to `var(--color-white)` / `var(--radius-lg)`, so
    rebinding those variables on :root reskins every component without

@@ -243,13 +243,15 @@ function groupPlotPoints(items: ProcessedDataPoint[], typeColours?: Record<strin
 }
 
 /**
- * Recharts types `shape` as `(props: unknown) => Element`, so this takes unknown
- * and narrows, rather than declaring its props and failing to be assignable.
- * It must always return an element: `null` is not an Element, hence the empty
+ * Recharts hands `shape` a props bag it types as `unknown`, so the positioning
+ * fields are narrowed here rather than declared. `activeKey` is ours, passed by
+ * the caller, so it is declared normally.
+ *
+ * Must always return an element: `null` is not an Element, hence the empty
  * `<g />` for a point Recharts has not finished positioning.
  */
-function ScatterDot(props: unknown) {
-  const { cx, cy, payload } = (props ?? {}) as { cx?: number; cy?: number; payload?: PlotPoint }
+function ScatterDot({ activeKey, ...props }: { activeKey?: string | null; [key: string]: unknown }) {
+  const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: PlotPoint }
   if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) return <g />
   return (
     <circle
@@ -257,6 +259,7 @@ function ScatterDot(props: unknown) {
       cy={cy}
       r={radiusForCount(payload.itemIds.length)}
       fill={payload.fill}
+      className={`scatter-dot${activeKey === payload.key ? ' scatter-dot--active' : ''}`}
     />
   )
 }
@@ -393,6 +396,7 @@ export default function CycleTimeAnalysis({
   const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
   const [slePercentile, setSlePercentile] = useState<SlePercentile>(DEFAULT_SLE_PERCENTILE)
   const [hoveredPercentile, setHoveredPercentile] = useState<string | null>(null)
+  const [hoveredPoint, setHoveredPoint] = useState<string | null>(null)
   const [view, setView] = useState<ChartView>('normal')
   const [zoom, setZoom] = useState<ZoomRange | null>(null)
   /**
@@ -728,8 +732,10 @@ export default function CycleTimeAnalysis({
                 name="Cycle time"
                 data={plotPoints}
                 dataKey="cycleTime"
-                shape={ScatterDot}
+                shape={(props: unknown) => <ScatterDot {...(props as object)} activeKey={hoveredPoint} />}
                 isAnimationActive={false}
+                onMouseEnter={(point: unknown) => setHoveredPoint((point as PlotPoint)?.key ?? null)}
+                onMouseLeave={() => setHoveredPoint(null)}
               />
             </ScatterChart>
           </ResponsiveContainer>
