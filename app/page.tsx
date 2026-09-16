@@ -65,6 +65,10 @@ export default function Home() {
     () => filterByDateRange(filterByItemType(csvData, columns, itemType), columns, dateRange),
     [csvData, columns, itemType, dateRange]
   )
+  const filteredCounts = useMemo(() => ({
+    completed: toWorkItems(filteredData, columns).length,
+    inProgress: toInProgressItems(filteredData, columns).length,
+  }), [filteredData, columns])
   // Keyed off the unfiltered type list on purpose: a type keeps its colour whatever the filter shows.
   const typeColours = useMemo(() => Object.fromEntries(
     itemTypes.map((type, index) => [type, colourOverrides[type] ?? colourForIndex(index)])
@@ -164,8 +168,8 @@ export default function Home() {
             types={itemTypes}
             value={itemType}
             onChange={setItemType}
-            matchedCount={filteredData.length}
-            totalCount={csvData.length}
+            completedCount={filteredCounts.completed}
+            inProgressCount={filteredCounts.inProgress}
           />
 
           <DateRangeControl
