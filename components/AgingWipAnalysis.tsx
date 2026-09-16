@@ -5,6 +5,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { detectColumns, formatDate, toInProgressItems, toWorkItems } from '@/lib/csv'
 import { agingBands, agingItems, olderThan, type AgingBands, type AgingItem } from '@/lib/aging'
 import { SHEET_INK } from '@/lib/colours'
+import { DEFAULT_SLE_DAYS } from '@/lib/sle'
 import TypeColourControl from './TypeColourControl'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
@@ -52,6 +53,16 @@ const BAND_FILLS = [
   { from: 'p85', to: 'p95', fill: SHEET_INK.amber, opacity: 0.22 },
   { from: 'p95', to: null, fill: SHEET_INK.red, opacity: 0.14 },
 ] as const satisfies readonly { from: keyof AgingBands | null; to: keyof AgingBands | null; fill: string; opacity: number }[]
+
+/**
+ * With an SLE set, the target is the one line that matters, so the percentile
+ * bands give way to two: inside the target and past it. The percentile lines
+ * stay as thin references to where finished work landed.
+ */
+const SLE_FILLS = [
+  { below: true, fill: SHEET_INK.green, opacity: 0.08 },
+  { below: false, fill: SHEET_INK.red, opacity: 0.14 },
+] as const
 
 /** YYYY-MM-DD from local date parts. toISOString would shift the day by the timezone offset. */
 function toInputValue(epoch: number): string {
@@ -138,9 +149,13 @@ function AgingTooltip({
   )
 }
 
+function itemNoun(count: number): string {
+  return count === 1 ? 'item is' : 'items are'
+}
+
 function agingSummary(items: AgingItem[], bands: AgingBands, completedCount: number): string {
   const count = items.length
-  const noun = count === 1 ? 'item is' : 'items are'
+  const noun = itemNoun(count)
   if (completedCount === 0) {
     return `${count} ${noun} in progress. Nothing has completed in the selected window, so there are no cycle times to read the ages against.`
   }
@@ -155,6 +170,18 @@ function agingSummary(items: AgingItem[], bands: AgingBands, completedCount: num
   return `${count} ${noun} in progress. ${past85} ${past85 === 1 ? 'has' : 'have'} already run longer than the 85th percentile.${tail} ${against} The oldest, ${oldest.id}, is ${oldest.ageDays} days old.`
 }
 
+/** Age is inclusive and the SLE is a ceiling, so an item on the target day is still inside it. */
+function sleSummary(items: AgingItem[], sleDays: number): string {
+  const count = items.length
+  const past = olderThan(items, sleDays)
+  const oldest = items[0]
+  if (past.length === 0) {
+    return `${count} ${itemNoun(count)} in progress and all are inside the ${sleDays}-day SLE. The oldest, ${oldest.id}, is ${oldest.ageDays} days old.`
+  }
+  const over = past[0].ageDays - sleDays
+  return `${count} ${itemNoun(count)} in progress. ${past.length} ${past.length === 1 ? 'has' : 'have'} already run past the ${sleDays}-day SLE. The oldest, ${oldest.id}, is ${oldest.ageDays} days old, ${over} ${over === 1 ? 'day' : 'days'} over it.`
+}
+
 export default function AgingWipAnalysis({
   data,
   typeColours,
@@ -163,6 +190,8 @@ export default function AgingWipAnalysis({
 }: AgingWipAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [asOf, setAsOf] = useState<number>(() => todayMs())
+  const [showSle, setShowSle] = useState(false)
+  const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
@@ -196,8 +225,9 @@ export default function AgingWipAnalysis({
 
   const yMax = useMemo(() => {
     const oldest = items[0]?.ageDays ?? 0
-    return Math.ceil(Math.max(oldest, bands.p95, 1) * 1.1)
-  }, [items, bands.p95])
+    // The SLE is a target, not data, so it has to be pulled into the range or it draws off the chart.
+    return Math.ceil(Math.max(oldest, bands.p95, showSle ? sleDays : 0, 1) * 1.1)
+  }, [items, bands.p95, showSle, sleDays])
 
   const bandEdge = (key: keyof AgingBands | null, fallback: number) => (key === null ? fallback : bands[key])
 
@@ -241,8 +271,28 @@ export default function AgingWipAnalysis({
             </button>
           )}
         </label>
+        <label className="flex items-center gap-2 mb-4 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showSle}
+            onChange={e => setShowSle(e.target.checked)}
+            className="h-4 w-4 accent-green-600"
+          />
+          Show SLE
+        </label>
+        <label className="flex items-center gap-2 mb-4 text-sm text-gray-700">
+          <span>SLE (days)</span>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={sleDays}
+            onChange={e => setSleDays(Math.max(1, Math.min(365, parseInt(e.target.value) || DEFAULT_SLE_DAYS)))}
+            className="w-20 px-2 py-1 border border-gray-300 rounded"
+          />
+        </label>
         <span className="flex items-center gap-2 mb-4 text-sm text-gray-500">
-          Bands from {completedCount} completed {completedCount === 1 ? 'item' : 'items'}
+          Percentiles from {completedCount} completed {completedCount === 1 ? 'item' : 'items'}
         </span>
       </div>
 
@@ -278,7 +328,18 @@ export default function AgingWipAnalysis({
                 tick={{ fill: SHEET_INK.inkSoft }}
               />
               <Tooltip content={<AgingTooltip />} cursor={false} />
-              {completedCount > 0 && BAND_FILLS.map(band => (
+              {showSle && SLE_FILLS.map(band => (
+                <ReferenceArea
+                  key={String(band.below)}
+                  y1={band.below ? 0 : sleDays}
+                  y2={band.below ? sleDays : yMax}
+                  fill={band.fill}
+                  fillOpacity={band.opacity}
+                  strokeOpacity={0}
+                  ifOverflow="hidden"
+                />
+              ))}
+              {!showSle && completedCount > 0 && BAND_FILLS.map(band => (
                 <ReferenceArea
                   key={`${band.from}-${band.to}`}
                   y1={bandEdge(band.from, 0)}
@@ -294,7 +355,7 @@ export default function AgingWipAnalysis({
                   key={line.key}
                   y={bands[line.key]}
                   stroke={line.stroke}
-                  strokeWidth={2}
+                  strokeWidth={showSle ? 1 : 2}
                   strokeDasharray={line.dash}
                   ifOverflow="visible"
                   label={{
@@ -304,6 +365,16 @@ export default function AgingWipAnalysis({
                   }}
                 />
               ))}
+              {showSle && (
+                <ReferenceLine
+                  y={sleDays}
+                  stroke={SHEET_INK.blue}
+                  strokeWidth={3}
+                  strokeDasharray="6 3"
+                  ifOverflow="visible"
+                  label={{ value: `SLE ${sleDays}d`, position: 'insideTopLeft', fill: SHEET_INK.blue }}
+                />
+              )}
               <Scatter
                 name="Age"
                 data={plotPoints}
@@ -331,7 +402,7 @@ export default function AgingWipAnalysis({
           <span className="sheet-figure mr-2 text-xs uppercase tracking-[0.12em] text-gray-400">
             Reading
           </span>
-          <p className="mt-1">{agingSummary(items, bands, completedCount)}</p>
+          <p className="mt-1">{showSle ? sleSummary(items, sleDays) : agingSummary(items, bands, completedCount)}</p>
         </div>
       )}
     </div>
