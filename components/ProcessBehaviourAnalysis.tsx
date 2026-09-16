@@ -398,7 +398,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Individual Values Chart */}
       <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-8'}>
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-gray-700">Individual Values (Cycle Times)</h3>
+          <h3 className="text-sm font-bold tracking-[0.14em] text-gray-700">Individual Values (Cycle Times)</h3>
           <div className="flex items-center gap-2">
             {isMounted && processedData.length > 0 && (
               <ExportPngButton targetRef={chartRef} filename="process-behaviour-chart.png" />
@@ -527,7 +527,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
       {/* Moving Range Chart */}
       {!maximised && (
       <div className="mb-6">
-        <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Moving Range</h3>
+        <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Moving Range</h3>
         <div className="sheet-plot h-64 w-full select-none">
           {isMounted && movingRangeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={256}>

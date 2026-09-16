@@ -133,7 +133,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
           {/* Historical Throughput Summary */}
           <div className="mb-6">
-            <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Historical Daily Throughput</h3>
+            <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Historical Daily Throughput</h3>
             <dl className="grid grid-cols-2 border-l border-t border-gray-300 md:grid-cols-4">
               <Reading label="Total Days" value={String(dailyThroughput.length)} />
               <Reading
@@ -148,7 +148,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
           {/* Simulation Parameters */}
           <div className="mb-6">
-            <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Simulation Parameters</h3>
+            <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Simulation Parameters</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -225,7 +225,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {/* Statistics */}
               {!maximised && (
               <div className="mb-6">
-                <h3 className="sheet-heading text-sm font-bold uppercase tracking-[0.14em] mb-3 text-gray-700">Forecast Results</h3>
+                <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Forecast Results</h3>
                 {/* The three confidence levels are the sheet's headline reading,
                     so they take the wider boxes and the working inks. */}
                 <dl className="grid grid-cols-1 border-l border-t border-gray-300 md:grid-cols-3">
@@ -259,7 +259,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               {/* Histogram */}
               <div className={maximised ? 'flex-1 flex flex-col min-h-0' : 'mb-6'}>
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-bold uppercase tracking-[0.14em] text-gray-700">Probability Distribution</h3>
+                  <h3 className="text-sm font-bold tracking-[0.14em] text-gray-700">Probability Distribution</h3>
                   <div className="flex items-center gap-2">
                     {/* Lives here rather than in the parameters card: that card is
                         hidden while maximised, and the question must stay switchable. */}
