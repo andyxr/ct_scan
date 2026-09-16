@@ -1,7 +1,7 @@
-import { ChartScatter, Hourglass, Activity, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
+import { ChartScatter, Hourglass, AreaChart, Activity, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
 import { hasUsableEstimate, toInProgressItems, type ColumnMap } from './csv'
 
-export type AnalysisId = 'cycle-time' | 'aging-wip' | 'process-behaviour' | 'correlation' | 'monte-carlo'
+export type AnalysisId = 'cycle-time' | 'aging-wip' | 'cumulative-flow' | 'process-behaviour' | 'correlation' | 'monte-carlo'
 
 export interface Analysis {
   id: AnalysisId
@@ -50,6 +50,16 @@ export const ANALYSES: readonly Analysis[] = [
     Icon: Hourglass,
     hoverClass: 'transition-transform duration-500 group-hover:rotate-180',
     unavailableReason: inProgressReason,
+  },
+  {
+    id: 'cumulative-flow',
+    title: 'Cumulative Flow',
+    description: 'Watch work arrive, queue and finish, and read WIP over time',
+    Icon: AreaChart,
+    hoverClass: 'group-hover:animate-pulse',
+    // Open items sharpen the right edge but are not required: a file of
+    // completed work still shows how WIP rose and fell while it was running.
+    unavailableReason: always,
   },
   {
     id: 'process-behaviour',

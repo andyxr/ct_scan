@@ -44,6 +44,11 @@ const AgingWipAnalysis = dynamic(
   { ssr: false }
 )
 
+const CfdAnalysis = dynamic(
+  () => import('@/components/CfdAnalysis'),
+  { ssr: false }
+)
+
 const MonteCarloAnalysis = dynamic(
   () => import('@/components/MonteCarloAnalysis'),
   { ssr: false }
@@ -66,9 +71,16 @@ export default function Home() {
     () => toInProgressItems(csvData, columns).length,
     [csvData, columns]
   )
+  // Kept apart from filteredData because the cumulative flow chart treats the
+  // date range as an x-axis viewport: filtering on completion date would drop
+  // items that were in progress during the window and understate historical WIP.
+  const typeFilteredData = useMemo(
+    () => filterByItemType(csvData, columns, itemType),
+    [csvData, columns, itemType]
+  )
   const filteredData = useMemo(
-    () => filterByDateRange(filterByItemType(csvData, columns, itemType), columns, dateRange),
-    [csvData, columns, itemType, dateRange]
+    () => filterByDateRange(typeFilteredData, columns, dateRange),
+    [typeFilteredData, columns, dateRange]
   )
   const filteredCounts = useMemo(() => ({
     completed: toWorkItems(filteredData, columns).length,
@@ -175,7 +187,7 @@ export default function Home() {
             onChange={setItemType}
             completedCount={filteredCounts.completed}
             inProgressCount={filteredCounts.inProgress}
-            inProgressCharted={selectedAction === 'aging-wip'}
+            inProgressCharted={selectedAction === 'aging-wip' || selectedAction === 'cumulative-flow'}
           />
 
           <DateRangeControl
@@ -202,6 +214,10 @@ export default function Home() {
               onTypeColourChange={(type, colour) => setColourOverrides(prev => ({ ...prev, [type]: colour }))}
               onResetTypeColours={() => setColourOverrides({})}
             />
+          )}
+
+          {selectedAction === 'cumulative-flow' && (
+            <CfdAnalysis data={typeFilteredData} dateRange={dateRange} />
           )}
 
           {selectedAction === 'process-behaviour' && (

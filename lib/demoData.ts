@@ -25,6 +25,10 @@
  *   visibly moves the 85th percentile line. Bug and Task are small enough to
  *   trigger Monte Carlo's limited-history warning, which is worth seeing.
  *
+ * - Four rows with a blank end_date, started in the fortnight before the last
+ *   completion, so the aging and cumulative flow charts both have open work to
+ *   draw. They age against today, so in a demo run they read as very old.
+ *
  * Dates are DD/MM/YYYY and headers are the canonical contract names, matching
  * the worked example shown on the upload screen. The demo is routed through
  * validationError like any upload, so it cannot drift from the contract.
@@ -68,4 +72,8 @@ export const DEMO_DATA: DemoRow[] = [
   { item_id: 'DEMO-28', start_date: '05/03/2025', end_date: '14/03/2025', estimate: '5', item_type: 'Task' },
   { item_id: 'DEMO-29', start_date: '10/03/2025', end_date: '18/03/2025', estimate: '3', item_type: 'Story' },
   { item_id: 'DEMO-30', start_date: '12/03/2025', end_date: '19/03/2025', estimate: '2', item_type: 'Story' },
+  { item_id: 'DEMO-31', start_date: '06/03/2025', end_date: '', estimate: '5', item_type: 'Story' },
+  { item_id: 'DEMO-32', start_date: '11/03/2025', end_date: '', estimate: '3', item_type: 'Story' },
+  { item_id: 'DEMO-33', start_date: '14/03/2025', end_date: '', estimate: '1', item_type: 'Bug' },
+  { item_id: 'DEMO-34', start_date: '17/03/2025', end_date: '', estimate: '3', item_type: 'Task' },
 ]

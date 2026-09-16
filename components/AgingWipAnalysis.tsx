@@ -5,6 +5,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { detectColumns, formatDate, toInProgressItems, toWorkItems } from '@/lib/csv'
 import { agingBands, agingItems, olderThan, type AgingBands, type AgingItem } from '@/lib/aging'
 import { SHEET_INK } from '@/lib/colours'
+import { fromInputValue, toInputValue, todayMs } from '@/lib/dates'
 import { DEFAULT_SLE_DAYS } from '@/lib/sle'
 import TypeColourControl from './TypeColourControl'
 import ExportPngButton from './ExportPngButton'
@@ -63,25 +64,6 @@ const SLE_FILLS = [
   { below: true, fill: SHEET_INK.green, opacity: 0.08 },
   { below: false, fill: SHEET_INK.red, opacity: 0.14 },
 ] as const
-
-/** YYYY-MM-DD from local date parts. toISOString would shift the day by the timezone offset. */
-function toInputValue(epoch: number): string {
-  const date = new Date(epoch)
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
-
-/** Local midnight for a YYYY-MM-DD input. new Date(str) would read it as UTC. */
-function fromInputValue(value: string): number | null {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!match) return null
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime()
-}
-
-function todayMs(): number {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-}
 
 function radiusForCount(count: number): number {
   if (count <= 1) return 6
