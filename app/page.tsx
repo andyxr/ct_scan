@@ -6,7 +6,18 @@ import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
 import AnalysisNav from '@/components/AnalysisNav'
 import ItemTypeControl from '@/components/ItemTypeControl'
-import { ALL_ITEM_TYPES, detectColumns, filterByItemType, itemTypesIn, toWorkItems } from '@/lib/csv'
+import DateRangeControl from '@/components/DateRangeControl'
+import {
+  ALL_ITEM_TYPES,
+  OPEN_DATE_RANGE,
+  detectColumns,
+  endDateSpan,
+  filterByDateRange,
+  filterByItemType,
+  itemTypesIn,
+  toWorkItems,
+  type DateRange,
+} from '@/lib/csv'
 import { colourForIndex } from '@/lib/colours'
 import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
@@ -38,12 +49,17 @@ export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
   const [itemType, setItemType] = useState<string>(ALL_ITEM_TYPES)
+  const [dateRange, setDateRange] = useState<DateRange>(OPEN_DATE_RANGE)
   /** User overrides only. Types without one fall back to the palette, so a new file leaves no stale keys. */
   const [colourOverrides, setColourOverrides] = useState<Record<string, string>>({})
 
   const columns = useMemo(() => detectColumns(csvData), [csvData])
   const itemTypes = useMemo(() => itemTypesIn(csvData, columns), [csvData, columns])
-  const filteredData = useMemo(() => filterByItemType(csvData, columns, itemType), [csvData, columns, itemType])
+  const endSpan = useMemo(() => endDateSpan(csvData, columns), [csvData, columns])
+  const filteredData = useMemo(
+    () => filterByDateRange(filterByItemType(csvData, columns, itemType), columns, dateRange),
+    [csvData, columns, itemType, dateRange]
+  )
   // Keyed off the unfiltered type list on purpose: a type keeps its colour whatever the filter shows.
   const typeColours = useMemo(() => Object.fromEntries(
     itemTypes.map((type, index) => [type, colourOverrides[type] ?? colourForIndex(index)])
@@ -55,6 +71,7 @@ export default function Home() {
     setCsvData(data)
     setSelectedAction(null)
     setItemType(ALL_ITEM_TYPES)
+    setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
   }
 
@@ -66,10 +83,11 @@ export default function Home() {
     setCsvData([])
     setSelectedAction(null)
     setItemType(ALL_ITEM_TYPES)
+    setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
   }
 
-  const dateRange = useMemo(() => {
+  const fileSpan = useMemo(() => {
     const items = toWorkItems(csvData, columns)
     if (items.length === 0) return null
     // toWorkItems returns items oldest-first by end date, so the ends are the span.
@@ -96,7 +114,7 @@ export default function Home() {
             {csvData.length > 0 && (
               <>
                 <SheetField label="Items" value={String(csvData.length)} />
-                {dateRange && <SheetField label="Span" value={dateRange} />}
+                {fileSpan && <SheetField label="Span" value={fileSpan} />}
                 {itemTypes.length > 0 && (
                   <SheetField label="Types" value={String(itemTypes.length)} />
                 )}
@@ -138,6 +156,14 @@ export default function Home() {
             types={itemTypes}
             value={itemType}
             onChange={setItemType}
+            matchedCount={filteredData.length}
+            totalCount={csvData.length}
+          />
+
+          <DateRangeControl
+            value={dateRange}
+            span={endSpan}
+            onChange={setDateRange}
             matchedCount={filteredData.length}
             totalCount={csvData.length}
           />

@@ -243,6 +243,56 @@ export function filterByItemType(data: any[], columns: ColumnMap, selected: stri
   return data.filter(row => itemTypeOf(row, column) === wanted)
 }
 
+/** Completion-date window. Epoch ms at local midnight, null = open end. */
+export interface DateRange {
+  from: number | null
+  to: number | null
+}
+
+/** No window applied. */
+export const OPEN_DATE_RANGE: DateRange = { from: null, to: null }
+
+/**
+ * Rows completed within the window, inclusive at both ends and compared at local
+ * midnight. Every analysis keys on completion, so "within" means the end date.
+ * A row whose end date does not parse is kept, leaving toWorkItems to drop it and
+ * validationError to keep telling the same story. Two open ends, and a from later
+ * than its to, both return the data unchanged, so an inverted or stale window
+ * degrades to "no filter" rather than a blank chart.
+ */
+export function filterByDateRange(data: any[], columns: ColumnMap, range: DateRange): any[] {
+  const column = columns.endDate
+  const { from, to } = range
+  if (!column || (from === null && to === null)) return data
+  if (from !== null && to !== null && from > to) return data
+
+  return data.filter(row => {
+    const end = parseDate(row[column])
+    if (!end) return true
+
+    const day = startOfDay(end)
+    return (from === null || day >= from) && (to === null || day <= to)
+  })
+}
+
+/** Earliest and latest parsed end date, at local midnight, or null when none parses. */
+export function endDateSpan(data: any[], columns: ColumnMap): { min: number; max: number } | null {
+  const column = columns.endDate
+  if (!column) return null
+
+  let min = Infinity
+  let max = -Infinity
+  for (const row of data) {
+    const end = parseDate(row[column])
+    if (!end) continue
+
+    const day = startOfDay(end)
+    if (day < min) min = day
+    if (day > max) max = day
+  }
+  return min === Infinity ? null : { min, max }
+}
+
 export interface WorkItem {
   id: string
   endDate: number

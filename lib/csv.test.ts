@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   ALL_ITEM_TYPES,
   COLUMN_ALIASES,
+  OPEN_DATE_RANGE,
   UNTYPED_ITEM_TYPE,
   cycleTimeFor,
   detectColumns,
+  endDateSpan,
+  filterByDateRange,
   filterByItemType,
   hasUsableEstimate,
   itemTypesIn,
@@ -127,6 +130,61 @@ describe('filterByItemType', () => {
 
   it('returns all rows for an unknown selection', () => {
     expect(filterByItemType(typed, typedColumns, 'Spike')).toBe(typed)
+  })
+})
+
+/** Local midnight, so an expectation never depends on the runner's timezone. */
+const day = (year: number, month: number, date: number) => new Date(year, month - 1, date).getTime()
+
+describe('filterByDateRange', () => {
+  // End dates are 06, 09, 07 and 17 January 2025, for T-1 to T-4 in order.
+  it('keeps rows completed on or after from', () => {
+    const range = { from: day(2025, 1, 7), to: null }
+    expect(filterByDateRange(typed, typedColumns, range).map(r => r.item_id)).toEqual(['T-2', 'T-3', 'T-4'])
+  })
+
+  it('keeps rows completed on or before to', () => {
+    const range = { from: null, to: day(2025, 1, 7) }
+    expect(filterByDateRange(typed, typedColumns, range).map(r => r.item_id)).toEqual(['T-1', 'T-3'])
+  })
+
+  it('keeps rows inside both bounds', () => {
+    const range = { from: day(2025, 1, 7), to: day(2025, 1, 9) }
+    expect(filterByDateRange(typed, typedColumns, range).map(r => r.item_id)).toEqual(['T-2', 'T-3'])
+  })
+
+  it('includes a row completed exactly on either bound', () => {
+    const range = { from: day(2025, 1, 6), to: day(2025, 1, 17) }
+    expect(filterByDateRange(typed, typedColumns, range).map(r => r.item_id)).toEqual(['T-1', 'T-2', 'T-3', 'T-4'])
+  })
+
+  it('returns all rows for an inverted range', () => {
+    const range = { from: day(2025, 1, 17), to: day(2025, 1, 6) }
+    expect(filterByDateRange(typed, typedColumns, range)).toBe(typed)
+  })
+
+  it('returns the same array when both bounds are open', () => {
+    expect(filterByDateRange(typed, typedColumns, OPEN_DATE_RANGE)).toBe(typed)
+  })
+
+  it('keeps a row whose end date does not parse', () => {
+    const rows = [
+      { item_id: 'U-1', start_date: '02/01/2025', end_date: 'not a date' },
+      { item_id: 'U-2', start_date: '02/01/2025', end_date: '20/01/2025' },
+    ]
+    const range = { from: day(2025, 1, 1), to: day(2025, 1, 5) }
+    expect(filterByDateRange(rows, detectColumns(rows), range).map(r => r.item_id)).toEqual(['U-1'])
+  })
+})
+
+describe('endDateSpan', () => {
+  it('spans the earliest and latest parsed end date', () => {
+    expect(endDateSpan(typed, typedColumns)).toEqual({ min: day(2025, 1, 6), max: day(2025, 1, 17) })
+  })
+
+  it('is null when no end date parses', () => {
+    const rows = [{ item_id: 'U-1', start_date: '02/01/2025', end_date: 'not a date' }]
+    expect(endDateSpan(rows, detectColumns(rows))).toBeNull()
   })
 })
 
