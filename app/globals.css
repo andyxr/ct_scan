@@ -136,6 +136,14 @@
   --sheet-blue: #24527a;
   --sheet-amber: #9a6a15;
 
+  /* Forecast calendar tints: chance of completion on or before a day. Red is
+     "not yet", green is "the process has almost certainly delivered". */
+  --cal-below50: color-mix(in srgb, var(--sheet-red) 62%, transparent);
+  --cal-p50: color-mix(in srgb, var(--sheet-amber) 62%, transparent);
+  --cal-p70: color-mix(in srgb, var(--sheet-amber) 32%, transparent);
+  --cal-p85: color-mix(in srgb, var(--sheet-green) 30%, transparent);
+  --cal-p95: color-mix(in srgb, var(--sheet-green) 68%, transparent);
+
   /* The printed rule. 8mm at 96dpi ≈ 30px; the grid is the sheet's spine and
      every panel sits on it rather than floating above a neutral ground. */
   --sheet-grid: 30px;

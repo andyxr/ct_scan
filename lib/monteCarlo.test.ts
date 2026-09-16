@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_SIMULATED_DAYS,
+  bandFor,
+  completionByDay,
+  firstDayAtOrAbove,
   dateAfterDays,
   simulateDaysToTarget,
   simulateItemCount,
@@ -113,5 +116,44 @@ describe('dateAfterDays', () => {
 
   it('ignores the time of day on the starting date', () => {
     expect(dateAfterDays(1, new Date(2025, 5, 10, 23, 59))).toBe('11/06/2025')
+  })
+})
+
+describe('completionByDay', () => {
+  it('accumulates frequencies and fills days no trial produced', () => {
+    const byDay = completionByDay(
+      [
+        { value: 1, frequency: 2 },
+        { value: 3, frequency: 6 },
+        { value: 4, frequency: 2 },
+      ],
+      10
+    )
+    expect(byDay).toEqual([0, 0.2, 0.2, 0.8, 1])
+  })
+
+  it('is empty for an empty simulation', () => {
+    expect(completionByDay([], 0)).toEqual([])
+  })
+})
+
+describe('bandFor', () => {
+  it('assigns the highest band whose floor is met', () => {
+    expect(bandFor(0.49)).toBe('below50')
+    expect(bandFor(0.5)).toBe('p50')
+    expect(bandFor(0.7)).toBe('p70')
+    expect(bandFor(0.85)).toBe('p85')
+    expect(bandFor(0.95)).toBe('p95')
+    expect(bandFor(1)).toBe('p95')
+  })
+})
+
+describe('firstDayAtOrAbove', () => {
+  it('returns the first index reaching the threshold', () => {
+    expect(firstDayAtOrAbove([0, 0.2, 0.2, 0.8, 1], 0.7)).toBe(3)
+  })
+
+  it('falls back to the last day when never reached', () => {
+    expect(firstDayAtOrAbove([0, 0.2], 0.7)).toBe(1)
   })
 })

@@ -225,3 +225,49 @@ export function dateAfterDays(days: number, from: Date = new Date()): string {
   date.setDate(date.getDate() + days)
   return formatDate(date)
 }
+
+/**
+ * Cumulative chance the target is done on or before each day, indexed by days
+ * from the start. Index 0 is the start day itself; the array runs to the last
+ * simulated day, so every index past it is implicitly 1.
+ */
+export function completionByDay(histogram: HistogramBin[], totalSimulations: number): number[] {
+  if (histogram.length === 0 || totalSimulations <= 0) return []
+  const lastDay = histogram[histogram.length - 1].value
+  const byDay: number[] = new Array(lastDay + 1)
+  let running = 0
+  let bin = 0
+  for (let day = 0; day <= lastDay; day++) {
+    while (bin < histogram.length && histogram[bin].value === day) {
+      running += histogram[bin].frequency
+      bin++
+    }
+    byDay[day] = running / totalSimulations
+  }
+  return byDay
+}
+
+/** Confidence bands the calendar colours by, lowest first. */
+export const CONFIDENCE_BANDS = [
+  { band: 'below50', floor: 0 },
+  { band: 'p50', floor: 0.5 },
+  { band: 'p70', floor: 0.7 },
+  { band: 'p85', floor: 0.85 },
+  { band: 'p95', floor: 0.95 },
+] as const
+
+export type ConfidenceBand = (typeof CONFIDENCE_BANDS)[number]['band']
+
+export function bandFor(probability: number): ConfidenceBand {
+  let result: ConfidenceBand = 'below50'
+  for (const { band, floor } of CONFIDENCE_BANDS) {
+    if (probability >= floor) result = band
+  }
+  return result
+}
+
+/** First day on which the cumulative chance reaches `threshold`, or the last day if it never does. */
+export function firstDayAtOrAbove(byDay: number[], threshold: number): number {
+  const index = byDay.findIndex((p) => p >= threshold)
+  return index === -1 ? Math.max(0, byDay.length - 1) : index
+}

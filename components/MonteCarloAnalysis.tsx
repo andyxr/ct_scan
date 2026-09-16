@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight, CalendarDays } from 'lucide-react'
 import {
   EMPTY_SIMULATION,
   dateAfterDays,
@@ -14,6 +14,7 @@ import {
 import { SHEET_INK } from '@/lib/colours'
 import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
+import ForecastCalendar from './ForecastCalendar'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
 
 interface MonteCarloAnalysisProps {
@@ -24,6 +25,7 @@ interface MonteCarloAnalysisProps {
 type ForecastMode = 'how-many' | 'when'
 
 const TOOLBAR_BUTTON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700'
+const TOOLBAR_BUTTON_ON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-900 rounded bg-gray-900 text-white hover:bg-gray-800'
 
 export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
@@ -33,6 +35,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [mode, setMode] = useState<ForecastMode>('how-many')
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
+  const [showCalendar, setShowCalendar] = useState(true)
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
@@ -97,7 +100,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     <div className={maximised
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
       : 'sheet-panel p-6'}>
-      <h2 className="text-2xl font-bold tracking-[0.08em] mb-4 text-gray-900">Monte Carlo Simulation</h2>
+      <h2 className="text-2xl font-bold tracking-[0.08em] mb-4 text-gray-900">Monte Carlo Simulation – {forecastingDays ? 'When?' : 'How many?'}</h2>
       {!maximised && (
         <p className="text-gray-600 mb-6">
           Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
@@ -248,11 +251,6 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                     ink="text-red-700"
                   />
                 </dl>
-                <dl className="mt-4 grid grid-cols-1 border-l border-t border-gray-300 md:grid-cols-3">
-                  <Reading label="Average" value={stats.mean.toFixed(1)} />
-                  <Reading label="Range" value={`${stats.min} – ${stats.max}`} />
-                  <Reading label="Simulations" value={stats.totalSimulations.toLocaleString()} />
-                </dl>
               </div>
               )}
 
@@ -270,8 +268,20 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                       className={TOOLBAR_BUTTON}
                     >
                       <ArrowLeftRight className="w-4 h-4" />
-                      {forecastingDays ? 'When?' : 'How many?'}
+                      {forecastingDays ? 'How many?' : 'When?'}
                     </button>
+                    {forecastingDays && !maximised && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCalendar((shown) => !shown)}
+                        aria-pressed={showCalendar}
+                        title={showCalendar ? 'Hide calendar' : 'Show calendar'}
+                        className={showCalendar ? TOOLBAR_BUTTON_ON : TOOLBAR_BUTTON}
+                      >
+                        <CalendarDays className="w-4 h-4" />
+                        Calendar
+                      </button>
+                    )}
                     {isMounted && histogram.length > 0 && (
                       <ExportPngButton targetRef={chartRef} filename="monte-carlo-forecast.png" />
                     )}
@@ -351,6 +361,19 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   )}
                 </div>
               </div>
+
+              {/* Calendar: the same forecast read as dates. Hidden while maximised
+                  so the histogram keeps the full height. */}
+              {forecastingDays && showCalendar && !maximised && !unreachable && (
+                <div className="mb-6">
+                  <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Completion Calendar</h3>
+                  <ForecastCalendar
+                    histogram={histogram}
+                    totalSimulations={stats.totalSimulations}
+                    horizonDays={stats.p95}
+                  />
+                </div>
+              )}
 
               {/* Interpretation */}
               {!maximised && (
