@@ -27,7 +27,8 @@ function fromInputValue(value: string): number | null {
 
 /**
  * Global completion-date filter, shown once above whichever analysis is open,
- * alongside the item type filter.
+ * alongside the item type filter. An open end displays the file's own bound, so
+ * the inputs read as the loaded span rather than as blanks.
  */
 export default function DateRangeControl({ value, span, onChange, matchedCount, totalCount }: DateRangeControlProps) {
   if (!span) return null
@@ -42,7 +43,7 @@ export default function DateRangeControl({ value, span, onChange, matchedCount, 
         <span>Completed from</span>
         <input
           type="date"
-          value={toInputValue(value.from)}
+          value={toInputValue(value.from ?? span.min)}
           min={min}
           max={max}
           onChange={e => onChange({ ...value, from: fromInputValue(e.target.value) })}
@@ -53,7 +54,7 @@ export default function DateRangeControl({ value, span, onChange, matchedCount, 
         <span>to</span>
         <input
           type="date"
-          value={toInputValue(value.to)}
+          value={toInputValue(value.to ?? span.max)}
           min={min}
           max={max}
           onChange={e => onChange({ ...value, to: fromInputValue(e.target.value) })}
