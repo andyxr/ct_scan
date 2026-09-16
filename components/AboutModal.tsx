@@ -14,6 +14,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
           Recently addded:
         </p>
         <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
+           <li>Aging work in progress chart</li>
            <li>Scatterplot item colouring</li>
            <li>Zooming in on a date range in the scatterplot</li>
            <li>Zooming in on a sequence range in the PBC</li>
