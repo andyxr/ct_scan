@@ -9,6 +9,8 @@ interface ItemTypeControlProps {
   /** Counts over the rows the current filters admit. */
   completedCount: number
   inProgressCount: number
+  /** True on the one analysis that draws in-progress items, so the count stops saying otherwise. */
+  inProgressCharted?: boolean
 }
 
 /**
@@ -17,7 +19,7 @@ interface ItemTypeControlProps {
  * dropdown needs an item_type column; the counts do not, so the row always
  * renders.
  */
-export default function ItemTypeControl({ types, value, onChange, completedCount, inProgressCount }: ItemTypeControlProps) {
+export default function ItemTypeControl({ types, value, onChange, completedCount, inProgressCount, inProgressCharted = false }: ItemTypeControlProps) {
   return (
     <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
       {types.length > 0 && (
@@ -37,7 +39,7 @@ export default function ItemTypeControl({ types, value, onChange, completedCount
       )}
       <span className="text-gray-500">
         {completedCount} completed
-        {inProgressCount > 0 && <> · {inProgressCount} in progress (not shown)</>}
+        {inProgressCount > 0 && <> · {inProgressCount} in progress{!inProgressCharted && ' (not shown)'}</>}
       </span>
     </div>
   )

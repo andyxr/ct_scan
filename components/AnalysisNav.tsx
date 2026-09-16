@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { ANALYSES, ESTIMATE_REQUIRED_REASON, ESTIMATE_NOT_NUMERIC_REASON, type AnalysisId } from '@/lib/analyses'
-import { detectColumns, hasUsableEstimate } from '@/lib/csv'
+import { ANALYSES, type AnalysisId } from '@/lib/analyses'
+import { detectColumns } from '@/lib/csv'
 
 interface AnalysisNavProps {
   current: AnalysisId
@@ -13,13 +13,12 @@ interface AnalysisNavProps {
 
 export default function AnalysisNav({ current, onSelect, onReset, data }: AnalysisNavProps) {
   const columns = useMemo(() => detectColumns(data), [data])
-  const estimateUsable = hasUsableEstimate(data, columns)
-  const estimateReason = columns.estimate ? ESTIMATE_NOT_NUMERIC_REASON : ESTIMATE_REQUIRED_REASON
 
   return (
     <nav className="mb-4 flex flex-wrap items-center gap-2" aria-label="Analyses">
       {ANALYSES.map(analysis => {
-        const available = !analysis.requiresEstimate || estimateUsable
+        const reason = analysis.unavailableReason(data, columns)
+        const available = reason === null
         const active = analysis.id === current
         return (
           <button
@@ -28,7 +27,7 @@ export default function AnalysisNav({ current, onSelect, onReset, data }: Analys
             onClick={() => available && onSelect(analysis.id)}
             disabled={!available}
             aria-current={active ? 'page' : undefined}
-            title={available ? undefined : estimateReason}
+            title={reason ?? undefined}
             className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border transition-colors ${
               active
                 ? 'bg-blue-600 text-white border-blue-600'

@@ -39,6 +39,11 @@ const ProcessBehaviourAnalysis = dynamic(
   { ssr: false }
 )
 
+const AgingWipAnalysis = dynamic(
+  () => import('@/components/AgingWipAnalysis'),
+  { ssr: false }
+)
+
 const MonteCarloAnalysis = dynamic(
   () => import('@/components/MonteCarloAnalysis'),
   { ssr: false }
@@ -170,6 +175,7 @@ export default function Home() {
             onChange={setItemType}
             completedCount={filteredCounts.completed}
             inProgressCount={filteredCounts.inProgress}
+            inProgressCharted={selectedAction === 'aging-wip'}
           />
 
           <DateRangeControl
@@ -182,6 +188,15 @@ export default function Home() {
 
           {selectedAction === 'cycle-time' && (
             <CycleTimeAnalysis
+              data={filteredData}
+              typeColours={typeColours}
+              onTypeColourChange={(type, colour) => setColourOverrides(prev => ({ ...prev, [type]: colour }))}
+              onResetTypeColours={() => setColourOverrides({})}
+            />
+          )}
+
+          {selectedAction === 'aging-wip' && (
+            <AgingWipAnalysis
               data={filteredData}
               typeColours={typeColours}
               onTypeColourChange={(type, colour) => setColourOverrides(prev => ({ ...prev, [type]: colour }))}

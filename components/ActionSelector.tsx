@@ -3,8 +3,8 @@
 import { useMemo } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { AnalysisAction } from '@/app/page'
-import { ANALYSES, ESTIMATE_REQUIRED_REASON, ESTIMATE_NOT_NUMERIC_REASON } from '@/lib/analyses'
-import { detectColumns, hasUsableEstimate } from '@/lib/csv'
+import { ANALYSES } from '@/lib/analyses'
+import { detectColumns } from '@/lib/csv'
 
 interface ActionSelectorProps {
   onActionSelect: (action: AnalysisAction) => void
@@ -21,8 +21,6 @@ interface ActionSelectorProps {
  */
 export default function ActionSelector({ onActionSelect, data }: ActionSelectorProps) {
   const columns = useMemo(() => detectColumns(data), [data])
-  const estimateUsable = hasUsableEstimate(data, columns)
-  const estimateReason = columns.estimate ? ESTIMATE_NOT_NUMERIC_REASON : ESTIMATE_REQUIRED_REASON
 
   return (
     <section>
@@ -32,7 +30,8 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
 
       <ul className="border-t border-gray-900">
         {ANALYSES.map((action, index) => {
-          const available = !action.requiresEstimate || estimateUsable
+          const reason = action.unavailableReason(data, columns)
+          const available = reason === null
           return (
             <li key={action.id} className="border-b border-gray-300">
               <button
@@ -61,9 +60,9 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
                   <span className="mt-0.5 block text-sm text-gray-600">
                     {action.description}
                   </span>
-                  {!available && (
+                  {reason && (
                     <span className="sheet-figure mt-1 block text-xs uppercase tracking-[0.08em] text-red-700">
-                      Unavailable — {estimateReason}
+                      Unavailable — {reason}
                     </span>
                   )}
                 </span>
