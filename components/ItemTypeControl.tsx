@@ -37,7 +37,7 @@ export default function ItemTypeControl({ types, value, onChange, completedCount
       )}
       <span className="text-gray-500">
         {completedCount} completed
-        {inProgressCount > 0 && <> · {inProgressCount} in progress</>}
+        {inProgressCount > 0 && <> · {inProgressCount} in progress (not shown)</>}
       </span>
     </div>
   )
