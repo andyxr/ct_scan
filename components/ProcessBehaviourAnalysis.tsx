@@ -388,7 +388,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     <div className={maximised
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
       : 'sheet-panel p-6'}>
-      <h2 className="sheet-heading text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Process Behaviour Chart</h2>
+      <h2 className="text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Process Behaviour Chart</h2>
       {!maximised && (
         <p className="text-gray-600 mb-6">
           Shows cycle times in chronological order with Shewhart control limits to identify common cause vs. special cause variation.

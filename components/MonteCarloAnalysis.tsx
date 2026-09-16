@@ -97,7 +97,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     <div className={maximised
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
       : 'sheet-panel p-6'}>
-      <h2 className="sheet-heading text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Monte Carlo Simulation</h2>
+      <h2 className="text-2xl font-bold uppercase tracking-[0.08em] mb-4 text-gray-900">Monte Carlo Simulation</h2>
       {!maximised && (
         <p className="text-gray-600 mb-6">
           Forecast delivery probabilities based on historical throughput data using Monte Carlo simulation.
