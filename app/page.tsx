@@ -114,7 +114,7 @@ export default function Home() {
       <header className="sheet-banner">
         <div className="container mx-auto flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <h1 className="text-2xl font-bold uppercase tracking-[0.2em]">Flowgauge</h1>
-          <p className="text-xs uppercase tracking-[0.14em] opacity-75">
+          <p className="text-xs tracking-[0.14em] opacity-75">
             Delivery flow record
           </p>
           {/* The stamped fields record what was entered on the sheet, so they

@@ -26,7 +26,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
 
   return (
     <section>
-      <h2 className="sheet-heading mb-1 text-sm font-bold uppercase tracking-[0.16em] text-gray-700">
+      <h2 className="sheet-heading mb-1 text-sm font-bold tracking-[0.16em] text-gray-700">
         Available analyses
       </h2>
 
@@ -55,7 +55,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
                 />
 
                 <span className="flex-1">
-                  <span className="block text-lg font-bold uppercase tracking-[0.06em] text-gray-900">
+                  <span className="block text-lg font-bold tracking-[0.06em] text-gray-900">
                     {action.title}
                   </span>
                   <span className="mt-0.5 block text-sm text-gray-600">

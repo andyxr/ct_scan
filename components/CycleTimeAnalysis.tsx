@@ -600,7 +600,7 @@ export default function CycleTimeAnalysis({
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
       : 'sheet-panel p-6'}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-gray-900">Cycle Time Analysis</h2>
+        <h2 className="text-2xl font-bold tracking-[0.08em] text-gray-900">Cycle Time Analysis</h2>
         <div className="flex items-center gap-2">
           {isMounted && processedData.length > 0 && (
             <ExportPngButton targetRef={chartRef} filename="cycle-time-analysis.png" />
