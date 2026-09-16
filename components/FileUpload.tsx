@@ -83,10 +83,12 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
           <div>
             <h2 className="font-bold uppercase tracking-[0.1em] text-gray-900">1. Bring your CSV</h2>
             <p className="text-sm text-gray-600 mt-1">
-              One row per completed work item, with a header row. Columns can be
+              One row per work item, with a header row. Columns can be
               in any order. Required: <code>item_id</code>, <code>start_date</code>,{' '}
               <code>end_date</code>. Optional: <code>estimate</code> and{' '}
-              <code>item_type</code>.
+              <code>item_type</code>. Leave <code>end_date</code> blank for an
+              item that is still in progress; those rows are counted but only
+              completed items are charted.
             </p>
             <pre className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
               <code>{`item_type,end_date,estimate,item_id,start_date

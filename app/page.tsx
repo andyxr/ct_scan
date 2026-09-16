@@ -15,6 +15,7 @@ import {
   filterByDateRange,
   filterByItemType,
   itemTypesIn,
+  toInProgressItems,
   toWorkItems,
   type DateRange,
 } from '@/lib/csv'
@@ -56,6 +57,10 @@ export default function Home() {
   const columns = useMemo(() => detectColumns(csvData), [csvData])
   const itemTypes = useMemo(() => itemTypesIn(csvData, columns), [csvData, columns])
   const endSpan = useMemo(() => endDateSpan(csvData, columns), [csvData, columns])
+  const inProgressCount = useMemo(
+    () => toInProgressItems(csvData, columns).length,
+    [csvData, columns]
+  )
   const filteredData = useMemo(
     () => filterByDateRange(filterByItemType(csvData, columns, itemType), columns, dateRange),
     [csvData, columns, itemType, dateRange]
@@ -114,6 +119,9 @@ export default function Home() {
             {csvData.length > 0 && (
               <>
                 <SheetField label="Items" value={String(csvData.length)} />
+                {inProgressCount > 0 && (
+                  <SheetField label="In progress" value={String(inProgressCount)} />
+                )}
                 {fileSpan && <SheetField label="Span" value={fileSpan} />}
                 {itemTypes.length > 0 && (
                   <SheetField label="Types" value={String(itemTypes.length)} />
