@@ -8,6 +8,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 function series(cycleTimes: number[]): WorkItem[] {
   return cycleTimes.map((cycleTime, i) => ({
     id: `X-${i}`,
+    status: 'completed',
+    startDate: 0,
     endDate: i * DAY_MS,
     cycleTime,
     originalEndDate: '',

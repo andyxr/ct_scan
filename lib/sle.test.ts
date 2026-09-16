@@ -3,7 +3,7 @@ import type { WorkItem } from './csv'
 import { assessSle, tailContribution, typeBreakdown, wilsonInterval } from './sle'
 
 function item(cycleTime: number, itemType = 'Story'): WorkItem {
-  return { id: `X-${cycleTime}`, endDate: 0, cycleTime, originalEndDate: '', itemType }
+  return { id: `X-${cycleTime}`, status: 'completed', startDate: 0, endDate: 0, cycleTime, originalEndDate: '', itemType }
 }
 
 function items(cycleTimes: number[], itemType?: string): WorkItem[] {

@@ -4,7 +4,9 @@
  * Columns are identified by HEADER NAME, matched against COLUMN_ALIASES below.
  * Order does not matter. Required: item_id, start_date, end_date. Optional:
  * estimate (Correlation only), item_type (adds the type filter), cycle_time
- * (recognised so it does not trip the contract, but never read).
+ * (recognised so it does not trip the contract, but never read). A blank
+ * end_date means the item is still in progress; it is parsed and counted, but
+ * only completed items are charted.
  *
  * Name matching used to live here once before, alongside content sniffing, and
  * both guessed wrong on real files: parseFloat("2026-01-27T15:42:43Z") returns
@@ -109,17 +111,35 @@ export function parseDate(value: unknown): Date | null {
   return null
 }
 
+/**
+ * An empty cell, in the one sense both validation and parsing must agree on:
+ * a whitespace-only end_date marks an item in progress just as an empty one does.
+ */
+function isBlank(value: unknown): boolean {
+  return value === null || value === undefined || String(value).trim() === ''
+}
+
+/**
+ * Blanks are filtered before the sample is taken, not after, so a file whose
+ * first 20 rows are all in progress still has its end column validated on the
+ * completed rows further down. Newest first is a common export order.
+ */
 function sampleValues(data: any[], column: string): unknown[] {
-  return data
-    .slice(0, 20)
-    .map(row => row[column])
-    .filter(v => v !== null && v !== undefined && v !== '')
+  const values: unknown[] = []
+  for (const row of data) {
+    const value = row[column]
+    if (isBlank(value)) continue
+    values.push(value)
+    if (values.length === 20) break
+  }
+  return values
 }
 
 /** True if enough of a claimed column's values parse as dates. Validates, never chooses. */
 function mostlyDates(data: any[], column: string): boolean {
   const values = sampleValues(data, column)
-  if (values.length === 0) return false
+  // An all-blank column contradicts nothing; the emptiness messages below cover it.
+  if (values.length === 0) return true
   return values.filter(v => parseDate(v) !== null).length >= values.length * 0.8
 }
 
@@ -192,8 +212,11 @@ export function validationError(data: any[]): string | null {
     return `The "${columns.endDate}" column should hold end dates, but its values aren't dates.`
   }
 
-  if (toWorkItems(data, columns).length === 0) {
+  if (toFlowItems(data, columns).length === 0) {
     return 'No rows had a usable start and end date.'
+  }
+  if (toWorkItems(data, columns).length === 0) {
+    return 'Every row is still in progress. Nothing has completed yet, so there is nothing to chart.'
   }
 
   return null
@@ -256,7 +279,9 @@ export const OPEN_DATE_RANGE: DateRange = { from: null, to: null }
  * Rows completed within the window, inclusive at both ends and compared at local
  * midnight. Every analysis keys on completion, so "within" means the end date.
  * A row whose end date does not parse is kept, leaving toWorkItems to drop it and
- * validationError to keep telling the same story. Two open ends, and a from later
+ * validationError to keep telling the same story. An in-progress row has no end
+ * date to compare, so it survives every window rather than vanishing from the
+ * in-progress count when the user narrows one. Two open ends, and a from later
  * than its to, both return the data unchanged, so an inverted or stale window
  * degrades to "no filter" rather than a blank chart.
  */
@@ -293,14 +318,30 @@ export function endDateSpan(data: any[], columns: ColumnMap): { min: number; max
   return min === Infinity ? null : { min, max }
 }
 
-export interface WorkItem {
+interface ItemBase {
   id: string
-  endDate: number
-  cycleTime: number
-  originalEndDate: string
+  /** Epoch ms of the parsed start date. */
+  startDate: number
   /** Always set: UNTYPED_ITEM_TYPE when the cell is blank or the file has no item_type column. */
   itemType: string
 }
+
+export interface CompletedItem extends ItemBase {
+  status: 'completed'
+  endDate: number
+  cycleTime: number
+  originalEndDate: string
+}
+
+/** A row whose end_date cell is blank: started, not yet finished. */
+export interface InProgressItem extends ItemBase {
+  status: 'in-progress'
+}
+
+export type FlowItem = CompletedItem | InProgressItem
+
+/** The completed half of FlowItem, and the shape every analysis works from. */
+export type WorkItem = CompletedItem
 
 /**
  * Cycle time for a row, in whole days, counted inclusively: an item started and
@@ -328,14 +369,28 @@ function startOfDay(date: Date): number {
 }
 
 /**
- * Turn raw CSV rows into the shape every analysis needs: an id, a completion
- * timestamp and a cycle time in days, sorted oldest first.
+ * Parse every row into a completed or in-progress item, in file order.
+ *
+ * A row is dropped when its start date does not parse, when a non-blank end
+ * cell does not parse, or when the end date precedes the start. Only a blank
+ * end cell means in progress, so garbage never masquerades as unfinished work.
  */
-export function toWorkItems(data: any[], columns: ColumnMap): WorkItem[] {
-  if (!columns.endDate) return []
+export function toFlowItems(data: any[], columns: ColumnMap): FlowItem[] {
+  if (!columns.startDate || !columns.endDate) return []
 
   return data
-    .map((row): WorkItem | null => {
+    .map((row): FlowItem | null => {
+      const startDate = parseDate(row[columns.startDate!])
+      if (!startDate) return null
+
+      const base: ItemBase = {
+        id: columns.id ? String(row[columns.id] ?? 'Unknown') : 'Unknown',
+        startDate: startDate.getTime(),
+        itemType: (columns.itemType && itemTypeOf(row, columns.itemType)) || UNTYPED_ITEM_TYPE,
+      }
+
+      if (isBlank(row[columns.endDate!])) return { ...base, status: 'in-progress' }
+
       const endDate = parseDate(row[columns.endDate!])
       if (!endDate) return null
 
@@ -343,15 +398,31 @@ export function toWorkItems(data: any[], columns: ColumnMap): WorkItem[] {
       if (cycleTime === null) return null
 
       return {
-        id: columns.id ? String(row[columns.id] ?? 'Unknown') : 'Unknown',
+        ...base,
+        status: 'completed',
         endDate: endDate.getTime(),
         cycleTime,
         originalEndDate: formatDate(endDate),
-        itemType: (columns.itemType && itemTypeOf(row, columns.itemType)) || UNTYPED_ITEM_TYPE,
       }
     })
-    .filter((item): item is WorkItem => item !== null)
+    .filter((item): item is FlowItem => item !== null)
+}
+
+/**
+ * Turn raw CSV rows into the shape every analysis needs: an id, a completion
+ * timestamp and a cycle time in days, sorted oldest first.
+ */
+export function toWorkItems(data: any[], columns: ColumnMap): WorkItem[] {
+  return toFlowItems(data, columns)
+    .filter((item): item is CompletedItem => item.status === 'completed')
     .sort((a, b) => a.endDate - b.endDate)
+}
+
+/** Started but not finished, in file order. */
+export function toInProgressItems(data: any[], columns: ColumnMap): InProgressItem[] {
+  return toFlowItems(data, columns).filter(
+    (item): item is InProgressItem => item.status === 'in-progress'
+  )
 }
 
 /** DD/MM/YYYY, the display format used throughout the app. */

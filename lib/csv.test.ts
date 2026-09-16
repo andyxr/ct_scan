@@ -11,6 +11,9 @@ import {
   filterByItemType,
   hasUsableEstimate,
   itemTypesIn,
+  toFlowItems,
+  toInProgressItems,
+  toWorkItems,
   validationError,
 } from './csv'
 import { DEMO_DATA } from './demoData'
@@ -77,6 +80,45 @@ describe('validationError', () => {
       .toBe('The "Done" column should hold end dates, but its values aren\'t dates.')
   })
 
+  it('accepts a file whose first 25 rows are all in progress', () => {
+    const rows = Array.from({ length: 25 }, (_, i) => (
+      { item_id: `P-${i}`, start_date: '02/01/2025', end_date: '' }
+    ))
+    rows.push({ item_id: 'P-25', start_date: '02/01/2025', end_date: '06/01/2025' })
+    expect(validationError(rows)).toBeNull()
+  })
+
+  it('does not count whitespace-only end dates against the end column', () => {
+    const rows = [
+      { item_id: 'P-1', start_date: '01/01/2025', end_date: '   ' },
+      { item_id: 'P-2', start_date: '02/01/2025', end_date: '   ' },
+      { item_id: 'P-3', start_date: '03/01/2025', end_date: '   ' },
+      { item_id: 'P-4', start_date: '04/01/2025', end_date: '   ' },
+      { item_id: 'P-5', start_date: '01/01/2025', end_date: '05/01/2025' },
+    ]
+    expect(validationError(rows)).toBeNull()
+  })
+
+  it('still rejects an end column that is mostly not dates', () => {
+    const rows = [
+      { item_id: 'G-1', start_date: '01/01/2025', end_date: 'tomorrow' },
+      { item_id: 'G-2', start_date: '02/01/2025', end_date: 'soon' },
+      { item_id: 'G-3', start_date: '03/01/2025', end_date: 'later' },
+      { item_id: 'G-4', start_date: '04/01/2025', end_date: '05/01/2025' },
+    ]
+    expect(validationError(rows))
+      .toBe('The "end_date" column should hold end dates, but its values aren\'t dates.')
+  })
+
+  it('says so when every row is still in progress', () => {
+    const rows = [
+      { item_id: 'P-1', start_date: '02/01/2025', end_date: '' },
+      { item_id: 'P-2', start_date: '03/01/2025', end_date: '' },
+    ]
+    expect(validationError(rows))
+      .toBe('Every row is still in progress. Nothing has completed yet, so there is nothing to chart.')
+  })
+
   it('accepts a minimal file, a text estimate, and the demo data', () => {
     expect(validationError(minimal)).toBeNull()
     expect(validationError([{ item_id: 'E-1', start_date: '02/01/2025', end_date: '06/01/2025', estimate: 'Small' }])).toBeNull()
@@ -94,6 +136,49 @@ describe('cycleTimeFor', () => {
   it('ignores a cycle_time column in the row', () => {
     const row = { item_id: 'T-1', start_date: '2025-01-02T09:00:00Z', end_date: '2025-01-06T17:00:00Z', cycle_time: '99' }
     expect(cycleTimeFor(row, detectColumns([row]))).toBe(5)
+  })
+})
+
+const mixed = [
+  { item_id: 'M-1', start_date: '02/01/2025', end_date: '06/01/2025' },
+  { item_id: 'M-2', start_date: '03/01/2025', end_date: '' },
+  { item_id: 'M-3', start_date: '04/01/2025', end_date: '   ' },
+]
+const mixedColumns = detectColumns(mixed)
+
+describe('toFlowItems', () => {
+  it('reads a blank or whitespace end date as still in progress', () => {
+    const items = toFlowItems(mixed, mixedColumns)
+    expect(items.map(i => i.status)).toEqual(['completed', 'in-progress', 'in-progress'])
+    expect(items.map(i => i.id)).toEqual(['M-1', 'M-2', 'M-3'])
+  })
+
+  it('gives the completed item its inclusive cycle time', () => {
+    const [completed] = toFlowItems(mixed, mixedColumns)
+    expect(completed).toMatchObject({ id: 'M-1', status: 'completed', cycleTime: 5, originalEndDate: '06/01/2025' })
+  })
+
+  it('drops a row whose non-blank end date does not parse', () => {
+    const rows = [
+      { item_id: 'D-1', start_date: '02/01/2025', end_date: 'not a date' },
+      { item_id: 'D-2', start_date: '02/01/2025', end_date: '06/01/2025' },
+    ]
+    const columns = detectColumns(rows)
+    expect(toFlowItems(rows, columns).map(i => i.id)).toEqual(['D-2'])
+    expect(toWorkItems(rows, columns).map(i => i.id)).toEqual(['D-2'])
+    expect(toInProgressItems(rows, columns)).toEqual([])
+  })
+
+  it('drops a row whose start date does not parse', () => {
+    const rows = [{ item_id: 'D-3', start_date: 'soon', end_date: '' }]
+    expect(toFlowItems(rows, detectColumns(rows))).toEqual([])
+  })
+})
+
+describe('toInProgressItems and toWorkItems', () => {
+  it('split the file between unfinished and completed items', () => {
+    expect(toInProgressItems(mixed, mixedColumns).map(i => i.id)).toEqual(['M-2', 'M-3'])
+    expect(toWorkItems(mixed, mixedColumns).map(i => i.id)).toEqual(['M-1'])
   })
 })
 
