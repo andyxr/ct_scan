@@ -186,7 +186,7 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
           Use demo data
         </span>
         <p className="text-sm text-gray-600 mt-1">
-          30 sample items with estimates and types, spanning three months
+          37 sample items with estimates and types, spanning three months: 30 completed and 7 still in progress
         </p>
       </button>
       </div>
