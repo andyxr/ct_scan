@@ -8,7 +8,6 @@ import AnalysisNav from '@/components/AnalysisNav'
 import ItemTypeControl from '@/components/ItemTypeControl'
 import DateRangeControl from '@/components/DateRangeControl'
 import {
-  ALL_ITEM_TYPES,
   OPEN_DATE_RANGE,
   detectColumns,
   endDateSpan,
@@ -54,7 +53,8 @@ export type AnalysisAction = AnalysisId | null
 export default function Home() {
   const [csvData, setCsvData] = useState<any[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
-  const [itemType, setItemType] = useState<string>(ALL_ITEM_TYPES)
+  /** Empty means All. */
+  const [itemTypeSelection, setItemTypeSelection] = useState<string[]>([])
   const [dateRange, setDateRange] = useState<DateRange>(OPEN_DATE_RANGE)
   /** User overrides only. Types without one fall back to the palette, so a new file leaves no stale keys. */
   const [colourOverrides, setColourOverrides] = useState<Record<string, string>>({})
@@ -67,8 +67,8 @@ export default function Home() {
     [csvData, columns]
   )
   const filteredData = useMemo(
-    () => filterByDateRange(filterByItemType(csvData, columns, itemType), columns, dateRange),
-    [csvData, columns, itemType, dateRange]
+    () => filterByDateRange(filterByItemType(csvData, columns, itemTypeSelection), columns, dateRange),
+    [csvData, columns, itemTypeSelection, dateRange]
   )
   const filteredCounts = useMemo(() => ({
     completed: toWorkItems(filteredData, columns).length,
@@ -84,7 +84,7 @@ export default function Home() {
   const handleFileUpload = (data: any[]) => {
     setCsvData(data)
     setSelectedAction(null)
-    setItemType(ALL_ITEM_TYPES)
+    setItemTypeSelection([])
     setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
   }
@@ -96,7 +96,7 @@ export default function Home() {
   const handleReset = () => {
     setCsvData([])
     setSelectedAction(null)
-    setItemType(ALL_ITEM_TYPES)
+    setItemTypeSelection([])
     setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
   }
@@ -171,8 +171,9 @@ export default function Home() {
 
           <ItemTypeControl
             types={itemTypes}
-            value={itemType}
-            onChange={setItemType}
+            value={itemTypeSelection}
+            onChange={setItemTypeSelection}
+            typeColours={typeColours}
             completedCount={filteredCounts.completed}
             inProgressCount={filteredCounts.inProgress}
             inProgressCharted={selectedAction === 'aging-wip'}

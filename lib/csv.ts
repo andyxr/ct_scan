@@ -222,9 +222,9 @@ export function validationError(data: any[]): string | null {
   return null
 }
 
-/** Dropdown sentinel: no type filter applied. */
+/** Label for the empty selection: no type filter applied. */
 export const ALL_ITEM_TYPES = 'All'
-/** Dropdown sentinel: rows whose item_type cell is blank. */
+/** Label for rows whose item_type cell is blank. */
 export const UNTYPED_ITEM_TYPE = '(Untyped)'
 
 export function itemTypeOf(row: any, column: string): string {
@@ -253,17 +253,21 @@ export function itemTypesIn(data: any[], columns: ColumnMap): string[] {
 }
 
 /**
- * Rows matching the selected type. "All", a file with no item_type column, and
- * a selection that matches nothing in the file all return the data unchanged,
- * so a stale selection degrades to "no filter" rather than a blank chart.
+ * Rows whose type is any of the selected types. An empty selection means "All".
+ * A file with no item_type column, or a selection none of whose types appear
+ * in the file, returns the data unchanged, so a stale selection degrades to
+ * "no filter" rather than a blank chart.
  */
-export function filterByItemType(data: any[], columns: ColumnMap, selected: string): any[] {
+export function filterByItemType(data: any[], columns: ColumnMap, selected: readonly string[]): any[] {
   const column = columns.itemType
-  if (selected === ALL_ITEM_TYPES || !column) return data
-  if (!itemTypesIn(data, columns).includes(selected)) return data
+  if (selected.length === 0 || !column) return data
 
-  const wanted = selected === UNTYPED_ITEM_TYPE ? '' : selected
-  return data.filter(row => itemTypeOf(row, column) === wanted)
+  const present = new Set(itemTypesIn(data, columns))
+  const wanted = new Set(
+    selected.filter(type => present.has(type)).map(type => (type === UNTYPED_ITEM_TYPE ? '' : type))
+  )
+  if (wanted.size === 0) return data
+  return data.filter(row => wanted.has(itemTypeOf(row, column)))
 }
 
 /** Completion-date window. Epoch ms at local midnight, null = open end. */

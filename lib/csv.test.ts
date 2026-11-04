@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ALL_ITEM_TYPES,
   COLUMN_ALIASES,
   OPEN_DATE_RANGE,
   UNTYPED_ITEM_TYPE,
@@ -201,20 +200,28 @@ describe('itemTypesIn', () => {
 })
 
 describe('filterByItemType', () => {
-  it('passes everything through for All', () => {
-    expect(filterByItemType(typed, typedColumns, ALL_ITEM_TYPES)).toBe(typed)
+  it('passes everything through for an empty selection', () => {
+    expect(filterByItemType(typed, typedColumns, [])).toBe(typed)
   })
 
   it('matches a type after trimming', () => {
-    expect(filterByItemType(typed, typedColumns, 'Story').map(r => r.item_id)).toEqual(['T-1', 'T-3'])
+    expect(filterByItemType(typed, typedColumns, ['Story']).map(r => r.item_id)).toEqual(['T-1', 'T-3'])
   })
 
   it('selects blank cells for (Untyped)', () => {
-    expect(filterByItemType(typed, typedColumns, UNTYPED_ITEM_TYPE).map(r => r.item_id)).toEqual(['T-4'])
+    expect(filterByItemType(typed, typedColumns, [UNTYPED_ITEM_TYPE]).map(r => r.item_id)).toEqual(['T-4'])
   })
 
-  it('returns all rows for an unknown selection', () => {
-    expect(filterByItemType(typed, typedColumns, 'Spike')).toBe(typed)
+  it('combines several types', () => {
+    expect(filterByItemType(typed, typedColumns, ['Epic', UNTYPED_ITEM_TYPE]).map(r => r.item_id)).toEqual(['T-2', 'T-4'])
+  })
+
+  it('ignores unknown types alongside known ones', () => {
+    expect(filterByItemType(typed, typedColumns, ['Spike', 'Epic']).map(r => r.item_id)).toEqual(['T-2'])
+  })
+
+  it('returns all rows when no selected type is known', () => {
+    expect(filterByItemType(typed, typedColumns, ['Spike'])).toBe(typed)
   })
 })
 

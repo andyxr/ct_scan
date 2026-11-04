@@ -1,11 +1,15 @@
 'use client'
 
 import { ALL_ITEM_TYPES } from '@/lib/csv'
+import { SHEET_INK } from '@/lib/colours'
 
 interface ItemTypeControlProps {
   types: string[]
-  value: string
-  onChange: (type: string) => void
+  /** Selected types. Empty means All. */
+  value: string[]
+  onChange: (types: string[]) => void
+  /** Each type's chart colour, so a checkbox reads as the key to its points. */
+  typeColours: Record<string, string>
   /** Counts over the rows the current filters admit. */
   completedCount: number
   inProgressCount: number
@@ -15,27 +19,48 @@ interface ItemTypeControlProps {
 
 /**
  * Global item type filter, shown once above whichever analysis is open, with
- * the completed and in-progress counts of whatever the filters admit. The
- * dropdown needs an item_type column; the counts do not, so the row always
- * renders.
+ * the completed and in-progress counts of whatever the filters admit. "All" is
+ * the empty selection; ticking types narrows to their union. Unticking the last
+ * type, or ticking every type, returns to All. The checkboxes need an
+ * item_type column; the counts do not, so the row always renders.
  */
-export default function ItemTypeControl({ types, value, onChange, completedCount, inProgressCount, inProgressCharted = false }: ItemTypeControlProps) {
+export default function ItemTypeControl({ types, value, onChange, typeColours, completedCount, inProgressCount, inProgressCharted = false }: ItemTypeControlProps) {
+  const selected = new Set(value)
+
+  const toggle = (type: string) => {
+    const next = selected.has(type) ? value.filter(t => t !== type) : [...value, type]
+    onChange(next.length === types.length ? [] : next)
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
       {types.length > 0 && (
-        <label className="flex items-center gap-2">
-          <span>Item type</span>
-          <select
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            className="px-2 py-1 border border-gray-300 rounded bg-white"
-          >
-            <option value={ALL_ITEM_TYPES}>{ALL_ITEM_TYPES}</option>
-            {types.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </label>
+        <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <legend className="sr-only">Item types</legend>
+          <span aria-hidden="true">Item type</span>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={value.length === 0}
+              onChange={() => onChange([])}
+              className="h-4 w-4"
+              style={{ accentColor: SHEET_INK.ink }}
+            />
+            {ALL_ITEM_TYPES}
+          </label>
+          {types.map(type => (
+            <label key={type} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.has(type)}
+                onChange={() => toggle(type)}
+                className="h-4 w-4"
+                style={{ accentColor: typeColours[type] }}
+              />
+              {type}
+            </label>
+          ))}
+        </fieldset>
       )}
       <span className="text-gray-500">
         {completedCount} completed
