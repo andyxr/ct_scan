@@ -6,6 +6,8 @@ import { ArrowLeftRight, CalendarDays } from 'lucide-react'
 import {
   EMPTY_SIMULATION,
   dateAfterDays,
+  daysUntil,
+  isoDateAfterDays,
   simulateDaysToTarget,
   simulateItemCount,
   throughputFrom,
@@ -24,13 +26,21 @@ interface MonteCarloAnalysisProps {
 /** "how-many" fixes the days and forecasts items; "when" fixes the items and forecasts days. */
 type ForecastMode = 'how-many' | 'when'
 
+const DEFAULT_HORIZON_DAYS = 14
+const MAX_HORIZON_DAYS = 365
+
 const TOOLBAR_BUTTON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700'
 const TOOLBAR_BUTTON_ON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-900 rounded bg-gray-900 text-white hover:bg-gray-800'
 
 export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [numSimulations, setNumSimulations] = useState(10000)
-  const [forecastHorizon, setForecastHorizon] = useState(14)
+  /** YYYY-MM-DD from the date input. The simulation runs over the days from today up to and including it. */
+  const [targetDate, setTargetDate] = useState(() => isoDateAfterDays(DEFAULT_HORIZON_DAYS))
+  const earliestDate = isoDateAfterDays(1)
+  const latestDate = isoDateAfterDays(MAX_HORIZON_DAYS)
+  // A cleared or out-of-range entry clamps rather than blanking the forecast.
+  const forecastHorizon = Math.max(1, Math.min(MAX_HORIZON_DAYS, daysUntil(targetDate) ?? DEFAULT_HORIZON_DAYS))
   const [targetItems, setTargetItems] = useState(25)
   const [mode, setMode] = useState<ForecastMode>('how-many')
   const [isRunning, setIsRunning] = useState(false)
@@ -184,15 +194,15 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Forecast Horizon (days)
+                    Forecast to
                   </label>
                   <input
-                    type="number"
-                    value={forecastHorizon}
-                    onChange={(e) => setForecastHorizon(Math.max(1, Math.min(365, parseInt(e.target.value) || 14)))}
+                    type="date"
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min="1"
-                    max="365"
+                    min={earliestDate}
+                    max={latestDate}
                   />
                 </div>
               )}
@@ -388,7 +398,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                     </>
                   ) : (
                     <>
-                      Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} days,
+                      Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} {forecastHorizon === 1 ? 'day' : 'days'} (to {dateAfterDays(forecastHorizon)}),
                       there is an 85% probability of completing {stats.p85} or more items, and a 50% probability of completing {stats.p50} or more items.
                     </>
                   )}

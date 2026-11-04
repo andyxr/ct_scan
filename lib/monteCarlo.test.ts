@@ -5,6 +5,8 @@ import {
   completionByDay,
   firstDayAtOrAbove,
   dateAfterDays,
+  daysUntil,
+  isoDateAfterDays,
   simulateDaysToTarget,
   simulateItemCount,
   throughputFrom,
@@ -116,6 +118,31 @@ describe('dateAfterDays', () => {
 
   it('ignores the time of day on the starting date', () => {
     expect(dateAfterDays(1, new Date(2025, 5, 10, 23, 59))).toBe('11/06/2025')
+  })
+})
+
+describe('isoDateAfterDays', () => {
+  it('formats a local date for a date input', () => {
+    expect(isoDateAfterDays(1, new Date(2025, 11, 31, 23, 59))).toBe('2026-01-01')
+  })
+})
+
+describe('daysUntil', () => {
+  it('counts tomorrow as one day', () => {
+    expect(daysUntil('2025-06-11', new Date(2025, 5, 10, 23, 59))).toBe(1)
+  })
+
+  it('counts whole days across a daylight-saving change', () => {
+    expect(daysUntil('2025-04-05', new Date(2025, 2, 1))).toBe(35)
+  })
+
+  it('round-trips with isoDateAfterDays', () => {
+    const from = new Date(2025, 0, 30)
+    expect(daysUntil(isoDateAfterDays(40, from), from)).toBe(40)
+  })
+
+  it('rejects a malformed date', () => {
+    expect(daysUntil('', new Date(2025, 0, 1))).toBeNull()
   })
 })
 

@@ -226,6 +226,26 @@ export function dateAfterDays(days: number, from: Date = new Date()): string {
   return formatDate(date)
 }
 
+/** YYYY-MM-DD for the local date `days` from today, as a date input wants it. */
+export function isoDateAfterDays(days: number, from: Date = new Date()): string {
+  const date = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days)
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/**
+ * Whole days from today to a YYYY-MM-DD local date, so tomorrow is 1. Rounded
+ * rather than floored, since a daylight-saving change makes a day 23 or 25 hours.
+ * Null for a malformed date.
+ */
+export function daysUntil(isoDate: string, from: Date = new Date()): number | null {
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+  const target = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  const today = new Date(from.getFullYear(), from.getMonth(), from.getDate())
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000)
+}
+
 /**
  * Cumulative chance the target is done on or before each day, indexed by days
  * from the start. Index 0 is the start day itself; the array runs to the last
