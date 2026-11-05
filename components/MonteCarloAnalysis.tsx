@@ -31,6 +31,12 @@ type ForecastMode = 'how-many' | 'when'
 const DEFAULT_HORIZON_DAYS = 14
 const MAX_HORIZON_DAYS = 365
 
+/** Parses a number field's raw text, falling back and clamping so a half-typed entry never blanks the forecast. */
+function clampedInt(text: string, fallback: number, min: number, max: number): number {
+  const n = parseInt(text, 10)
+  return Number.isNaN(n) ? fallback : Math.max(min, Math.min(max, n))
+}
+
 const TOOLBAR_BUTTON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700'
 const TOOLBAR_BUTTON_ON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-900 rounded bg-gray-900 text-white hover:bg-gray-800'
 
@@ -66,14 +72,17 @@ function HistogramTooltip({
 
 export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const isMounted = useIsClient()
-  const [numSimulations, setNumSimulations] = useState(10000)
+  // Number fields keep raw text so the user can clear and retype; the clamped value is derived.
+  const [numSimulationsText, setNumSimulationsText] = useState('10000')
+  const numSimulations = clampedInt(numSimulationsText, 10000, 1000, 100000)
   /** YYYY-MM-DD from the date input. The simulation runs over the days from today up to and including it. */
   const [targetDate, setTargetDate] = useState(() => isoDateAfterDays(DEFAULT_HORIZON_DAYS))
   const earliestDate = isoDateAfterDays(1)
   const latestDate = isoDateAfterDays(MAX_HORIZON_DAYS)
   // A cleared or out-of-range entry clamps rather than blanking the forecast.
   const forecastHorizon = Math.max(1, Math.min(MAX_HORIZON_DAYS, daysUntil(targetDate) ?? DEFAULT_HORIZON_DAYS))
-  const [targetItems, setTargetItems] = useState(25)
+  const [targetItemsText, setTargetItemsText] = useState('25')
+  const targetItems = clampedInt(targetItemsText, 25, 1, 1000)
   const [mode, setMode] = useState<ForecastMode>('how-many')
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
@@ -177,8 +186,9 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                 </label>
                 <input
                   type="number"
-                  value={numSimulations}
-                  onChange={(e) => setNumSimulations(Math.max(1000, Math.min(100000, parseInt(e.target.value) || 10000)))}
+                  value={numSimulationsText}
+                  onChange={(e) => setNumSimulationsText(e.target.value)}
+                  onBlur={() => setNumSimulationsText(String(numSimulations))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1000"
                   max="100000"
@@ -192,8 +202,9 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   </label>
                   <input
                     type="number"
-                    value={targetItems}
-                    onChange={(e) => setTargetItems(Math.max(1, Math.min(1000, parseInt(e.target.value) || 25)))}
+                    value={targetItemsText}
+                    onChange={(e) => setTargetItemsText(e.target.value)}
+                    onBlur={() => setTargetItemsText(String(targetItems))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="1"
                     max="1000"
