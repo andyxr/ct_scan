@@ -11,13 +11,11 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
         <p className="mt-8 text-center text-gray-700 leading-relaxed">
           Flowgauge was developed by Andy Deighton of <a href="https://ljomi-systems.com" target="_blank" rel="noopener noreferrer">Ljomi Systems Ltd</a>. Why spend
           money on 3rd party software when you can use Flowgauge instead?<br/>
-          Recently addded:
+          Recently added:
         </p>
         <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
-           <li>Aging work in progress chart</li>
-           <li>Scatterplot item colouring</li>
-           <li>Zooming in on a date range in the scatterplot</li>
-           <li>Zooming in on a sequence range in the PBC</li>
+           <li>Filtering by several item types at once</li>
+           <li>Choosing a target date for the How Many forecast</li>
          </ul>
          <p className="mt-4 text-center text-gray-700 leading-relaxed">
           More features coming soon!
