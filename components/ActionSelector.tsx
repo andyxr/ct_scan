@@ -28,7 +28,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
         Available analyses
       </h2>
 
-      <ul className="border-t border-gray-900">
+      <ul className="sheet-list border-t border-gray-900">
         {ANALYSES.map((action, index) => {
           const reason = action.unavailableReason(data, columns)
           const available = reason === null

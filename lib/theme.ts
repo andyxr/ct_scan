@@ -6,6 +6,7 @@
 export const THEMES = [
   { id: 'default', label: 'Default' },
   { id: 'macos8', label: 'MacOS8' },
+  { id: 'liquid-glass', label: 'Liquid Glass' },
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']
@@ -30,7 +31,11 @@ export function applyTheme(theme: ThemeId): void {
 /**
  * Runs in <head> before first paint so a stored theme never flashes Default.
  * Inlined as a string because it must execute before React hydrates.
+ *
+ * Also flags Chromium (the only engine with navigator.userAgentData, and the only
+ * one that accepts an SVG filter in backdrop-filter) so Liquid Glass can add its
+ * lens warp there without breaking the frosted fallback elsewhere.
  */
 export const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(${JSON.stringify(
   THEMES.map((t) => t.id)
-)}.indexOf(t)>-1)document.documentElement.dataset.theme=t}catch(e){}`
+)}.indexOf(t)>-1)document.documentElement.dataset.theme=t;if(navigator.userAgentData)document.documentElement.dataset.glassRefract=''}catch(e){}`

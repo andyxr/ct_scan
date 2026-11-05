@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -11,7 +12,14 @@ interface ModalProps {
   children: ReactNode
 }
 
-/** Centred dialog over a dimmed page. Closes on Escape, the X, or a backdrop click. */
+/**
+ * Centred dialog over a dimmed page. Closes on Escape, the X, or a backdrop click.
+ *
+ * Portalled to <body>: an ancestor with backdrop-filter or transform (the Liquid
+ * Glass panes) becomes the containing block for position:fixed, which would pin
+ * the overlay inside the pane instead of the viewport. Callers only mount a modal
+ * after a click, so document is always present.
+ */
 export default function Modal({ title, hideTitle = false, onClose, children }: ModalProps) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -21,7 +29,7 @@ export default function Modal({ title, hideTitle = false, onClose, children }: M
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
@@ -57,6 +65,7 @@ export default function Modal({ title, hideTitle = false, onClose, children }: M
         </h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

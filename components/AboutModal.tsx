@@ -16,6 +16,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
         <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
            <li>Filtering by several item types at once</li>
            <li>Choosing a target date for the How Many forecast</li>
+           <li>New UI themes</li>
          </ul>
          <p className="mt-4 text-center text-gray-700 leading-relaxed">
           More features coming soon!

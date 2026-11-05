@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Roboto_Condensed, Roboto_Mono } from 'next/font/google'
 import './globals.css'
 import { THEME_BOOT_SCRIPT } from '@/lib/theme'
+import LiquidGlassFilter from '@/components/LiquidGlassFilter'
 
 /**
  * The sheet's two voices. Condensed grotesque for headings and labels, the way a
@@ -74,6 +75,7 @@ export default function RootLayout({
           nothing for a later reader to audit this build against.
         */}
         <div dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }} />
+        <LiquidGlassFilter />
         {children}
       </body>
     </html>
