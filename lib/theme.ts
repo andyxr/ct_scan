@@ -29,7 +29,37 @@ export function applyTheme(theme: ThemeId): void {
 }
 
 /**
- * Runs in <head> before first paint so a stored theme never flashes Default.
+ * Light/dark for Liquid Glass only. Stored as `data-mode` on <html>; CSS keys the
+ * dark remap on `[data-theme="liquid-glass"][data-mode="dark"]`, so the attribute
+ * is inert under other themes and the choice survives a round trip through them.
+ */
+export const GLASS_MODES = [
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+] as const
+
+export type GlassMode = (typeof GLASS_MODES)[number]['id']
+
+export const DEFAULT_GLASS_MODE: GlassMode = 'light'
+
+export const GLASS_MODE_STORAGE_KEY = 'flowgauge-glass-mode'
+
+export function parseGlassMode(raw: string | null | undefined): GlassMode {
+  return GLASS_MODES.find((m) => m.id === raw)?.id ?? DEFAULT_GLASS_MODE
+}
+
+export function applyGlassMode(mode: GlassMode): void {
+  document.documentElement.dataset.mode = mode
+  try {
+    localStorage.setItem(GLASS_MODE_STORAGE_KEY, mode)
+  } catch {
+    // Storage unavailable; the mode still applies for this visit.
+  }
+}
+
+/**
+ * Runs in <head> before first paint so a stored theme (and glass mode) never
+ * flashes Default.
  * Inlined as a string because it must execute before React hydrates.
  *
  * Also flags Chromium (the only engine with navigator.userAgentData, and the only
@@ -38,4 +68,6 @@ export function applyTheme(theme: ThemeId): void {
  */
 export const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(${JSON.stringify(
   THEMES.map((t) => t.id)
-)}.indexOf(t)>-1)document.documentElement.dataset.theme=t;if(navigator.userAgentData)document.documentElement.dataset.glassRefract=''}catch(e){}`
+)}.indexOf(t)>-1)document.documentElement.dataset.theme=t;var m=localStorage.getItem('${GLASS_MODE_STORAGE_KEY}');if(${JSON.stringify(
+  GLASS_MODES.map((m) => m.id)
+)}.indexOf(m)>-1)document.documentElement.dataset.mode=m;if(navigator.userAgentData)document.documentElement.dataset.glassRefract=''}catch(e){}`

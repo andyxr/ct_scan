@@ -623,9 +623,16 @@ input[type="checkbox"] {
    get the frosted pane without the warp.
 
    Plot wells stay near-opaque white so the chart inks in lib/colours.ts keep
-   their contrast; glass is the chrome, never the data's ground.
+   their contrast; glass is the chrome, never the data's ground. That holds in
+   dark mode too: the dark remap below stops at the plot well, which re-declares
+   this light set so everything drawn inside it (charts, calendar, tooltips) keeps
+   the ground its inks were chosen for.
+
+   Every colour the pane rules use is a --lg-* token, so dark mode is a token
+   rebind rather than a second copy of the rules.
    --------------------------------------------------------------------------- */
-[data-theme="liquid-glass"] {
+[data-theme="liquid-glass"],
+[data-theme="liquid-glass"][data-mode="dark"] .sheet-plot {
   --lg-tint: rgba(255, 255, 255, 0.34);
   --lg-tint-strong: rgba(255, 255, 255, 0.62);
   --lg-well: rgba(255, 255, 255, 0.84);
@@ -634,6 +641,23 @@ input[type="checkbox"] {
   --lg-edge: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 -1px 0 rgba(255, 255, 255, 0.25),
     inset 0 0 18px rgba(255, 255, 255, 0.28);
   --lg-drop: 0 18px 48px -12px rgba(30, 24, 90, 0.32), 0 2px 6px rgba(30, 24, 90, 0.12);
+  --lg-rim: rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.7);
+  --lg-chip-drop: 0 4px 14px -4px rgba(30, 24, 90, 0.25);
+  --lg-button-drop: 0 4px 12px -4px rgba(30, 24, 90, 0.25);
+  --lg-lift: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 14px 36px -10px rgba(30, 24, 90, 0.35);
+  --lg-pop: rgba(255, 255, 255, 0.78);
+  --lg-glint: rgba(255, 255, 255, 0.8);
+  --lg-veil: rgba(30, 28, 80, 0.18);
+  --lg-control: rgba(255, 255, 255, 0.6);
+  --lg-control-rim: rgba(255, 255, 255, 0.85);
+  --lg-control-sink: inset 0 1px 2px rgba(30, 24, 90, 0.12);
+  --lg-refract-tint: rgba(255, 255, 255, 0.2);
+  --lg-heading-rule: rgba(255, 255, 255, 0.7);
+  --lg-heading-shade: rgba(40, 44, 90, 0.12);
+  --lg-divider: rgba(255, 255, 255, 0.5);
+  --lg-scroll: rgba(40, 44, 90, 0.3);
+  --lg-focus: rgba(47, 91, 216, 0.7);
+  --lg-select: rgba(47, 91, 216, 0.25);
 
   --sheet-stock: #e9ecff;
   --sheet-stock-deep: rgba(255, 255, 255, 0.4);
@@ -691,6 +715,7 @@ input[type="checkbox"] {
   --radius-3xl: 26px;
   --radius-4xl: 30px;
 
+  color-scheme: light;
   accent-color: var(--sheet-blue);
 }
 
@@ -764,13 +789,7 @@ input[type="checkbox"] {
   inset: 0;
   border-radius: inherit;
   padding: 1.5px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.15) 38%,
-    rgba(255, 255, 255, 0.05) 62%,
-    rgba(255, 255, 255, 0.7) 100%
-  );
+  background: linear-gradient(135deg, var(--lg-rim));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -801,7 +820,7 @@ input[type="checkbox"] {
   background: var(--lg-tint-strong);
   text-transform: none;
   letter-spacing: 0;
-  box-shadow: var(--lg-edge), 0 4px 14px -4px rgba(30, 24, 90, 0.25);
+  box-shadow: var(--lg-edge), var(--lg-chip-drop);
 }
 
 [data-theme="liquid-glass"] .sheet-stamp {
@@ -819,11 +838,14 @@ input[type="checkbox"] {
   outline: none;
   border-radius: var(--radius-xl);
   box-shadow: inset 0 1px 2px rgba(30, 24, 90, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.7);
+  /* Restates ink locally: under dark mode the inherited text colour is the
+     light ink of the chrome, which would vanish on this light ground. */
+  color: var(--sheet-ink);
 }
 
 [data-theme="liquid-glass"] .sheet-heading::after {
-  border-top: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 1px 0 rgba(40, 44, 90, 0.12);
+  border-top: 1px solid var(--lg-heading-rule);
+  box-shadow: 0 1px 0 var(--lg-heading-shade);
 }
 
 /* Lens warp, Chromium only. The url() filter must come first: the warp samples
@@ -836,7 +858,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"][data-glass-refract] .sheet-banner {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--lg-refract-tint);
 }
 
 /* ---- Floating surfaces: tooltips, modal, fullscreen, splash -------------- */
@@ -847,17 +869,17 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"] :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl) {
-  --tw-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 14px 36px -10px rgba(30, 24, 90, 0.35);
+  --tw-shadow: var(--lg-lift);
 }
 
 /* Tooltips and the modal sheet read better a little more opaque than chrome. */
 [data-theme="liquid-glass"] [class*="bg-white"][class*="shadow-lg"] {
-  background-color: rgba(255, 255, 255, 0.78);
-  border-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--lg-pop);
+  border-color: var(--lg-glint);
 }
 
 [data-theme="liquid-glass"] [class*="bg-black/50"] {
-  background-color: rgba(30, 28, 80, 0.18);
+  background-color: var(--lg-veil);
   -webkit-backdrop-filter: blur(6px) saturate(140%);
   backdrop-filter: blur(6px) saturate(140%);
 }
@@ -865,10 +887,10 @@ input[type="checkbox"] {
 /* ---- Controls ------------------------------------------------------------ */
 
 [data-theme="liquid-glass"] :is(input[type="text"], input[type="number"], input[type="date"], select, textarea) {
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background-color: var(--lg-control);
+  border: 1px solid var(--lg-control-rim);
   border-radius: var(--radius-md);
-  box-shadow: inset 0 1px 2px rgba(30, 24, 90, 0.12);
+  box-shadow: var(--lg-control-sink);
 }
 
 [data-theme="liquid-glass"] select.theme-select {
@@ -879,8 +901,8 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"] button:is([class*="bg-white"], [class*="bg-gray"]) {
-  border-color: rgba(255, 255, 255, 0.85);
-  box-shadow: var(--lg-edge), 0 4px 12px -4px rgba(30, 24, 90, 0.25);
+  border-color: var(--lg-control-rim);
+  box-shadow: var(--lg-edge), var(--lg-button-drop);
 }
 
 /* The primary action is tinted glass, not a flat fill. */
@@ -892,17 +914,17 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"] ::selection {
-  background-color: rgba(47, 91, 216, 0.25);
+  background-color: var(--lg-select);
   color: var(--sheet-ink);
 }
 
 [data-theme="liquid-glass"] :focus-visible {
-  outline: 2px solid rgba(47, 91, 216, 0.7);
+  outline: 2px solid var(--lg-focus);
   outline-offset: 2px;
 }
 
 [data-theme="liquid-glass"] * {
-  scrollbar-color: rgba(40, 44, 90, 0.3) transparent;
+  scrollbar-color: var(--lg-scroll) transparent;
 }
 
 [data-theme="liquid-glass"] ::-webkit-scrollbar-track {
@@ -911,7 +933,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"] ::-webkit-scrollbar-thumb {
-  background: rgba(40, 44, 90, 0.3);
+  background: var(--lg-scroll);
   border: 3px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
@@ -929,7 +951,7 @@ input[type="checkbox"] {
 
 /* Heavy ink rules (footer, list heads, drop zones) become bright glass edges. */
 [data-theme="liquid-glass"] .border-gray-900 {
-  border-color: rgba(255, 255, 255, 0.8);
+  border-color: var(--lg-glint);
 }
 
 /* The analysis index is one pane with soft row dividers. */
@@ -944,7 +966,7 @@ input[type="checkbox"] {
 }
 
 [data-theme="liquid-glass"] .sheet-list > li {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: var(--lg-divider);
 }
 
 [data-theme="liquid-glass"] .sheet-list > li:last-child {
@@ -960,4 +982,178 @@ input[type="checkbox"] {
 [data-theme="liquid-glass"] .w-80.border {
   border-radius: var(--radius-2xl);
   box-shadow: var(--lg-edge), var(--lg-drop);
+}
+
+/* ---- Appearance switch --------------------------------------------------- */
+
+[data-theme="liquid-glass"] .mode-switch-option {
+  border-radius: 999px;
+  color: var(--sheet-ink-faint);
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+[data-theme="liquid-glass"] .mode-switch-option[aria-checked="true"] {
+  color: var(--sheet-ink);
+  background: var(--lg-control);
+  box-shadow: var(--lg-edge);
+}
+
+/* ---------------------------------------------------------------------------
+   THEME: Liquid Glass, dark mode
+   ---------------------------------------------------------------------------
+
+   Smoked glass over a night field. Pure token rebind of the light set above:
+   panes darken, the ink ramp inverts, and the semantic inks (red deviation,
+   green process, amber pencil, blue operator) lift to tints that hold contrast
+   on a dark pane. Plot wells are excluded — they re-declare the light set — so
+   chart inks, the PNG ground (--sheet-stock-raised, never rebound here) and the
+   tooltips inside a chart are identical in both modes.
+   --------------------------------------------------------------------------- */
+[data-theme="liquid-glass"][data-mode="dark"] {
+  --lg-tint: rgba(26, 30, 62, 0.46);
+  --lg-tint-strong: rgba(34, 38, 76, 0.66);
+  --lg-edge: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 18px rgba(255, 255, 255, 0.04);
+  --lg-drop: 0 18px 48px -12px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --lg-rim: rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.24);
+  --lg-chip-drop: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
+  --lg-button-drop: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --lg-lift: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 36px -10px rgba(0, 0, 0, 0.65);
+  --lg-pop: rgba(22, 25, 54, 0.88);
+  --lg-glint: rgba(255, 255, 255, 0.16);
+  --lg-veil: rgba(4, 5, 16, 0.5);
+  --lg-control: rgba(255, 255, 255, 0.08);
+  --lg-control-rim: rgba(255, 255, 255, 0.16);
+  --lg-control-sink: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  --lg-refract-tint: rgba(18, 21, 48, 0.4);
+  --lg-heading-rule: rgba(255, 255, 255, 0.14);
+  --lg-heading-shade: rgba(0, 0, 0, 0.4);
+  --lg-divider: rgba(255, 255, 255, 0.08);
+  --lg-scroll: rgba(255, 255, 255, 0.2);
+  --lg-focus: rgba(140, 168, 255, 0.8);
+  --lg-select: rgba(124, 156, 255, 0.35);
+
+  --sheet-stock: #12152b;
+  --sheet-stock-deep: rgba(255, 255, 255, 0.06);
+  --sheet-rule: rgba(200, 206, 255, 0.16);
+  --sheet-rule-strong: rgba(200, 206, 255, 0.28);
+  --sheet-ink: #eef0ff;
+  --sheet-ink-soft: #b9bde0;
+  --sheet-ink-faint: #8c91b8;
+  --sheet-blue: #8ca8ff;
+
+  --color-white: rgba(30, 34, 70, 0.62);
+  --color-gray-50: rgba(255, 255, 255, 0.05);
+  --color-gray-100: rgba(255, 255, 255, 0.09);
+  --color-gray-200: rgba(200, 206, 255, 0.16);
+  --color-gray-300: rgba(200, 206, 255, 0.26);
+  --color-gray-400: #8c91b8;
+  --color-gray-500: #a3a8cf;
+  --color-gray-600: #b4b9de;
+  --color-gray-700: #cfd2ee;
+  --color-gray-800: #e1e3f7;
+  --color-gray-900: #eef0ff;
+
+  --color-blue-50: rgba(124, 156, 255, 0.14);
+  --color-blue-100: rgba(124, 156, 255, 0.22);
+  --color-blue-200: rgba(124, 156, 255, 0.34);
+  --color-blue-400: #a9bcff;
+  --color-blue-500: #8ca8ff;
+  --color-blue-600: #8ca8ff;
+  --color-blue-700: #a9bcff;
+  --color-blue-800: #c6d2ff;
+  --color-purple-50: rgba(124, 156, 255, 0.14);
+  --color-purple-200: rgba(124, 156, 255, 0.34);
+  --color-purple-500: #8ca8ff;
+  --color-purple-600: #8ca8ff;
+  --color-purple-700: #a9bcff;
+  --color-purple-800: #c6d2ff;
+
+  --color-red-50: rgba(255, 122, 102, 0.14);
+  --color-red-200: rgba(255, 122, 102, 0.36);
+  --color-red-600: #ff7a66;
+  --color-red-700: #ff8f7d;
+  --color-red-800: #ffab9e;
+  --color-green-50: rgba(95, 211, 160, 0.14);
+  --color-green-200: rgba(95, 211, 160, 0.36);
+  --color-green-600: #5fd3a0;
+  --color-green-700: #7ddcb2;
+  --color-green-800: #9fe6c6;
+  --color-yellow-50: rgba(242, 184, 75, 0.14);
+  --color-yellow-200: rgba(242, 184, 75, 0.36);
+  --color-yellow-600: #f2b84b;
+  --color-yellow-700: #f5c56a;
+  --color-yellow-800: #f8d68f;
+  --color-amber-500: #f2b84b;
+  --color-amber-700: #f5c56a;
+  --color-orange-600: #f2b84b;
+
+  color-scheme: dark;
+}
+
+/* Plot wells re-declare the light set; the semantic ramps come from :root, so
+   they are restated here to undo the dark lift. */
+[data-theme="liquid-glass"][data-mode="dark"] .sheet-plot {
+  --color-red-50: rgba(168, 50, 31, 0.1);
+  --color-red-200: #e0b5ab;
+  --color-red-600: #a8321f;
+  --color-red-700: #8c2a1a;
+  --color-red-800: #7d2416;
+  --color-green-50: rgba(47, 107, 79, 0.1);
+  --color-green-200: #b0c8bb;
+  --color-green-600: #2f6b4f;
+  --color-green-700: #275a43;
+  --color-green-800: #1f4835;
+  --color-yellow-50: rgba(154, 106, 21, 0.12);
+  --color-yellow-200: #ddd0a4;
+  --color-yellow-600: #9a6a15;
+  --color-yellow-700: #7f5711;
+  --color-yellow-800: #6a4a0f;
+  --color-amber-500: #9a6a15;
+  --color-amber-700: #7f5711;
+  --color-orange-600: #9a6a15;
+  --sheet-red: #a8321f;
+  --sheet-green: #2f6b4f;
+  --sheet-amber: #9a6a15;
+}
+
+/* A dimmed well, not a white slab: still light enough for the fixed chart inks,
+   no longer glaring against the night field. */
+[data-theme="liquid-glass"][data-mode="dark"] .sheet-plot {
+  background: rgba(226, 229, 246, 0.94);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="liquid-glass"][data-mode="dark"] body {
+  background: #0b0d1f;
+}
+
+[data-theme="liquid-glass"][data-mode="dark"] body::before {
+  background:
+    radial-gradient(38% 42% at 18% 22%, #3a33b8 0%, transparent 70%),
+    radial-gradient(34% 38% at 82% 16%, #8f2166 0%, transparent 70%),
+    radial-gradient(40% 44% at 70% 78%, #0d6f63 0%, transparent 70%),
+    radial-gradient(32% 36% at 24% 82%, #7a4a12 0%, transparent 70%),
+    radial-gradient(30% 30% at 50% 50%, #4f2a9e 0%, transparent 72%),
+    #0b0d1f;
+}
+
+[data-theme="liquid-glass"][data-mode="dark"] body::after {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1.6px);
+}
+
+/* text-white reads --color-white, which dark mode turns into a smoked tint. */
+[data-theme="liquid-glass"][data-mode="dark"] .text-white {
+  color: #ffffff;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme="liquid-glass"][data-mode="dark"] {
+    --lg-tint: rgba(22, 25, 52, 0.94);
+    --lg-tint-strong: rgba(30, 34, 66, 0.97);
+    --color-white: #1c2042;
+    --color-gray-50: #161a36;
+    --color-gray-100: #20244a;
+  }
 }
