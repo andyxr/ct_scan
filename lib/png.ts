@@ -22,7 +22,7 @@ export async function exportSvgToPng(
   // it was taken from; the literal stack is the fallback for a raster taken
   // before the font variable has resolved.
   const sheetMono = getComputedStyle(document.documentElement)
-    .getPropertyValue('--font-sheet-mono')
+    .getPropertyValue('--font-figure')
     .trim()
   clone.style.fontFamily = [sheetMono, '"Roboto Mono"', 'ui-monospace', 'monospace']
     .filter(Boolean)

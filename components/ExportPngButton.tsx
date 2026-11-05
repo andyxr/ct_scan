@@ -40,9 +40,12 @@ export default function ExportPngButton({ targetRef, filename }: ExportPngButton
 
     setStatus('exporting')
     try {
-      // The exported chart keeps the sheet's stock, so a PNG dropped into a deck
-      // still reads as the sheet it was taken from rather than as a white tile.
-      await exportSvgToPng(svg, filename, SHEET_INK.stockRaised)
+      // The exported chart keeps the active theme's plot surface, so a PNG dropped
+      // into a deck still reads as the screen it was taken from.
+      const surface = getComputedStyle(document.documentElement)
+        .getPropertyValue('--sheet-stock-raised')
+        .trim()
+      await exportSvgToPng(svg, filename, surface || SHEET_INK.stockRaised)
       setStatus('idle')
     } catch {
       setStatus('error')

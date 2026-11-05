@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Roboto_Condensed, Roboto_Mono } from 'next/font/google'
 import './globals.css'
+import { THEME_BOOT_SCRIPT } from '@/lib/theme'
 
 /**
  * The sheet's two voices. Condensed grotesque for headings and labels, the way a
@@ -56,7 +57,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${sheetSans.variable} ${sheetMono.variable}`}>
+    <html
+      lang="en"
+      className={`${sheetSans.variable} ${sheetMono.variable}`}
+      // The boot script sets data-theme before hydration, so the server markup
+      // legitimately differs from the client on this one attribute.
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body>
         {/*
           The contract ships as a real HTML comment in the emitted markup. A JSX

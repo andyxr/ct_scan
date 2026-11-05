@@ -148,6 +148,11 @@
      every panel sits on it rather than floating above a neutral ground. */
   --sheet-grid: 30px;
 
+  /* Font roles. Themes rebind these rather than the next/font variables, and
+     lib/png.ts reads --font-figure so an export names the same family. */
+  --font-ui: var(--font-sheet-sans), "Roboto Condensed", "Arial Narrow", sans-serif;
+  --font-figure: var(--font-sheet-mono), ui-monospace, monospace;
+
   /* Tailwind greys rebound onto the stock, so existing utilities land on the
      sheet. bg-white becomes raised stock (a filled field), bg-gray-50 the
      stock itself, and the grey text ramp becomes the ink ramp. */
@@ -243,7 +248,7 @@
 /* ---- The stock itself ---------------------------------------------------- */
 
 body {
-  font-family: var(--font-sheet-sans), "Roboto Condensed", "Arial Narrow", sans-serif;
+  font-family: var(--font-ui);
   background-color: var(--sheet-stock);
   color: var(--sheet-ink);
   /* The printed rule. Horizontal lines at the grid pitch with a much fainter
@@ -279,7 +284,7 @@ select,
 code,
 pre,
 .sheet-figure {
-  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-family: var(--font-figure);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -288,7 +293,7 @@ pre,
 .recharts-label,
 .recharts-reference-line text,
 .recharts-text {
-  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-family: var(--font-figure);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -305,7 +310,7 @@ pre,
 /* A stamped field: a boxed label with its value, as a form prints its fields. */
 .sheet-field {
   border: 1px solid currentColor;
-  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-family: var(--font-figure);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -336,7 +341,7 @@ pre,
   display: inline-block;
   border: 2px solid currentColor;
   padding: 0.15rem 0.5rem;
-  font-family: var(--font-sheet-mono), ui-monospace, monospace;
+  font-family: var(--font-figure);
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 0.12em;
@@ -406,4 +411,197 @@ pre,
 /* Native form controls carry the operator's blue rather than the platform's. */
 input[type="checkbox"] {
   accent-color: var(--sheet-blue);
+}
+
+/* ---------------------------------------------------------------------------
+   THEME: MacOS8 (Platinum)
+   ---------------------------------------------------------------------------
+
+   Same token remap as the sheet, rebound under [data-theme="macos8"]: a
+   periwinkle desktop, beveled platinum windows, white content wells, the
+   Mac OS system blue for selection, pinstriped title bars and small rounded
+   corners. Ported from sdss-quasar's Mac OS 8 theme. Chart inks (lib/colours.ts)
+   are deliberately untouched so a signal reads the same in every theme.
+   --------------------------------------------------------------------------- */
+[data-theme="macos8"] {
+  --os8-desktop: #b9b8c9;
+  --os8-platinum: #dddddd;
+  --os8-light: #ffffff;
+  --os8-shade: #888888;
+  --os8-frame: #404040;
+  --os8-bevel: inset 1px 1px 0 var(--os8-light), inset -1px -1px 0 var(--os8-shade);
+  --os8-well: inset 1px 1px 0 var(--os8-shade), inset -1px -1px 0 var(--os8-light);
+
+  --sheet-stock: var(--os8-platinum);
+  --sheet-stock-deep: #cccccc;
+  --sheet-stock-raised: #ffffff;
+  --sheet-rule: #aaaaaa;
+  --sheet-rule-strong: #7d7d7d;
+  --sheet-ink: #1a1a1a;
+  --sheet-ink-soft: #3a3a3a;
+  --sheet-ink-faint: #666666;
+  --sheet-blue: #2a4ea0;
+
+  --font-ui: "Charcoal", "Geneva", "Lucida Grande", "Helvetica Neue", system-ui, sans-serif;
+  --font-figure: "Monaco", "Menlo", var(--font-sheet-mono), ui-monospace, monospace;
+
+  --color-white: #ffffff;
+  --color-gray-50: #eeeeee;
+  --color-gray-100: #dddddd;
+  --color-gray-200: #bbbbbb;
+  --color-gray-300: #999999;
+  --color-gray-400: #777777;
+  --color-gray-500: #555555;
+  --color-gray-600: #444444;
+  --color-gray-700: #333333;
+  --color-gray-800: #222222;
+  --color-gray-900: #1a1a1a;
+
+  --color-blue-50: #e6eaf5;
+  --color-blue-100: #ccd5ec;
+  --color-blue-200: #b9c4dd;
+  --color-blue-400: #5874b8;
+  --color-blue-500: #3a5fb0;
+  --color-blue-600: #2a4ea0;
+  --color-blue-700: #1f3d85;
+  --color-blue-800: #16307a;
+  --color-purple-50: #e6eaf5;
+  --color-purple-200: #b9c4dd;
+  --color-purple-500: #3a5fb0;
+  --color-purple-600: #2a4ea0;
+  --color-purple-700: #1f3d85;
+  --color-purple-800: #16307a;
+
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+  --radius-4xl: 6px;
+
+  accent-color: var(--sheet-blue);
+}
+
+[data-theme="macos8"] body {
+  background: var(--os8-desktop);
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+/* Depth is a bevel: white top-left, grey bottom-right. */
+[data-theme="macos8"] :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl) {
+  --tw-shadow: inset 1px 1px 0 var(--os8-light), inset -1px -1px 0 var(--os8-shade), 0 0 0 1px var(--os8-frame);
+}
+
+/* The banner is a pinstriped title bar with black text. */
+[data-theme="macos8"] .sheet-banner {
+  color: var(--sheet-ink);
+  background: repeating-linear-gradient(to bottom, #e2e2e2 0 1px, #b6b6b6 1px 2px);
+  border-bottom: 1px solid var(--os8-frame);
+  box-shadow: var(--os8-bevel);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Fields become small raised platinum buttons. */
+[data-theme="macos8"] .sheet-field {
+  background: linear-gradient(to bottom, #f2f2f2, #d2d2d2);
+  border: 1px solid var(--os8-frame);
+  border-radius: var(--radius-md);
+  box-shadow: var(--os8-bevel);
+  text-transform: none;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+/* Panels are platinum windows. */
+[data-theme="macos8"] .sheet-panel {
+  background: var(--os8-platinum);
+  border: 1px solid var(--os8-frame);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--os8-bevel), 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Plots sit in a white, inset content well. */
+[data-theme="macos8"] .sheet-plot {
+  background: #ffffff;
+  outline: none;
+  border: 1px solid var(--os8-frame);
+  box-shadow: var(--os8-well);
+}
+
+/* Headings get the pinstripe band OS 8 drew either side of a window title. */
+[data-theme="macos8"] .sheet-heading::after {
+  height: 7px;
+  border-top: none;
+  transform: none;
+  align-self: center;
+  background: repeating-linear-gradient(to bottom, var(--os8-shade) 0 1px, var(--os8-light) 1px 2px);
+  opacity: 0.6;
+}
+
+/* No rubber stamps on a desktop: a flat badge instead. */
+[data-theme="macos8"] .sheet-stamp {
+  transform: none;
+  border-width: 1px;
+  border-radius: var(--radius-md);
+  letter-spacing: 0.04em;
+  background: #ffffff;
+}
+
+/* Text entry: white wells. */
+[data-theme="macos8"] :is(input[type="text"], input[type="number"], input[type="date"], select, textarea) {
+  background-color: #ffffff;
+  border: 1px solid var(--os8-frame);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--os8-well);
+}
+
+/* The theme picker itself reads as a popup button inside its field. */
+[data-theme="macos8"] select.theme-select {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  text-transform: none;
+}
+
+/* Filled buttons (bg-* utilities) become raised platinum push buttons; the
+   primary blue button keeps the system blue. */
+[data-theme="macos8"] button:is([class*="bg-white"], [class*="bg-gray"]) {
+  background: linear-gradient(to bottom, #f2f2f2, #d2d2d2);
+  border: 1px solid var(--os8-frame);
+  box-shadow: var(--os8-bevel);
+}
+
+[data-theme="macos8"] button[class*="bg-blue-600"] {
+  background: linear-gradient(to bottom, #6f89c9, #2a4ea0);
+  border: 1px solid #16307a;
+  box-shadow: inset 1px 1px 0 #98a9d4, inset -1px -1px 0 #16307a;
+}
+
+[data-theme="macos8"] ::selection {
+  background-color: #ccccff;
+  color: #000000;
+}
+
+[data-theme="macos8"] :focus-visible {
+  outline: 2px solid #6f89c9;
+  outline-offset: 1px;
+}
+
+/* Platinum scrollbars: grooved track, lavender raised thumb. */
+[data-theme="macos8"] * {
+  scrollbar-color: #b9b9d9 #cccccc;
+}
+
+[data-theme="macos8"] ::-webkit-scrollbar-track {
+  background: #cccccc;
+  border-left: 1px solid var(--os8-frame);
+  box-shadow: var(--os8-well);
+}
+
+[data-theme="macos8"] ::-webkit-scrollbar-thumb {
+  background: #b9b9d9;
+  border: 1px solid var(--os8-frame);
+  box-shadow: var(--os8-bevel);
 }

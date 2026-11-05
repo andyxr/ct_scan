@@ -22,6 +22,7 @@ import {
 import { colourForIndex } from '@/lib/colours'
 import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
+import ThemeSelect from '@/components/ThemeSelect'
 import SplashScreen from '@/components/SplashScreen'
 
 const CycleTimeAnalysis = dynamic(
@@ -139,6 +140,7 @@ export default function Home() {
               </>
             )}
             <AboutLink />
+            <ThemeSelect />
           </div>
         </div>
       </header>
