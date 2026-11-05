@@ -17,6 +17,7 @@ import {
   toInProgressItems,
   toWorkItems,
   type DateRange,
+  type CsvRow,
 } from '@/lib/csv'
 import { colourForIndex } from '@/lib/colours'
 import type { AnalysisId } from '@/lib/analyses'
@@ -51,7 +52,7 @@ const MonteCarloAnalysis = dynamic(
 export type AnalysisAction = AnalysisId | null
 
 export default function Home() {
-  const [csvData, setCsvData] = useState<any[]>([])
+  const [csvData, setCsvData] = useState<CsvRow[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
   /** Empty means All. */
   const [itemTypeSelection, setItemTypeSelection] = useState<string[]>([])
@@ -81,7 +82,7 @@ export default function Home() {
 
   const [showSplash, setShowSplash] = useState(true)
 
-  const handleFileUpload = (data: any[]) => {
+  const handleFileUpload = (data: CsvRow[]) => {
     setCsvData(data)
     setSelectedAction(null)
     setItemTypeSelection([])

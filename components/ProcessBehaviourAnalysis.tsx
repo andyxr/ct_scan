@@ -1,17 +1,18 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
+import { useMemo, useRef, useState, type SyntheticEvent } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
-import { detectColumns, toWorkItems, percentile } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile, type CsvRow } from '@/lib/csv'
 import { SHEET_INK } from '@/lib/colours'
 import Reading from './Reading'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SprintExplainerModal from './SprintExplainerModal'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
+import { useIsClient } from './useIsClient'
 
 interface ProcessBehaviourAnalysisProps {
-  data: any[]
+  data: CsvRow[]
 }
 
 interface ProcessDataPoint {
@@ -29,7 +30,8 @@ interface ProcessDataPoint {
 interface ProcessStats {
   centralLine: number
   upperProcessLimit: number
-  lowerProcessLimit: number
+  /** Null when the computed limit is at or below the shortest possible cycle time (1 day), so no item could fall under it. */
+  lowerProcessLimit: number | null
   averageMovingRange: number
   medianMovingRange: number
   upperRangeLimit: number
@@ -79,13 +81,94 @@ function runSignalIndices(values: number[], centralLine: number): Set<number> {
   return flagged
 }
 
+function SpecialCauseDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: ProcessDataPoint }) {
+  if (cx === undefined || cy === undefined) return null
+  const special = payload?.isSpecialCause ?? false
+  return (
+    <g>
+      {special && <circle cx={cx} cy={cy} r={5} fill={SHEET_INK.red} className="signal-halo" />}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={special ? 5 : 4}
+        fill={special ? SHEET_INK.red : SHEET_INK.blue}
+        stroke={special ? SHEET_INK.redDeep : SHEET_INK.ink}
+        strokeWidth={2}
+      />
+    </g>
+  )
+}
+
+function ProcessTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload: ProcessDataPoint }>
+}) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-white p-4 border-2 border-gray-300 rounded shadow-lg">
+        <p className="font-bold text-blue-600">ID: {data.itemId}</p>
+        <p className="text-sm">
+          <strong>Sequence:</strong> {data.sequence}
+        </p>
+        <p className="text-sm">
+          <strong>Cycle Time:</strong> {data.cycleTime} days
+        </p>
+        {data.movingRange !== null && (
+          <p className="text-sm">
+            <strong>Moving Range:</strong> {data.movingRange.toFixed(1)}
+          </p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Completed: {data.originalEndDate}
+        </p>
+        {data.signals.map(signal => (
+          <p key={signal} className="text-xs text-red-600 font-semibold mt-1">
+            ⚠ {signal}
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
+function MovingRangeTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload: { sequence: number; movingRange: number } }>
+}) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
+        <p className="text-sm">
+          <strong>Sequence:</strong> {data.sequence}
+        </p>
+        <p className="text-sm">
+          <strong>Moving Range:</strong> {data.movingRange.toFixed(2)}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnalysisProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useIsClient()
   const [showSprint, setShowSprint] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
   const [explainerOpen, setExplainerOpen] = useState(false)
   const [view, setView] = useState<ChartView>('normal')
-  const [zoom, setZoom] = useState<ZoomRange | null>(null)
+  // Sequence numbers are positions in the current dataset, so a zoom held across a change of data could point past its end. It is tied to the data it was made on and lapses when that changes.
+  const [zoomed, setZoomed] = useState<{ data: CsvRow[]; range: ZoomRange } | null>(null)
+  const zoom = zoomed?.data === data ? zoomed.range : null
+  const setZoom = (range: ZoomRange | null) => setZoomed(range && { data, range })
   /**
    * The two edges of an in-progress drag, as sequence positions. Null when no
    * drag is under way.
@@ -100,16 +183,6 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
   const [dragEnd, setDragEnd] = useState<number | null>(null)
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // Sequence numbers are positions in the current dataset, so a zoom held across
-  // a change of data can point past the end of it and leave both charts blank.
-  useEffect(() => {
-    setZoom(null)
-  }, [data])
 
   useEscapeToRestore(view, () => setView('normal'), explainerOpen)
 
@@ -130,7 +203,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         stats: {
           centralLine: 0,
           upperProcessLimit: 0,
-          lowerProcessLimit: 0,
+          lowerProcessLimit: null,
           averageMovingRange: 0,
           medianMovingRange: 0,
           upperRangeLimit: 0,
@@ -171,13 +244,19 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     const upperRangeLimit = limitMethod === 'median' ? 3.865 * medianMovingRange : 3.27 * averageMovingRange
 
     const upperProcessLimit = centralLine + sigmaSpan
-    const lowerProcessLimit = Math.max(0, centralLine - sigmaSpan)
+    // Cycle time counts days inclusively, so 1 day is the floor. A limit at or
+    // below it can never fire; Wheeler treats that as having no lower limit.
+    const MIN_CYCLE_TIME = 1
+    const computedLower = centralLine - sigmaSpan
+    const lowerProcessLimit = computedLower > MIN_CYCLE_TIME ? computedLower : null
+    const isOutsideLimits = (ct: number) =>
+      ct > upperProcessLimit || (lowerProcessLimit !== null && ct < lowerProcessLimit)
 
     const runFlags = runSignalIndices(cycleTimes, centralLine)
 
     const processedDataPoints: ProcessDataPoint[] = chronologicalData.map((item, index) => {
       const signals: string[] = []
-      if (item.cycleTime > upperProcessLimit || item.cycleTime < lowerProcessLimit) signals.push('Outside process limits')
+      if (isOutsideLimits(item.cycleTime)) signals.push('Outside process limits')
       if (runFlags.has(index)) signals.push(`Run of ${RUN_LENGTH}+ on one side of the centre line`)
 
       return {
@@ -216,7 +295,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
         totalItems: processedDataPoints.length,
         specialCauseCount,
         p85: percentile(cycleTimes, 0.85),
-        outsideLimitsCount: cycleTimes.filter(ct => ct > upperProcessLimit || ct < lowerProcessLimit).length,
+        outsideLimitsCount: cycleTimes.filter(isOutsideLimits).length,
         runSignalCount: runFlags.size
       }
     }
@@ -318,72 +397,6 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
     onMouseUp: handleMouseUp,
   }
 
-  const SpecialCauseDot = ({ cx, cy, payload }: any) => {
-    if (cx === undefined || cy === undefined) return null
-    const special = (payload as ProcessDataPoint).isSpecialCause
-    return (
-      <g>
-        {special && <circle cx={cx} cy={cy} r={5} fill={SHEET_INK.red} className="signal-halo" />}
-        <circle
-          cx={cx}
-          cy={cy}
-          r={special ? 5 : 4}
-          fill={special ? SHEET_INK.red : SHEET_INK.blue}
-          stroke={special ? SHEET_INK.redDeep : SHEET_INK.ink}
-          strokeWidth={2}
-        />
-      </g>
-    )
-  }
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as ProcessDataPoint
-      return (
-        <div className="bg-white p-4 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">ID: {data.itemId}</p>
-          <p className="text-sm">
-            <strong>Sequence:</strong> {data.sequence}
-          </p>
-          <p className="text-sm">
-            <strong>Cycle Time:</strong> {data.cycleTime} days
-          </p>
-          {data.movingRange !== null && (
-            <p className="text-sm">
-              <strong>Moving Range:</strong> {data.movingRange.toFixed(1)}
-            </p>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            Completed: {data.originalEndDate}
-          </p>
-          {data.signals.map(signal => (
-            <p key={signal} className="text-xs text-red-600 font-semibold mt-1">
-              ⚠ {signal}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
-
-  const MovingRangeTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="text-sm">
-            <strong>Sequence:</strong> {data.sequence}
-          </p>
-          <p className="text-sm">
-            <strong>Moving Range:</strong> {data.movingRange.toFixed(2)}
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
-
   return (
     <div className={maximised
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
@@ -458,7 +471,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
                   tick={{ fill: SHEET_INK.inkSoft }}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ProcessTooltip />} />
 
                 {/* Control Lines */}
                 <ReferenceLine
@@ -474,16 +487,16 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
                   strokeWidth={2}
                   label={{ value: "CL", position: "top", offset: 5, fill: SHEET_INK.green }}
                 />
-                <ReferenceLine
-                  y={stats.lowerProcessLimit}
-                  stroke={SHEET_INK.red}
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  // Labelled above the line rather than below it: a lower limit of
-                  // zero sits on the axis, and a `bottom` label there lands in the
-                  // middle of the sequence ticks.
-                  label={{ value: "LPL", position: "insideBottomLeft", offset: 6, fill: SHEET_INK.red }}
-                />
+                {stats.lowerProcessLimit !== null && (
+                  <ReferenceLine
+                    y={stats.lowerProcessLimit}
+                    stroke={SHEET_INK.red}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    // Labelled above the line so a low limit's label stays clear of the sequence ticks.
+                    label={{ value: "LPL", position: "insideBottomLeft", offset: 6, fill: SHEET_INK.red }}
+                  />
+                )}
                 {showSprint && (
                   <ReferenceLine
                     y={sprintDays}
@@ -591,7 +604,9 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           <Reading label="Central Line" value={`${stats.centralLine.toFixed(1)} d`} ink="text-green-700" />
           <Reading
             label="Control Limits"
-            value={`${stats.lowerProcessLimit.toFixed(1)} – ${stats.upperProcessLimit.toFixed(1)}`}
+            value={stats.lowerProcessLimit === null
+              ? `≤ ${stats.upperProcessLimit.toFixed(1)}`
+              : `${stats.lowerProcessLimit.toFixed(1)} – ${stats.upperProcessLimit.toFixed(1)}`}
             ink="text-red-700"
           />
           <Reading
@@ -619,7 +634,7 @@ export default function ProcessBehaviourAnalysis({ data }: ProcessBehaviourAnaly
           stability, not proof.
         </p>
         <p>
-          <strong>Abbreviations:</strong> UPL = Upper Process Limit, CL = Central Line, LPL = Lower Process Limit, URL = Upper Range Limit
+          <strong>Abbreviations:</strong> UPL = Upper Process Limit, CL = Central Line, LPL = Lower Process Limit (shown only when above 1 day), URL = Upper Range Limit
         </p>
       </div>
       )}

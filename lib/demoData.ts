@@ -43,7 +43,7 @@
  * the upload screen. The demo is routed through validationError like any upload,
  * so it cannot drift from the contract.
  */
-export interface DemoRow {
+export type DemoRow = {
   item_id: string
   start_date: string
   end_date: string

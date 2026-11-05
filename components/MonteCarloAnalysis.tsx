@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { ArrowLeftRight, CalendarDays } from 'lucide-react'
 import {
@@ -14,13 +14,15 @@ import {
   type HistogramBin,
 } from '@/lib/monteCarlo'
 import { SHEET_INK } from '@/lib/colours'
+import type { CsvRow } from '@/lib/csv'
 import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ForecastCalendar from './ForecastCalendar'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
+import { useIsClient } from './useIsClient'
 
 interface MonteCarloAnalysisProps {
-  data: any[]
+  data: CsvRow[]
 }
 
 /** "how-many" fixes the days and forecasts items; "when" fixes the items and forecasts days. */
@@ -32,8 +34,38 @@ const MAX_HORIZON_DAYS = 365
 const TOOLBAR_BUTTON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-700'
 const TOOLBAR_BUTTON_ON = 'flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-900 rounded bg-gray-900 text-white hover:bg-gray-800'
 
+function HistogramTooltip({
+  active,
+  payload,
+  totalSimulations,
+  forecastingDays,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload: HistogramBin }>
+  totalSimulations: number
+  forecastingDays: boolean
+}) {
+  if (active && payload && payload.length) {
+    const bin = payload[0].payload
+    const probability = ((bin.frequency / totalSimulations) * 100).toFixed(2)
+    return (
+      <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
+        <p className="font-bold text-blue-600">
+          {forecastingDays ? `${bin.value} days` : `${bin.value} items`}
+        </p>
+        {forecastingDays && (
+          <p className="text-sm text-gray-900">by {dateAfterDays(bin.value)}</p>
+        )}
+        <p className="text-sm text-gray-900">Frequency: {bin.frequency}</p>
+        <p className="text-sm text-gray-600">Probability: {probability}%</p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useIsClient()
   const [numSimulations, setNumSimulations] = useState(10000)
   /** YYYY-MM-DD from the date input. The simulation runs over the days from today up to and including it. */
   const [targetDate, setTargetDate] = useState(() => isoDateAfterDays(DEFAULT_HORIZON_DAYS))
@@ -52,10 +84,6 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
   const forecastingDays = mode === 'when'
 
   useEscapeToRestore(view, () => setView('normal'))
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   const { dailyThroughput, throughputArray } = useMemo(() => throughputFrom(data), [data])
 
@@ -84,26 +112,6 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
     setIsRunning(true)
     setRunId(id => id + 1)
     setTimeout(() => setIsRunning(false), 100)
-  }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const bin = payload[0].payload as HistogramBin
-      const probability = ((bin.frequency / stats.totalSimulations) * 100).toFixed(2)
-      return (
-        <div className="bg-white p-3 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">
-            {forecastingDays ? `${bin.value} days` : `${bin.value} items`}
-          </p>
-          {forecastingDays && (
-            <p className="text-sm text-gray-900">by {dateAfterDays(bin.value)}</p>
-          )}
-          <p className="text-sm text-gray-900">Frequency: {bin.frequency}</p>
-          <p className="text-sm text-gray-600">Probability: {probability}%</p>
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -325,7 +333,7 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                           label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
                           tick={{ fill: SHEET_INK.inkSoft }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<HistogramTooltip totalSimulations={stats.totalSimulations} forecastingDays={forecastingDays} />} />
 
                         {/* Percentile lines - now correctly showing confidence levels */}
                         {/* Labelled down the line rather than along the top: the

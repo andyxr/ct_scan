@@ -15,7 +15,7 @@
  * is the one thing in here easy to get backwards. See CONFIDENCE_TO_PERCENTILE.
  */
 
-import { detectColumns, toWorkItems, formatDate } from './csv'
+import { detectColumns, toWorkItems, formatDate, type CsvRow } from './csv'
 
 export interface DailyThroughput {
   date: string
@@ -93,7 +93,7 @@ function nearestRank(sorted: number[], p: number): number {
  * Completions per calendar day, from the first completion to the last, with
  * quiet days present as zeros.
  */
-export function throughputFrom(data: any[]): { dailyThroughput: DailyThroughput[]; throughputArray: number[] } {
+export function throughputFrom(data: CsvRow[]): { dailyThroughput: DailyThroughput[]; throughputArray: number[] } {
   const empty = { dailyThroughput: [], throughputArray: [] }
 
   const columns = detectColumns(data)

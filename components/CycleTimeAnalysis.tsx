@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect, type SyntheticEvent } from 'react'
+import { useMemo, useRef, useState, type SyntheticEvent } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts'
-import { detectColumns, toWorkItems, percentile, formatDate, type WorkItem } from '@/lib/csv'
+import { detectColumns, toWorkItems, percentile, formatDate, type WorkItem, type CsvRow } from '@/lib/csv'
 import {
   DEFAULT_SLE_DAYS,
   DEFAULT_SLE_PERCENTILE,
@@ -24,9 +24,10 @@ import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SleControl from './SleControl'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
+import { useIsClient } from './useIsClient'
 
 interface CycleTimeAnalysisProps {
-  data: any[]
+  data: CsvRow[]
   /** Colour per item type, keyed by the file's full type list. Absent for files with no item_type column. */
   typeColours?: Record<string, string>
   onTypeColourChange?: (type: string, colour: string) => void
@@ -389,7 +390,7 @@ export default function CycleTimeAnalysis({
   onTypeColourChange,
   onResetTypeColours,
 }: CycleTimeAnalysisProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useIsClient()
   const [showSprint, setShowSprint] = useState(false)
   const [showAverage, setShowAverage] = useState(false)
   const [sprintDays, setSprintDays] = useState(DEFAULT_SPRINT_DAYS)
@@ -400,7 +401,10 @@ export default function CycleTimeAnalysis({
   const [hoveredPercentile, setHoveredPercentile] = useState<string | null>(null)
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null)
   const [view, setView] = useState<ChartView>('normal')
-  const [zoom, setZoom] = useState<ZoomRange | null>(null)
+  // A zoom held across a change of data can frame a window with nothing in it, so it is tied to the data it was made on and lapses when that changes.
+  const [zoomed, setZoomed] = useState<{ data: CsvRow[]; range: ZoomRange } | null>(null)
+  const zoom = zoomed?.data === data ? zoomed.range : null
+  const setZoom = (range: ZoomRange | null) => setZoomed(range && { data, range })
   /**
    * The two edges of an in-progress drag. Null when no drag is under way.
    *
@@ -414,16 +418,6 @@ export default function CycleTimeAnalysis({
   const [dragEnd, setDragEnd] = useState<number | null>(null)
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // A zoom held across a change of data can frame a window with nothing in it,
-  // so drop it and show the new file or filter in full.
-  useEffect(() => {
-    setZoom(null)
-  }, [data])
 
   useEscapeToRestore(view, () => setView('normal'))
 
@@ -750,7 +744,7 @@ export default function CycleTimeAnalysis({
                   strokeWidth={PERCENTILE_STROKE}
                   strokeDasharray={line.dash}
                   ifOverflow="visible"
-                  shape={(props: any) => (
+                  shape={(props: { x1: number; y1: number; x2: number; y2: number }) => (
                     <PercentileLineShape
                       {...props}
                       stroke={line.stroke}

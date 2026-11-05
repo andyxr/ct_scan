@@ -1,15 +1,16 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { detectColumns, cycleTimeFor, hasUsableEstimate } from '@/lib/csv'
+import { detectColumns, cycleTimeFor, hasUsableEstimate, type CsvRow } from '@/lib/csv'
 import { SHEET_INK } from '@/lib/colours'
 import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
+import { useIsClient } from './useIsClient'
 
 interface CorrelationAnalysisProps {
-  data: any[]
+  data: CsvRow[]
 }
 
 interface CorrelationDataPoint {
@@ -49,15 +50,50 @@ function RangeMarker({ x = 0, y = 0, width = 0, height = 0, color }: {
   )
 }
 
+function CorrelationTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload: CorrelationDataPoint }>
+  label?: string | number
+}) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-white p-4 border-2 border-gray-300 rounded shadow-lg">
+        <p className="font-bold text-blue-600">Estimate: {label}</p>
+        <p className="text-sm mt-2">
+          <strong>Range:</strong> {data.minCT} - {data.maxCT} days
+        </p>
+        <p className="text-sm">
+          <strong>Average:</strong> {data.avgCT.toFixed(1)} days
+        </p>
+        <p className="text-sm">
+          <strong>Items:</strong> {data.count}
+        </p>
+        <div className="mt-2 text-xs text-gray-600 max-h-20 overflow-y-auto">
+          {data.items.slice(0, 5).map((item, index) => (
+            <div key={index}>
+              {item.id}: {item.cycleTime} days
+            </div>
+          ))}
+          {data.items.length > 5 && (
+            <div>... and {data.items.length - 5} more</div>
+          )}
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useIsClient()
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   useEscapeToRestore(view, () => setView('normal'))
 
@@ -86,7 +122,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
     const groupedByEstimate = new Map<number, Array<{id: string, cycleTime: number}>>()
 
     data.forEach(row => {
-      const estimate = parseInt(row[estimateColumn])
+      const estimate = parseInt(String(row[estimateColumn]))
       const cycleTime = cycleTimeFor(row, columns)
       const id = idColumn ? String(row[idColumn] ?? 'Unknown') : 'Unknown'
 
@@ -134,38 +170,6 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
     }
   }, [data])
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload as CorrelationDataPoint
-      return (
-        <div className="bg-white p-4 border-2 border-gray-300 rounded shadow-lg">
-          <p className="font-bold text-blue-600">Estimate: {label}</p>
-          <p className="text-sm mt-2">
-            <strong>Range:</strong> {data.minCT} - {data.maxCT} days
-          </p>
-          <p className="text-sm">
-            <strong>Average:</strong> {data.avgCT.toFixed(1)} days
-          </p>
-          <p className="text-sm">
-            <strong>Items:</strong> {data.count}
-          </p>
-          <div className="mt-2 text-xs text-gray-600 max-h-20 overflow-y-auto">
-            {data.items.slice(0, 5).map((item, index) => (
-              <div key={index}>
-                {item.id}: {item.cycleTime} days
-              </div>
-            ))}
-            {data.items.length > 5 && (
-              <div>... and {data.items.length - 5} more</div>
-            )}
-          </div>
-        </div>
-      )
-    }
-    return null
-  }
-
-
   return (
     <div className={maximised
       ? 'fixed inset-0 z-40 flex flex-col overflow-auto bg-gray-50 p-6 pt-20'
@@ -201,7 +205,7 @@ export default function CorrelationAnalysis({ data }: CorrelationAnalysisProps) 
                 label={{ value: 'Cycle Time (days)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
                 tick={{ fill: SHEET_INK.inkSoft }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CorrelationTooltip />} />
               {/* Invisible bar to position the baseline at minCT */}
               <Bar
                 dataKey="minCT"

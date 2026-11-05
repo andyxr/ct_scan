@@ -2,13 +2,13 @@
 
 import { useMemo } from 'react'
 import { ANALYSES, type AnalysisId } from '@/lib/analyses'
-import { detectColumns } from '@/lib/csv'
+import { detectColumns, type CsvRow } from '@/lib/csv'
 
 interface AnalysisNavProps {
   current: AnalysisId
   onSelect: (id: AnalysisId) => void
   onReset: () => void
-  data: any[]
+  data: CsvRow[]
 }
 
 export default function AnalysisNav({ current, onSelect, onReset, data }: AnalysisNavProps) {

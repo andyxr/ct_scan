@@ -4,11 +4,11 @@ import { useMemo } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { AnalysisAction } from '@/app/page'
 import { ANALYSES } from '@/lib/analyses'
-import { detectColumns } from '@/lib/csv'
+import { detectColumns, type CsvRow } from '@/lib/csv'
 
 interface ActionSelectorProps {
   onActionSelect: (action: AnalysisAction) => void
-  data: any[]
+  data: CsvRow[]
 }
 
 /**

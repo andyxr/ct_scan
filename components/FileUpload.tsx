@@ -4,10 +4,10 @@ import { useState, useCallback } from 'react'
 import Papa from 'papaparse'
 import { FileSpreadsheet, BarChart3, Sparkles } from 'lucide-react'
 import { DEMO_DATA } from '@/lib/demoData'
-import { validationError } from '@/lib/csv'
+import { validationError, type CsvRow } from '@/lib/csv'
 
 interface FileUploadProps {
-  onUpload: (data: any[]) => void
+  onUpload: (data: CsvRow[]) => void
 }
 
 export default function FileUpload({ onUpload }: FileUploadProps) {
@@ -20,7 +20,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
       return
     }
 
-    Papa.parse(file, {
+    Papa.parse<CsvRow>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (result) => {

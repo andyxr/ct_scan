@@ -1,5 +1,5 @@
 import { ChartScatter, Hourglass, Activity, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
-import { hasUsableEstimate, toInProgressItems, type ColumnMap } from './csv'
+import { hasUsableEstimate, toInProgressItems, type ColumnMap, type CsvRow } from './csv'
 
 export type AnalysisId = 'cycle-time' | 'aging-wip' | 'process-behaviour' | 'correlation' | 'monte-carlo'
 
@@ -16,7 +16,7 @@ export interface Analysis {
    * Judged on the unfiltered file: availability is a property of the upload,
    * not of the current type or date filter.
    */
-  unavailableReason: (data: any[], columns: ColumnMap) => string | null
+  unavailableReason: (data: CsvRow[], columns: ColumnMap) => string | null
 }
 
 const ESTIMATE_REQUIRED_REASON = 'Needs an estimate column'
@@ -25,12 +25,12 @@ const IN_PROGRESS_REQUIRED_REASON = 'Needs at least one in-progress item: a row 
 
 const always = () => null
 
-function estimateReason(data: any[], columns: ColumnMap): string | null {
+function estimateReason(data: CsvRow[], columns: ColumnMap): string | null {
   if (hasUsableEstimate(data, columns)) return null
   return columns.estimate ? ESTIMATE_NOT_NUMERIC_REASON : ESTIMATE_REQUIRED_REASON
 }
 
-function inProgressReason(data: any[], columns: ColumnMap): string | null {
+function inProgressReason(data: CsvRow[], columns: ColumnMap): string | null {
   return toInProgressItems(data, columns).length > 0 ? null : IN_PROGRESS_REQUIRED_REASON
 }
 

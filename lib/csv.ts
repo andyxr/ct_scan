@@ -24,6 +24,9 @@
  * truth for it.
  */
 
+/** One parsed CSV row keyed by header. Cells are strings, but a ragged row carries an extra array, so callers parse rather than assume. */
+export type CsvRow = Readonly<Record<string, unknown>>
+
 export interface ColumnMap {
   id?: string
   startDate?: string
@@ -124,7 +127,7 @@ function isBlank(value: unknown): boolean {
  * first 20 rows are all in progress still has its end column validated on the
  * completed rows further down. Newest first is a common export order.
  */
-function sampleValues(data: any[], column: string): unknown[] {
+function sampleValues(data: CsvRow[], column: string): unknown[] {
   const values: unknown[] = []
   for (const row of data) {
     const value = row[column]
@@ -136,7 +139,7 @@ function sampleValues(data: any[], column: string): unknown[] {
 }
 
 /** True if enough of a claimed column's values parse as dates. Validates, never chooses. */
-function mostlyDates(data: any[], column: string): boolean {
+function mostlyDates(data: CsvRow[], column: string): boolean {
   const values = sampleValues(data, column)
   // An all-blank column contradicts nothing; the emptiness messages below cover it.
   if (values.length === 0) return true
@@ -144,7 +147,7 @@ function mostlyDates(data: any[], column: string): boolean {
 }
 
 /** True if enough of a claimed column's values are numbers to group by. Validates, never chooses. */
-function mostlyNumeric(data: any[], column: string): boolean {
+function mostlyNumeric(data: CsvRow[], column: string): boolean {
   const values = sampleValues(data, column)
   if (values.length === 0) return false
   // Whole string must be numeric: parseFloat alone accepts "2026-01-27T15:42:43Z".
@@ -159,7 +162,7 @@ function mostlyNumeric(data: any[], column: string): boolean {
  * consulted here; a claimed estimate column is checked separately by
  * hasUsableEstimate.
  */
-export function detectColumns(data: any[]): ColumnMap {
+export function detectColumns(data: CsvRow[]): ColumnMap {
   const headers = Object.keys(data[0] || {})
   const byNormalised = new Map<string, string>()
   for (const header of headers) {
@@ -183,7 +186,7 @@ export function detectColumns(data: any[]): ColumnMap {
 }
 
 /** An estimate column was named and holds numbers Correlation can group by. */
-export function hasUsableEstimate(data: any[], columns: ColumnMap): boolean {
+export function hasUsableEstimate(data: CsvRow[], columns: ColumnMap): boolean {
   return Boolean(columns.estimate) && mostlyNumeric(data, columns.estimate!)
 }
 
@@ -193,7 +196,7 @@ export function hasUsableEstimate(data: any[], columns: ColumnMap): boolean {
  * Names are checked first, so a file that breaks the contract is told which
  * headers to add rather than being drawn as an empty chart.
  */
-export function validationError(data: any[]): string | null {
+export function validationError(data: CsvRow[]): string | null {
   if (data.length === 0) return 'That file has no rows.'
 
   const columns = detectColumns(data)
@@ -227,7 +230,7 @@ export const ALL_ITEM_TYPES = 'All'
 /** Label for rows whose item_type cell is blank. */
 export const UNTYPED_ITEM_TYPE = '(Untyped)'
 
-export function itemTypeOf(row: any, column: string): string {
+export function itemTypeOf(row: CsvRow, column: string): string {
   return String(row[column] ?? '').trim()
 }
 
@@ -236,7 +239,7 @@ export function itemTypeOf(row: any, column: string): string {
  * any row has a blank cell. Case-sensitive on purpose: folding "Story" and
  * "story" would force a choice of which spelling to display.
  */
-export function itemTypesIn(data: any[], columns: ColumnMap): string[] {
+export function itemTypesIn(data: CsvRow[], columns: ColumnMap): string[] {
   const column = columns.itemType
   if (!column) return []
 
@@ -258,7 +261,7 @@ export function itemTypesIn(data: any[], columns: ColumnMap): string[] {
  * in the file, returns the data unchanged, so a stale selection degrades to
  * "no filter" rather than a blank chart.
  */
-export function filterByItemType(data: any[], columns: ColumnMap, selected: readonly string[]): any[] {
+export function filterByItemType(data: CsvRow[], columns: ColumnMap, selected: readonly string[]): CsvRow[] {
   const column = columns.itemType
   if (selected.length === 0 || !column) return data
 
@@ -289,7 +292,7 @@ export const OPEN_DATE_RANGE: DateRange = { from: null, to: null }
  * than its to, both return the data unchanged, so an inverted or stale window
  * degrades to "no filter" rather than a blank chart.
  */
-export function filterByDateRange(data: any[], columns: ColumnMap, range: DateRange): any[] {
+export function filterByDateRange(data: CsvRow[], columns: ColumnMap, range: DateRange): CsvRow[] {
   const column = columns.endDate
   const { from, to } = range
   if (!column || (from === null && to === null)) return data
@@ -305,7 +308,7 @@ export function filterByDateRange(data: any[], columns: ColumnMap, range: DateRa
 }
 
 /** Earliest and latest parsed end date, at local midnight, or null when none parses. */
-export function endDateSpan(data: any[], columns: ColumnMap): { min: number; max: number } | null {
+export function endDateSpan(data: CsvRow[], columns: ColumnMap): { min: number; max: number } | null {
   const column = columns.endDate
   if (!column) return null
 
@@ -356,7 +359,7 @@ export type WorkItem = CompletedItem
  * the source is not read: an export's own "active" cycle time measures
  * something different from elapsed calendar days.
  */
-export function cycleTimeFor(row: any, columns: ColumnMap): number | null {
+export function cycleTimeFor(row: CsvRow, columns: ColumnMap): number | null {
   if (!columns.startDate || !columns.endDate) return null
 
   const start = parseDate(row[columns.startDate])
@@ -379,7 +382,7 @@ function startOfDay(date: Date): number {
  * cell does not parse, or when the end date precedes the start. Only a blank
  * end cell means in progress, so garbage never masquerades as unfinished work.
  */
-export function toFlowItems(data: any[], columns: ColumnMap): FlowItem[] {
+export function toFlowItems(data: CsvRow[], columns: ColumnMap): FlowItem[] {
   if (!columns.startDate || !columns.endDate) return []
 
   return data
@@ -416,14 +419,14 @@ export function toFlowItems(data: any[], columns: ColumnMap): FlowItem[] {
  * Turn raw CSV rows into the shape every analysis needs: an id, a completion
  * timestamp and a cycle time in days, sorted oldest first.
  */
-export function toWorkItems(data: any[], columns: ColumnMap): WorkItem[] {
+export function toWorkItems(data: CsvRow[], columns: ColumnMap): WorkItem[] {
   return toFlowItems(data, columns)
     .filter((item): item is CompletedItem => item.status === 'completed')
     .sort((a, b) => a.endDate - b.endDate)
 }
 
 /** Started but not finished, in file order. */
-export function toInProgressItems(data: any[], columns: ColumnMap): InProgressItem[] {
+export function toInProgressItems(data: CsvRow[], columns: ColumnMap): InProgressItem[] {
   return toFlowItems(data, columns).filter(
     (item): item is InProgressItem => item.status === 'in-progress'
   )

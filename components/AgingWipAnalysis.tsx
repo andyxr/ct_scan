@@ -1,17 +1,18 @@
 'use client'
 
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine } from 'recharts'
-import { detectColumns, formatDate, toInProgressItems, toWorkItems } from '@/lib/csv'
+import { detectColumns, formatDate, toInProgressItems, toWorkItems, type CsvRow } from '@/lib/csv'
 import { agingBands, agingItems, olderThan, type AgingBands, type AgingItem } from '@/lib/aging'
 import { SHEET_INK } from '@/lib/colours'
 import { DEFAULT_SLE_DAYS } from '@/lib/sle'
 import TypeColourControl from './TypeColourControl'
 import ExportPngButton from './ExportPngButton'
 import ChartViewToggle, { ChartView, useEscapeToRestore } from './ChartViewToggle'
+import { useIsClient } from './useIsClient'
 
 interface AgingWipAnalysisProps {
-  data: any[]
+  data: CsvRow[]
   /** Colour per item type, keyed by the file's full type list. Absent for files with no item_type column. */
   typeColours?: Record<string, string>
   onTypeColourChange?: (type: string, colour: string) => void
@@ -188,7 +189,7 @@ export default function AgingWipAnalysis({
   onTypeColourChange,
   onResetTypeColours,
 }: AgingWipAnalysisProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useIsClient()
   const [asOf, setAsOf] = useState<number>(() => todayMs())
   const [showSle, setShowSle] = useState(false)
   const [sleDays, setSleDays] = useState(DEFAULT_SLE_DAYS)
@@ -196,10 +197,6 @@ export default function AgingWipAnalysis({
   const [view, setView] = useState<ChartView>('normal')
   const maximised = view === 'maximised'
   const chartRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   useEscapeToRestore(view, () => setView('normal'))
 
