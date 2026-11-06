@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Architects_Daughter, Roboto_Condensed, Roboto_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { THEME_BOOT_SCRIPT } from '@/lib/theme'
 import LiquidGlassFilter from '@/components/LiquidGlassFilter'
@@ -13,17 +13,23 @@ import PaperFilters from '@/components/PaperFilters'
  * Both are exposed as CSS variables so lib/png.ts can name the same families when
  * it rasterises a chart — an export that falls back to Inter would disagree with
  * the screen it was taken from.
+ *
+ * Self-hosted (latin subset, variable weight) rather than next/font/google: that
+ * fetches from Google at build time, and a bad response there fails the deploy.
  */
-const sheetSans = Roboto_Condensed({
-  subsets: ['latin'],
-  weight: ['400', '700'],
+const sheetSans = localFont({
+  src: './fonts/RobotoCondensed-latin-var.woff2',
+  weight: '400 700',
   variable: '--font-sheet-sans',
 })
 
-const sheetMono = Roboto_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+const sheetMono = localFont({
+  src: './fonts/RobotoMono-latin-var.woff2',
+  weight: '400 700',
   variable: '--font-sheet-mono',
+  // The default metric-matched fallback is Arial, which would misalign figures while the font loads.
+  adjustFontFallback: false,
+  fallback: ['ui-monospace', 'monospace'],
 })
 
 /**
@@ -31,8 +37,8 @@ const sheetMono = Roboto_Mono({
  * architect's drawing labels, so the page reads as hand-written without
  * slanting or going comic. Not preloaded; only Paper uses it.
  */
-const paperHand = Architects_Daughter({
-  subsets: ['latin'],
+const paperHand = localFont({
+  src: './fonts/ArchitectsDaughter-latin.woff2',
   weight: '400',
   variable: '--font-paper-hand',
   preload: false,
