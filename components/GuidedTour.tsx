@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Compass, X } from 'lucide-react'
-import { TOUR_STEPS, type TourStep } from '@/lib/tour'
+import { TOUR_STEPS, type ThemeFrame, type TourStep } from '@/lib/tour'
+import { restoreStoredTheme } from '@/lib/theme'
 
 /** Breathing room between the spotlight's ring and the element it frames. */
 const SPOTLIGHT_PAD = 6
@@ -68,22 +69,62 @@ function useStepTarget(step: TourStep): DOMRect | null {
   return rect
 }
 
+/** How long each theme holds during the theme show. */
+const THEME_FRAME_MS = 2500
+
 /**
- * Tours always run in the Default theme, so every step looks the way its copy
- * describes. The stored theme is untouched; the attribute alone is swapped and
- * put back on exit, unless the user picked another theme mid-tour.
+ * Tours run in the Default theme, so every step looks the way its copy
+ * describes, except a step that shows the themes off. Only the attributes are
+ * swapped; on exit the stored theme goes back, so a theme the user picked from
+ * the header mid-tour is the one they keep.
  */
-function useDefaultTheme() {
+function useTourTheme(step: TourStep) {
+  useEffect(() => restoreStoredTheme, [])
+
   useEffect(() => {
-    const root = document.documentElement
-    const previous = root.dataset.theme
-    root.dataset.theme = 'default'
-    return () => {
-      if (root.dataset.theme !== 'default') return
-      if (previous) root.dataset.theme = previous
-      else delete root.dataset.theme
-    }
-  }, [])
+    if (!step.themes) document.documentElement.dataset.theme = 'default'
+  }, [step])
+}
+
+const showFrame = (frame: ThemeFrame) => {
+  const root = document.documentElement
+  root.dataset.theme = frame.theme
+  if (frame.mode) root.dataset.mode = frame.mode
+}
+
+/** Cycles the page through the step's themes until the user clicks one to hold it. */
+function ThemeShow({ frames }: { frames: readonly ThemeFrame[] }) {
+  const [shown, setShown] = useState(0)
+  const [held, setHeld] = useState(false)
+
+  useEffect(() => showFrame(frames[shown]), [frames, shown])
+
+  useEffect(() => {
+    if (held) return
+    const timer = setInterval(() => setShown(i => (i + 1) % frames.length), THEME_FRAME_MS)
+    return () => clearInterval(timer)
+  }, [held, frames])
+
+  return (
+    <div role="group" aria-label="Themes" className="mt-3 flex flex-wrap gap-1.5">
+      {frames.map((frame, i) => (
+        <button
+          key={frame.label}
+          type="button"
+          aria-pressed={i === shown}
+          onClick={() => {
+            setShown(i)
+            setHeld(true)
+          }}
+          className={`px-2 py-0.5 text-xs border ${
+            i === shown ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+          }`}
+        >
+          {frame.label}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 interface GuidedTourProps {
@@ -103,7 +144,7 @@ export default function GuidedTour({ index, onNavigate, onEnd }: GuidedTourProps
   const rect = useStepTarget(step)
   const nextRef = useRef<HTMLButtonElement>(null)
 
-  useDefaultTheme()
+  useTourTheme(step)
 
   useEffect(() => {
     nextRef.current?.focus({ preventScroll: true })
@@ -152,6 +193,7 @@ export default function GuidedTour({ index, onNavigate, onEnd }: GuidedTourProps
         <div key={step.id} aria-live="polite" className="tour-step px-4 pt-3">
           <h2 id="tour-title" className="text-lg font-bold tracking-[0.06em] text-gray-900">{step.title}</h2>
           <p id="tour-body" className="mt-1 text-sm leading-relaxed">{step.body}</p>
+          {step.themes && <ThemeShow frames={step.themes} />}
         </div>
 
         <ol aria-hidden className="mx-4 mt-3 flex gap-1">

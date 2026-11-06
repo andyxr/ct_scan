@@ -59,6 +59,22 @@ export function applyGlassMode(mode: GlassMode): void {
 }
 
 /**
+ * Puts back the stored theme and glass mode on <html> without writing storage,
+ * for previews (the guided tour) that swap the attributes directly. Storage is
+ * the user's choice, so a pick made mid-preview through the theme control wins.
+ */
+export function restoreStoredTheme(): void {
+  const root = document.documentElement
+  try {
+    root.dataset.theme = parseTheme(localStorage.getItem(THEME_STORAGE_KEY))
+    root.dataset.mode = parseGlassMode(localStorage.getItem(GLASS_MODE_STORAGE_KEY))
+  } catch {
+    root.dataset.theme = DEFAULT_THEME
+    root.dataset.mode = DEFAULT_GLASS_MODE
+  }
+}
+
+/**
  * Runs in <head> before first paint so a stored theme (and glass mode) never
  * flashes Default.
  * Inlined as a string because it must execute before React hydrates.

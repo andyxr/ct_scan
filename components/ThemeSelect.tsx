@@ -30,7 +30,7 @@ export default function ThemeSelect() {
 
   return (
     <>
-      <label className="sheet-field flex items-baseline gap-1.5 px-2 py-1">
+      <label data-tour="theme-select" className="sheet-field flex items-baseline gap-1.5 px-2 py-1">
         <span className="opacity-70">Theme</span>
         <select
           value={theme}

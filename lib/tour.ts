@@ -1,4 +1,5 @@
 import type { AnalysisId } from './analyses'
+import { GLASS_MODES, THEMES, type GlassMode, type ThemeId } from './theme'
 
 /**
  * Which screen a tour step needs on show. The page owns the app state, so it
@@ -29,7 +30,22 @@ export interface TourStep {
   /** `data-tour` value of the element to spotlight. None centres the toast on nothing in particular. */
   target?: string
   ensure?: TourEnsure
+  /** Themes the step cycles the page through while it is up. */
+  themes?: readonly ThemeFrame[]
 }
+
+export interface ThemeFrame {
+  theme: ThemeId
+  mode?: GlassMode
+  label: string
+}
+
+/** Every theme, with Liquid Glass shown in each of its modes. Derived so a new theme joins the show. */
+export const THEME_SHOW: readonly ThemeFrame[] = THEMES.flatMap<ThemeFrame>(t =>
+  t.id === 'liquid-glass'
+    ? GLASS_MODES.map(m => ({ theme: t.id, mode: m.id, label: `${t.label} ${m.label.toLowerCase()}` }))
+    : [{ theme: t.id, label: t.label }]
+)
 
 export const TOUR_OFFERED_KEY = 'flowgauge-tour-offered'
 
@@ -121,9 +137,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
     ensure: { target: 'mc-mode', state: 'when' },
   },
   {
-    id: 'done',
-    title: 'That’s the tour',
-    body: 'Finish puts back whatever you had open. Take the tour again any time from Tour in the header.',
+    id: 'themes',
+    title: 'Pick a theme',
+    body: 'The same sheet comes in several skins. The tour is cycling through them now; click one to hold it. Choose yours from Theme in the header and Flowgauge remembers it. Finish puts back your own theme and whatever you had open; Tour in the header runs this again.',
     scene: { screen: 'analysis', id: 'monte-carlo' },
+    target: 'theme-select',
+    themes: THEME_SHOW,
   },
 ]
