@@ -1183,3 +1183,265 @@ input[type="checkbox"] {
     --color-gray-100: #20244a;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   THEME: Paper
+   ---------------------------------------------------------------------------
+
+   The sheet redrawn by hand in a sketchbook: warm, grained paper, pen-ink chrome
+   with wobbly borders and uneven corners, and charts that look drawn with
+   coloured pens. Lettering is upright and even (Architects Daughter), never
+   slanted or comic, so it still reads cleanly when projected.
+
+   The hand comes from the SVG filters in components/PaperFilters.tsx: strokes
+   wobble, fills become coloured hatching. Text is never filtered, so labels and
+   figures stay crisp. Chart inks (lib/colours.ts) are untouched, so a signal
+   reads the same in every theme. lib/png.ts carries the filters into exports.
+   --------------------------------------------------------------------------- */
+[data-theme="paper"] {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* Uneven corners: each side bows by a different amount, as a hand-drawn box does. */
+  --paper-wobble: 14px 4px 12px 5px / 5px 12px 4px 14px;
+  --paper-wobble-soft: 8px 3px 7px 4px / 4px 7px 3px 8px;
+  --paper-pencil-shadow: 2px 3px 0 -1px color-mix(in srgb, var(--sheet-ink) 22%, transparent);
+
+  --sheet-stock: #fbf8f1;
+  --sheet-stock-deep: #f1ece0;
+  --sheet-stock-raised: #fffdf8;
+  --sheet-rule: #dcd5c3;
+  --sheet-rule-strong: #b7ae98;
+  --sheet-ink: #2a2b33;
+  --sheet-ink-soft: #4f5160;
+  --sheet-ink-faint: #7a7c88;
+  --sheet-blue: #2350a3;
+
+  --font-ui: var(--font-paper-hand), "Architects Daughter", var(--font-sheet-sans), sans-serif;
+  --font-figure: var(--font-paper-hand), "Architects Daughter", var(--font-sheet-mono), ui-monospace, monospace;
+
+  --color-white: #fffdf8;
+  --color-gray-50: #fbf8f1;
+  --color-gray-100: #f1ece0;
+  --color-gray-200: #dcd5c3;
+  --color-gray-300: #b7ae98;
+  --color-gray-400: #7a7c88;
+  --color-gray-500: #5d5f6c;
+  --color-gray-600: #4f5160;
+  --color-gray-700: #3a3c46;
+  --color-gray-800: #2f3039;
+  --color-gray-900: #2a2b33;
+
+  /* Biro blue for the operator's hand. */
+  --color-blue-50: #e8eef9;
+  --color-blue-100: #d3dff3;
+  --color-blue-200: #aec3e8;
+  --color-blue-400: #4f77c4;
+  --color-blue-500: #3561b3;
+  --color-blue-600: #2350a3;
+  --color-blue-700: #1b3f84;
+  --color-blue-800: #16346c;
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 10px;
+  --radius-3xl: 12px;
+  --radius-4xl: 14px;
+
+  accent-color: var(--sheet-blue);
+}
+
+[data-theme="paper"] body {
+  background-color: var(--sheet-stock);
+  background-image: var(--paper-grain);
+  background-size: 220px 220px;
+  letter-spacing: 0.01em;
+}
+
+/* Architects Daughter has no tabular figures; the hand is worth more here than
+   the column alignment, so figures simply set in the same lettering. */
+[data-theme="paper"] :is(.sheet-field, .sheet-stamp) {
+  letter-spacing: 0.03em;
+}
+
+[data-theme="paper"] :is(.shadow-sm, .shadow, .shadow-md, .shadow-lg, .shadow-xl) {
+  --tw-shadow: var(--paper-pencil-shadow);
+}
+
+/* ---- Hand-drawn furniture ------------------------------------------------ */
+
+/* Boxes get their outline from a ::before so the outline alone can wobble; a
+   filter on the box itself would warp the text inside it too. */
+[data-theme="paper"] :is(.sheet-panel, .sheet-field) {
+  position: relative;
+  border-color: transparent;
+}
+
+[data-theme="paper"] :is(.sheet-panel, .sheet-field)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: var(--paper-wobble);
+  filter: url(#paper-sketch);
+  pointer-events: none;
+}
+
+[data-theme="paper"] .sheet-panel {
+  background-color: color-mix(in srgb, var(--sheet-stock-raised) 70%, transparent);
+  border-radius: var(--paper-wobble);
+}
+
+[data-theme="paper"] .sheet-panel::before {
+  border-width: 2px;
+}
+
+[data-theme="paper"] .sheet-field {
+  border-radius: var(--paper-wobble-soft);
+  text-transform: none;
+}
+
+[data-theme="paper"] .sheet-field::before {
+  border-color: currentColor;
+  border-radius: var(--paper-wobble-soft);
+}
+
+/* The banner is a title written across the top of the page and underlined. */
+[data-theme="paper"] .sheet-banner {
+  position: relative;
+  color: var(--sheet-ink);
+  background: transparent;
+  border-bottom: none;
+}
+
+[data-theme="paper"] .sheet-banner::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  border-top: 2.5px solid var(--sheet-ink);
+  border-radius: 50%;
+  filter: url(#paper-sketch);
+  pointer-events: none;
+}
+
+/* The plot is a clean page area; the chart's own axes are its frame. */
+[data-theme="paper"] .sheet-plot {
+  background-color: var(--sheet-stock-raised);
+  outline: none;
+  border-radius: var(--paper-wobble-soft);
+}
+
+[data-theme="paper"] .sheet-heading::after {
+  border-top: 1.5px solid var(--sheet-ink-soft);
+  filter: url(#paper-sketch);
+}
+
+[data-theme="paper"] .sheet-stamp {
+  border-width: 2px;
+  border-radius: var(--paper-wobble-soft);
+  transform: rotate(-3deg);
+}
+
+/* ---- Controls ------------------------------------------------------------ */
+
+[data-theme="paper"] :is(input[type="text"], input[type="number"], input[type="date"], select, textarea) {
+  background-color: var(--sheet-stock-raised);
+  border: 1.5px solid var(--sheet-ink-soft);
+  border-radius: var(--paper-wobble-soft);
+}
+
+[data-theme="paper"] select.theme-select {
+  background: transparent;
+  border: none;
+  text-transform: none;
+}
+
+[data-theme="paper"] button:is([class*="bg-white"], [class*="bg-gray"]) {
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: var(--paper-wobble-soft);
+  box-shadow: var(--paper-pencil-shadow);
+}
+
+[data-theme="paper"] button:is([class*="bg-blue-600"], [class*="bg-gray-900"]) {
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: var(--paper-wobble-soft);
+  box-shadow: var(--paper-pencil-shadow);
+}
+
+/* Tooltips and modals: a note card pencilled onto the page. */
+[data-theme="paper"] [class*="bg-white"][class*="shadow-lg"] {
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: var(--paper-wobble);
+}
+
+[data-theme="paper"] .border-gray-900 {
+  border-color: var(--sheet-ink-soft);
+}
+
+[data-theme="paper"] ::selection {
+  background-color: color-mix(in srgb, #f5d547 55%, transparent);
+  color: var(--sheet-ink);
+}
+
+[data-theme="paper"] :focus-visible {
+  outline: 2px dashed var(--sheet-blue);
+  outline-offset: 2px;
+}
+
+[data-theme="paper"] * {
+  scrollbar-color: var(--sheet-rule-strong) transparent;
+}
+
+[data-theme="paper"] ::-webkit-scrollbar-track {
+  background: transparent;
+  border-left: none;
+}
+
+[data-theme="paper"] ::-webkit-scrollbar-thumb {
+  background: var(--sheet-rule-strong);
+  border: 3px solid var(--sheet-stock);
+  border-radius: 999px;
+}
+
+/* ---- Charts drawn by hand ------------------------------------------------ */
+
+/* Pen strokes: round ends and joins, as ink leaves the nib. */
+[data-theme="paper"] .recharts-surface :is(path, line, polyline, circle, rect) {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Lines and marks wobble; series are filtered as whole layers, so one filter
+   pass serves every point in a scatter. */
+[data-theme="paper"] :is(
+  .recharts-cartesian-grid,
+  .recharts-cartesian-axis-line,
+  .recharts-cartesian-axis-tick-line,
+  .recharts-line-curve,
+  .recharts-line-dots,
+  .recharts-scatter-symbol,
+  .recharts-reference-line-line,
+  .percentile-line
+) {
+  filter: url(#paper-pen);
+}
+
+/* Filled areas become coloured hatching inside a wobbly outline. */
+[data-theme="paper"] :is(.recharts-bar-rectangle, .recharts-reference-area-rect) {
+  filter: url(#paper-hatch);
+}
+
+/* Grid in pencil, behind the coloured pens. */
+[data-theme="paper"] .recharts-cartesian-grid :is(line, path) {
+  stroke: color-mix(in srgb, var(--sheet-ink-faint) 45%, transparent);
+}
+
+[data-theme="paper"] .recharts-cartesian-axis-tick-value,
+[data-theme="paper"] .recharts-label,
+[data-theme="paper"] .recharts-reference-line text,
+[data-theme="paper"] .recharts-text {
+  font-variant-numeric: normal;
+}

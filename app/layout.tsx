@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Roboto_Condensed, Roboto_Mono } from 'next/font/google'
+import { Architects_Daughter, Roboto_Condensed, Roboto_Mono } from 'next/font/google'
 import './globals.css'
 import { THEME_BOOT_SCRIPT } from '@/lib/theme'
 import LiquidGlassFilter from '@/components/LiquidGlassFilter'
+import PaperFilters from '@/components/PaperFilters'
 
 /**
  * The sheet's two voices. Condensed grotesque for headings and labels, the way a
@@ -23,6 +24,18 @@ const sheetMono = Roboto_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   variable: '--font-sheet-mono',
+})
+
+/**
+ * The Paper theme's hand: upright, even lettering in the manner of an
+ * architect's drawing labels, so the page reads as hand-written without
+ * slanting or going comic. Not preloaded; only Paper uses it.
+ */
+const paperHand = Architects_Daughter({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-paper-hand',
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -60,7 +73,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sheetSans.variable} ${sheetMono.variable}`}
+      className={`${sheetSans.variable} ${sheetMono.variable} ${paperHand.variable}`}
       // The boot script sets data-theme before hydration, so the server markup
       // legitimately differs from the client on this one attribute.
       suppressHydrationWarning
@@ -76,6 +89,7 @@ export default function RootLayout({
         */}
         <div dangerouslySetInnerHTML={{ __html: DIRECTION_CONTRACT }} />
         <LiquidGlassFilter />
+        <PaperFilters />
         {children}
       </body>
     </html>

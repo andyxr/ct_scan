@@ -28,6 +28,7 @@ export async function exportSvgToPng(
     .filter(Boolean)
     .join(', ')
   clone.style.fontVariantNumeric = 'tabular-nums lining-nums'
+  inlineThemeFilters(svg, clone)
 
   const xml = new XMLSerializer().serializeToString(clone)
   const source = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml)
@@ -54,6 +55,39 @@ export async function exportSvgToPng(
   document.body.appendChild(link)
   link.click()
   link.remove()
+}
+
+/**
+ * A theme can draw a chart through SVG filters set from CSS (Paper's hand-drawn
+ * pens). That CSS, and the filter defs it points at, live outside the chart, so
+ * the clone would export clean. Copy each element's computed filter and stroke
+ * ends onto the clone, and the referenced filters into its own <defs>.
+ */
+function inlineThemeFilters(svg: SVGSVGElement, clone: SVGSVGElement): void {
+  const live = [svg, ...svg.querySelectorAll('*')]
+  const copies = [clone, ...clone.querySelectorAll('*')]
+  const filterIds = new Set<string>()
+
+  live.forEach((el, i) => {
+    const copy = copies[i] as SVGElement | undefined
+    if (!copy) return
+    const style = getComputedStyle(el)
+    const id = /url\(["']?#([^"')]+)["']?\)/.exec(style.filter)?.[1]
+    if (id) {
+      filterIds.add(id)
+      copy.setAttribute('filter', `url(#${id})`)
+    }
+    if (style.strokeLinecap === 'round') copy.setAttribute('stroke-linecap', 'round')
+    if (style.strokeLinejoin === 'round') copy.setAttribute('stroke-linejoin', 'round')
+  })
+
+  if (filterIds.size === 0) return
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+  filterIds.forEach((id) => {
+    const filter = document.getElementById(id)
+    if (filter) defs.appendChild(filter.cloneNode(true))
+  })
+  clone.insertBefore(defs, clone.firstChild)
 }
 
 function loadImage(source: string): Promise<HTMLImageElement> {

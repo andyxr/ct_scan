@@ -7,6 +7,7 @@ export const THEMES = [
   { id: 'default', label: 'Default' },
   { id: 'macos8', label: 'MacOS8' },
   { id: 'liquid-glass', label: 'Liquid Glass' },
+  { id: 'paper', label: 'Paper' },
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']
