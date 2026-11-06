@@ -6,6 +6,52 @@ import { FileSpreadsheet, BarChart3, Sparkles } from 'lucide-react'
 import { DEMO_DATA } from '@/lib/demoData'
 import { validationError, type CsvRow } from '@/lib/csv'
 
+/** Example files, shown as tables. The first row is the header; '' is a blank cell. */
+const DATES_EXAMPLE = [
+  ['item_type', 'end_date', 'estimate', 'item_id', 'start_date'],
+  ['Story', '15/03/2025', '5', 'DF-73', '01/03/2025'],
+  ['Bug', '11/03/2025', '3', 'DF-74', '04/03/2025'],
+  ['Task', '', '2', 'DF-75', '10/03/2025'],
+]
+
+const STATES_EXAMPLE = [
+  ['item_id', 'item_type', 'backlog', 'in_progress', 'review', 'done'],
+  ['DF-73', 'Story', '24/02/2025', '01/03/2025', '12/03/2025', '15/03/2025'],
+  ['DF-74', 'Bug', '03/03/2025', '04/03/2025', '10/03/2025', '11/03/2025'],
+  ['DF-75', 'Task', '05/03/2025', '10/03/2025', '', ''],
+]
+
+function ExampleCsv({ caption, rows }: { caption: string; rows: string[][] }) {
+  const [header, ...body] = rows
+  return (
+    <div className="overflow-x-auto">
+      <table className="sheet-figure border-collapse text-xs text-gray-700">
+        <caption className="mb-1 text-left [font-family:var(--font-ui)] text-xs font-bold text-gray-700">{caption}</caption>
+        <thead>
+          <tr>
+            {header.map((cell) => (
+              <th key={cell} scope="col" className="border border-gray-200 bg-gray-100 px-2 py-1 text-left font-bold">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="bg-gray-50">
+          {body.map((row) => (
+            <tr key={row[header.indexOf('item_id')]}>
+              {row.map((cell, i) => (
+                <td key={header[i]} className="whitespace-nowrap border border-gray-200 px-2 py-1">
+                  {cell || <span className="text-gray-400">blank</span>}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 interface FileUploadProps {
   onUpload: (data: CsvRow[]) => void
 }
@@ -77,33 +123,48 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mb-8">
+      <div className="flex w-full max-w-4xl flex-col gap-6 mb-8">
         <div className="flex gap-3">
           <FileSpreadsheet className="h-6 w-6 shrink-0 text-blue-600" aria-hidden="true" />
           <div>
             <h2 className="font-bold tracking-[0.1em] text-gray-900">1. Bring your CSV</h2>
             <p className="text-sm text-gray-600 mt-1">
-              One row per work item, with a header row. Columns can be
-              in any order. Required: <code>item_id</code>, <code>start_date</code>,{' '}
-              <code>end_date</code>. Optional: <code>estimate</code> and{' '}
-              <code>item_type</code>. Leave <code>end_date</code> blank for an
-              item that is still in progress; those rows are counted but only
-              completed items are charted.
+              One row per work item, with a header row. Columns can be in any
+              order. Required: <code>item_id</code>, <code>start_date</code>{' '}
+              (when work started) and <code>end_date</code> (when it finished).
+              Optional: <code>estimate</code> and <code>item_type</code>.
             </p>
-            <pre className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700">
-              <code>{`item_type,end_date,estimate,item_id,start_date
-Story,15/03/2025,5,DF-73,01/03/2025
-Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
-            </pre>
             <p className="text-sm text-gray-600 mt-2">
-              Header matching ignores case, spaces, underscores and hyphens, and
-              common alternatives such as <code>key</code>, <code>started</code>{' '}
-              and <code>completed</code> work too. Date formats are detected per
-              value, so DD/MM/YYYY and ISO timestamps such as{' '}
-              <code>2026-01-27T15:42:43Z</code> both parse. Cycle time is worked
-              out from the two dates; a <code>cycle_time</code> column is ignored.
-              An estimate unlocks correlation analysis, and an item type adds a
-              filter to every chart.
+              An item&apos;s state comes from its <code>end_date</code>. With a
+              date, the item is done and feeds cycle times, process behaviour,
+              correlation and forecasts. Left blank, the item is still in
+              progress and shows on Aging Work In Progress, measured against
+              the cycle times of finished work.
+            </p>
+            <div className="mt-3 flex flex-col gap-3">
+              <ExampleCsv caption="Start and end dates" rows={DATES_EXAMPLE} />
+              <ExampleCsv caption="One column per workflow state" rows={STATES_EXAMPLE} />
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Your export can carry a date column for every state in your
+              workflow. Cycle time runs from the state where work starts to the
+              state where it finishes, so in the second example{' '}
+              <code>in_progress</code> is the start, <code>done</code> is the end,
+              and <code>backlog</code> and <code>review</code> are ignored. An
+              item with no <code>done</code> date is still in progress.
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Header matching ignores case, spaces, underscores and hyphens.
+              The start can be headed <code>start_date</code>,{' '}
+              <code>started</code>, <code>in_progress</code> or{' '}
+              <code>commitment_date</code>; the end <code>end_date</code>,{' '}
+              <code>done</code>, <code>completed</code>, <code>resolved</code>{' '}
+              or <code>closed</code>. Other state columns are ignored. Date formats are detected per value, so DD/MM/YYYY
+              and ISO timestamps such as <code>2026-01-27T15:42:43Z</code> both
+              parse. Cycle time is worked out from the two dates; a{' '}
+              <code>cycle_time</code> column is ignored. An estimate unlocks
+              correlation analysis, and an item type lets you filter every chart
+              by one or more types.
             </p>
           </div>
         </div>
@@ -113,10 +174,10 @@ Bug,11/03/2025,3,DF-74,04/03/2025`}</code>
           <div>
             <h2 className="font-bold tracking-[0.1em] text-gray-900">2. Pick an analysis</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Plot cycle times against percentile lines, chart process
-              behaviour to see whether delivery is stable, compare estimates with
-              actual cycle times, or forecast delivery dates with a Monte Carlo
-              simulation.
+              Plot cycle times against percentile lines, see how long each
+              in-progress item has been running, chart process behaviour to see
+              whether delivery is stable, compare estimates with actual cycle
+              times, or forecast delivery with a Monte Carlo simulation.
             </p>
           </div>
         </div>
