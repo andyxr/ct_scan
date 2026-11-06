@@ -1431,3 +1431,43 @@ input[type="checkbox"] {
 [data-theme="paper"] .recharts-text {
   font-variant-numeric: normal;
 }
+
+/* ---- Guided tour --------------------------------------------------------- */
+
+/* The tour always runs in Default, so these use the sheet's own tokens. The dim
+   is ink, not black: the page under it should read as the same sheet in shadow. */
+.tour-dim {
+  background-color: color-mix(in srgb, var(--sheet-ink) 40%, transparent);
+}
+
+/* The spotlight dims everything outside it with one huge outer shadow, and
+   rings the target in stamp blue: the operator's hand, pointing. */
+.tour-spotlight {
+  outline: 2px solid var(--sheet-blue);
+  outline-offset: 0;
+  box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--sheet-ink) 40%, transparent);
+  transition: top 220ms ease-out, left 220ms ease-out, width 220ms ease-out, height 220ms ease-out;
+}
+
+@keyframes tour-toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tour-step-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tour-toast {
+  animation: tour-toast-in 220ms ease-out;
+}
+
+.tour-step {
+  animation: tour-step-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight { transition: none; }
+  .tour-toast, .tour-step { animation: none; }
+}

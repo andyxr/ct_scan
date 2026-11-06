@@ -187,6 +187,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
       {/* The sheet's entry fields: ruled boxes waiting to be filled in, not
           dashed cards floating on the stock. */}
       <div
+        data-tour="byo-csv"
         className={`w-80 border p-6 text-center transition-colors ${
           isDragging
             ? 'border-blue-600 bg-blue-50'
@@ -232,6 +233,7 @@ export default function FileUpload({ onUpload }: FileUploadProps) {
 
       <button
         type="button"
+        data-tour="demo-data"
         onClick={() => {
           const problem = validationError(DEMO_DATA)
           setError(problem)

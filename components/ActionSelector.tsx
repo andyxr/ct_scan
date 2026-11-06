@@ -23,7 +23,7 @@ export default function ActionSelector({ onActionSelect, data }: ActionSelectorP
   const columns = useMemo(() => detectColumns(data), [data])
 
   return (
-    <section>
+    <section data-tour="analysis-list">
       <h2 className="sheet-heading mb-1 text-sm font-bold tracking-[0.16em] text-gray-700">
         Available analyses
       </h2>

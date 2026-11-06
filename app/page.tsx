@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import FileUpload from '@/components/FileUpload'
 import ActionSelector from '@/components/ActionSelector'
@@ -24,6 +24,9 @@ import type { AnalysisId } from '@/lib/analyses'
 import AboutLink from '@/components/AboutLink'
 import ThemeSelect from '@/components/ThemeSelect'
 import SplashScreen from '@/components/SplashScreen'
+import GuidedTour, { TourOffer } from '@/components/GuidedTour'
+import { DEMO_DATA } from '@/lib/demoData'
+import { TOUR_OFFERED_KEY, TOUR_STEPS, type TourScene } from '@/lib/tour'
 
 const CycleTimeAnalysis = dynamic(
   () => import('@/components/CycleTimeAnalysis'),
@@ -82,6 +85,28 @@ export default function Home() {
   ), [itemTypes, colourOverrides])
 
   const [showSplash, setShowSplash] = useState(true)
+  /** Index into TOUR_STEPS while the tour runs. */
+  const [tourStep, setTourStep] = useState<number | null>(null)
+  const [tourOffered, setTourOffered] = useState(false)
+  /** What the user had open when the tour started, put back when it ends. */
+  const beforeTour = useRef<{
+    csvData: CsvRow[]
+    selectedAction: AnalysisAction
+    itemTypeSelection: string[]
+    dateRange: DateRange
+    colourOverrides: Record<string, string>
+  } | null>(null)
+
+  // The tour is offered once the splash clears, to a browser that has never seen the offer.
+  // Stable, because SplashScreen restarts its timers whenever onDone changes.
+  const handleSplashDone = useCallback(() => {
+    setShowSplash(false)
+    try {
+      if (!localStorage.getItem(TOUR_OFFERED_KEY)) setTourOffered(true)
+    } catch {
+      // Storage unavailable: no record of the offer, so no offer.
+    }
+  }, [])
 
   const handleFileUpload = (data: CsvRow[]) => {
     setCsvData(data)
@@ -103,6 +128,46 @@ export default function Home() {
     setColourOverrides({})
   }
 
+  const markTourOffered = () => {
+    setTourOffered(false)
+    try {
+      localStorage.setItem(TOUR_OFFERED_KEY, '1')
+    } catch {
+      // Storage unavailable; the offer just comes back next visit.
+    }
+  }
+
+  const showTourScene = (scene: TourScene) => {
+    if (scene.screen === 'upload') return handleReset()
+    // Reloading demo data only when it is not already open keeps a filter the user tried mid-tour.
+    if (csvData !== DEMO_DATA) handleFileUpload(DEMO_DATA)
+    setSelectedAction(scene.screen === 'analysis' ? scene.id : null)
+  }
+
+  const goToTourStep = (index: number) => {
+    setTourStep(index)
+    showTourScene(TOUR_STEPS[index].scene)
+  }
+
+  const startTour = () => {
+    markTourOffered()
+    if (tourStep !== null) return
+    beforeTour.current = { csvData, selectedAction, itemTypeSelection, dateRange, colourOverrides }
+    goToTourStep(0)
+  }
+
+  const endTour = () => {
+    setTourStep(null)
+    const before = beforeTour.current
+    if (!before) return
+    setCsvData(before.csvData)
+    setSelectedAction(before.selectedAction)
+    setItemTypeSelection(before.itemTypeSelection)
+    setDateRange(before.dateRange)
+    setColourOverrides(before.colourOverrides)
+    beforeTour.current = null
+  }
+
   const fileSpan = useMemo(() => {
     const items = toWorkItems(csvData, columns)
     if (items.length === 0) return null
@@ -114,7 +179,9 @@ export default function Home() {
     // Column layout so the footer rule closes the sheet at the foot of the
     // viewport rather than floating directly under short content.
     <main className="flex min-h-screen flex-col">
-      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      {showSplash && <SplashScreen onDone={handleSplashDone} />}
+      {tourStep !== null && <GuidedTour index={tourStep} onNavigate={goToTourStep} onEnd={endTour} />}
+      {tourOffered && tourStep === null && <TourOffer onStart={startTour} onDismiss={markTourOffered} />}
 
       {/* The sheet's printed banner. A form states what it is and what was
           entered on it before any of the entries. */}
@@ -139,6 +206,13 @@ export default function Home() {
                 )}
               </>
             )}
+            <button
+              type="button"
+              onClick={startTour}
+              className="sheet-field px-2 py-1 underline decoration-1 underline-offset-2 hover:opacity-75"
+            >
+              Tour
+            </button>
             <AboutLink />
             <ThemeSelect />
           </div>
@@ -190,6 +264,7 @@ export default function Home() {
             totalCount={csvData.length}
           />
 
+          <div data-tour="analysis-panel">
           {selectedAction === 'cycle-time' && (
             <CycleTimeAnalysis
               data={filteredData}
@@ -219,6 +294,7 @@ export default function Home() {
           {selectedAction === 'monte-carlo' && (
             <MonteCarloAnalysis data={filteredData} />
           )}
+          </div>
         </div>
       )}
       </div>

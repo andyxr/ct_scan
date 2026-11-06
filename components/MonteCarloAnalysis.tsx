@@ -292,6 +292,8 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                         hidden while maximised, and the question must stay switchable. */}
                     <button
                       type="button"
+                      data-tour="mc-mode"
+                      data-tour-state={mode}
                       onClick={() => setMode(forecastingDays ? 'how-many' : 'when')}
                       title={forecastingDays ? 'Switch to forecasting items' : 'Switch to forecasting dates'}
                       className={TOOLBAR_BUTTON}

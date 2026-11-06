@@ -33,7 +33,7 @@ export default function ItemTypeControl({ types, value, onChange, typeColours, c
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
+    <div data-tour="item-types" className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
       {types.length > 0 && (
         <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <legend className="sr-only">Item types</legend>

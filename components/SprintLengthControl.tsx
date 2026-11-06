@@ -18,10 +18,12 @@ export default function SprintLengthControl({ enabled, days, withinCount, totalC
   const percent = totalCount > 0 ? Math.round((withinCount / totalCount) * 100) : 0
 
   return (
-    <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
+    <div data-tour="sprint-length" className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
+          data-tour="sprint-toggle"
+          data-tour-state={enabled ? 'on' : 'off'}
           checked={enabled}
           onChange={e => onToggle(e.target.checked)}
           className="h-4 w-4 accent-amber-500"
