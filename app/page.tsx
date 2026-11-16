@@ -26,6 +26,8 @@ import ThemeSelect from '@/components/ThemeSelect'
 import SplashScreen from '@/components/SplashScreen'
 import GuidedTour, { TourOffer } from '@/components/GuidedTour'
 import { DEMO_DATA } from '@/lib/demoData'
+import { scanBatchCloses } from '@/lib/batchCloses'
+import BatchCloseModal from '@/components/BatchCloseModal'
 import { TOUR_OFFERED_KEY, TOUR_STEPS, type TourScene } from '@/lib/tour'
 
 const CycleTimeAnalysis = dynamic(
@@ -55,6 +57,9 @@ const MonteCarloAnalysis = dynamic(
 
 export type AnalysisAction = AnalysisId | null
 
+/** Whether Monte Carlo forecasts cap the file's batch-close days. Asked once per file. */
+type BatchCloseChoice = 'undecided' | 'discount' | 'keep'
+
 export default function Home() {
   const [csvData, setCsvData] = useState<CsvRow[]>([])
   const [selectedAction, setSelectedAction] = useState<AnalysisAction>(null)
@@ -63,8 +68,11 @@ export default function Home() {
   const [dateRange, setDateRange] = useState<DateRange>(OPEN_DATE_RANGE)
   /** User overrides only. Types without one fall back to the palette, so a new file leaves no stale keys. */
   const [colourOverrides, setColourOverrides] = useState<Record<string, string>>({})
+  const [batchCloseChoice, setBatchCloseChoice] = useState<BatchCloseChoice>('undecided')
 
   const columns = useMemo(() => detectColumns(csvData), [csvData])
+  // Unfiltered: a batch close is a fact about the file, and filtering must not move the limit.
+  const batchCloses = useMemo(() => scanBatchCloses(csvData), [csvData])
   const itemTypes = useMemo(() => itemTypesIn(csvData, columns), [csvData, columns])
   const endSpan = useMemo(() => endDateSpan(csvData, columns), [csvData, columns])
   const inProgressCount = useMemo(
@@ -95,6 +103,7 @@ export default function Home() {
     itemTypeSelection: string[]
     dateRange: DateRange
     colourOverrides: Record<string, string>
+    batchCloseChoice: BatchCloseChoice
   } | null>(null)
 
   // The tour is offered once the splash clears, to a browser that has never seen the offer.
@@ -114,6 +123,7 @@ export default function Home() {
     setItemTypeSelection([])
     setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
+    setBatchCloseChoice('undecided')
   }
 
   const handleActionSelect = (action: AnalysisAction) => {
@@ -126,6 +136,7 @@ export default function Home() {
     setItemTypeSelection([])
     setDateRange(OPEN_DATE_RANGE)
     setColourOverrides({})
+    setBatchCloseChoice('undecided')
   }
 
   const markTourOffered = () => {
@@ -152,7 +163,7 @@ export default function Home() {
   const startTour = () => {
     markTourOffered()
     if (tourStep !== null) return
-    beforeTour.current = { csvData, selectedAction, itemTypeSelection, dateRange, colourOverrides }
+    beforeTour.current = { csvData, selectedAction, itemTypeSelection, dateRange, colourOverrides, batchCloseChoice }
     goToTourStep(0)
   }
 
@@ -165,6 +176,7 @@ export default function Home() {
     setItemTypeSelection(before.itemTypeSelection)
     setDateRange(before.dateRange)
     setColourOverrides(before.colourOverrides)
+    setBatchCloseChoice(before.batchCloseChoice)
     beforeTour.current = null
   }
 
@@ -182,6 +194,13 @@ export default function Home() {
       {showSplash && <SplashScreen onDone={handleSplashDone} />}
       {tourStep !== null && <GuidedTour index={tourStep} onNavigate={goToTourStep} onEnd={endTour} />}
       {tourOffered && tourStep === null && <TourOffer onStart={startTour} onDismiss={markTourOffered} />}
+      {batchCloses.closes.length > 0 && batchCloseChoice === 'undecided' && tourStep === null && (
+        <BatchCloseModal
+          scan={batchCloses}
+          onDiscount={() => setBatchCloseChoice('discount')}
+          onKeep={() => setBatchCloseChoice('keep')}
+        />
+      )}
 
       {/* The sheet's printed banner. A form states what it is and what was
           entered on it before any of the entries. */}
@@ -292,7 +311,12 @@ export default function Home() {
           )}
 
           {selectedAction === 'monte-carlo' && (
-            <MonteCarloAnalysis data={filteredData} />
+            <MonteCarloAnalysis
+              data={filteredData}
+              batchCloses={batchCloses}
+              discountBatchCloses={batchCloseChoice === 'discount'}
+              onDiscountBatchClosesChange={discount => setBatchCloseChoice(discount ? 'discount' : 'keep')}
+            />
           )}
           </div>
         </div>

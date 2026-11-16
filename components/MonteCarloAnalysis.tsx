@@ -15,6 +15,7 @@ import {
 } from '@/lib/monteCarlo'
 import { SHEET_INK } from '@/lib/colours'
 import type { CsvRow } from '@/lib/csv'
+import { capBatchCloses, type BatchCloseScan } from '@/lib/batchCloses'
 import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ForecastCalendar from './ForecastCalendar'
@@ -23,6 +24,10 @@ import { useIsClient } from './useIsClient'
 
 interface MonteCarloAnalysisProps {
   data: CsvRow[]
+  /** Scanned over the whole file, so its days may fall outside `data`. */
+  batchCloses: BatchCloseScan
+  discountBatchCloses: boolean
+  onDiscountBatchClosesChange: (discount: boolean) => void
 }
 
 /** "how-many" fixes the days and forecasts items; "when" fixes the items and forecasts days. */
@@ -70,7 +75,7 @@ function HistogramTooltip({
   return null
 }
 
-export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
+export default function MonteCarloAnalysis({ data, batchCloses, discountBatchCloses, onDiscountBatchClosesChange }: MonteCarloAnalysisProps) {
   const isMounted = useIsClient()
   // Number fields keep raw text so the user can clear and retype; the clamped value is derived.
   const [numSimulationsText, setNumSimulationsText] = useState('10000')
@@ -94,7 +99,12 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const { dailyThroughput, throughputArray } = useMemo(() => throughputFrom(data), [data])
+  const { dailyThroughput, throughputArray: recordedThroughput } = useMemo(() => throughputFrom(data), [data])
+  const throughputArray = useMemo(
+    () => (discountBatchCloses ? capBatchCloses(dailyThroughput, batchCloses) : recordedThroughput),
+    [discountBatchCloses, dailyThroughput, batchCloses, recordedThroughput]
+  )
+  const cappedDayCount = throughputArray.filter((count, i) => count !== recordedThroughput[i]).length
 
   const { histogram, stats, unreachable } = useMemo(() => {
     if (throughputArray.length === 0) return EMPTY_SIMULATION
@@ -174,6 +184,21 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
               <Reading label="Min Daily" value={String(Math.min(...throughputArray))} />
               <Reading label="Max Daily" value={String(Math.max(...throughputArray))} />
             </dl>
+            {batchCloses.closes.length > 0 && (
+              <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={discountBatchCloses}
+                  onChange={(e) => onDiscountBatchClosesChange(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  Discount batch closes: count the {batchCloses.closes.length === 1 ? 'day' : `${batchCloses.closes.length} days`} that
+                  {' '}look like work recorded late in bulk ({batchCloses.closes.map(close => close.date).join(', ')}) as
+                  {' '}{batchCloses.cap} {batchCloses.cap === 1 ? 'item' : 'items'}, the most a normal day reaches
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Simulation Parameters */}
@@ -424,6 +449,13 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                     </>
                   )}
                 </p>
+                {discountBatchCloses && cappedDayCount > 0 && (
+                  <p>
+                    <strong>Batch closes discounted:</strong> {cappedDayCount} {cappedDayCount === 1 ? 'day' : 'days'} that
+                    {' '}look like work recorded late in bulk {cappedDayCount === 1 ? 'counts' : 'count'} as {batchCloses.cap} {batchCloses.cap === 1 ? 'item' : 'items'} in
+                    {' '}this forecast, so a one-off catch-up doesn&apos;t read as a repeatable day. Other charts show the data as recorded.
+                  </p>
+                )}
                 <p>
                   <strong>Methodology:</strong> This Monte Carlo simulation randomly samples from your historical daily throughput data
                   to model future performance variability and generate probabilistic forecasts.
