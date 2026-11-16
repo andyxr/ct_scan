@@ -428,6 +428,9 @@ export default function MonteCarloAnalysis({ data }: MonteCarloAnalysisProps) {
                   <strong>Methodology:</strong> This Monte Carlo simulation randomly samples from your historical daily throughput data
                   to model future performance variability and generate probabilistic forecasts.
                 </p>
+                <p>
+                  <strong>Team size:</strong> The forecast assumes the team that does the work matches the team that produced this history. If people have joined or left, narrow the date range to the period since the change. Don&apos;t scale the result by headcount. Output per person tends to fall as teams grow, and throughput usually dips for a few weeks after someone joins.
+                </p>
               </div>
               )}
             </>
