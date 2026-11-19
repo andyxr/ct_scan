@@ -114,6 +114,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     ensure: { target: 'sprint-toggle', state: 'on' },
   },
   {
+    id: 'throughput-run',
+    title: 'Throughput Run Chart',
+    body: 'Items finished per week, or per day or fortnight, against the median. Six in a row on one side of the median, or five rising or falling, turns red: a sign the process changed. Hollow points are partial weeks at the edges of the data.',
+    scene: { screen: 'analysis', id: 'throughput-run' },
+    target: 'analysis-panel',
+  },
+  {
     id: 'correlation',
     title: 'Correlation Analysis',
     body: 'Each marker spans the shortest to longest cycle time for one estimate value. When the spans overlap heavily, estimates aren’t predicting how long work takes.',

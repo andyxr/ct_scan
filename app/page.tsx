@@ -45,6 +45,11 @@ const ProcessBehaviourAnalysis = dynamic(
   { ssr: false }
 )
 
+const ThroughputRunAnalysis = dynamic(
+  () => import('@/components/ThroughputRunAnalysis'),
+  { ssr: false }
+)
+
 const AgingWipAnalysis = dynamic(
   () => import('@/components/AgingWipAnalysis'),
   { ssr: false }
@@ -304,6 +309,10 @@ export default function Home() {
 
           {selectedAction === 'process-behaviour' && (
             <ProcessBehaviourAnalysis data={filteredData} />
+          )}
+
+          {selectedAction === 'throughput-run' && (
+            <ThroughputRunAnalysis data={filteredData} batchCloses={batchCloses} />
           )}
 
           {selectedAction === 'correlation' && (

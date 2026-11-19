@@ -1,7 +1,7 @@
-import { ChartScatter, Hourglass, Activity, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
+import { ChartScatter, Hourglass, Activity, ChartLine, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
 import { hasUsableEstimate, toInProgressItems, type ColumnMap, type CsvRow } from './csv'
 
-export type AnalysisId = 'cycle-time' | 'aging-wip' | 'process-behaviour' | 'correlation' | 'monte-carlo'
+export type AnalysisId = 'cycle-time' | 'aging-wip' | 'process-behaviour' | 'throughput-run' | 'correlation' | 'monte-carlo'
 
 export interface Analysis {
   id: AnalysisId
@@ -9,7 +9,7 @@ export interface Analysis {
   description: string
   Icon: LucideIcon
   // Hover motion that echoes the chart: points scatter, sand runs, a trace
-  // pulses, bars grow, dice shake.
+  // pulses, a run climbs, bars grow, dice shake.
   hoverClass: string
   /**
    * Why the whole file cannot support this analysis, or null when it can.
@@ -57,6 +57,14 @@ export const ANALYSES: readonly Analysis[] = [
     description: 'Visualise process stability and predictability',
     Icon: Activity,
     hoverClass: 'group-hover:animate-pulse',
+    unavailableReason: always,
+  },
+  {
+    id: 'throughput-run',
+    title: 'Throughput Run Chart',
+    description: 'Items completed per day, week or fortnight against the median',
+    Icon: ChartLine,
+    hoverClass: 'transition-transform duration-300 group-hover:-translate-y-1',
     unavailableReason: always,
   },
   {
