@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { CsvRow } from '@/lib/csv'
 import type { BatchCloseScan } from '@/lib/batchCloses'
+import BatchCloseDiscountControl from './BatchCloseDiscountControl'
 import { SHEET_INK } from '@/lib/colours'
 import {
   MIN_POINTS_FOR_RULES,
@@ -23,6 +24,8 @@ interface ThroughputRunAnalysisProps {
   data: CsvRow[]
   /** Scanned over the unfiltered file, so a day's flag does not change with the filter. */
   batchCloses: BatchCloseScan
+  discountBatchCloses: boolean
+  onDiscountBatchClosesChange: (discount: boolean) => void
 }
 
 /** Only day buckets can be batch closes: the scan works on calendar days. */
@@ -87,6 +90,7 @@ function RunTooltip({
       <p className="font-bold text-blue-600">{noun === 'day' ? bucket.label : `${noun[0].toUpperCase()}${noun.slice(1)} from ${bucket.label}`}</p>
       <p className="text-sm">
         <strong>Completed:</strong> {bucket.count} {bucket.count === 1 ? 'item' : 'items'}
+        {bucket.recorded !== bucket.count && ` (recorded ${bucket.recorded}, batch closes discounted)`}
       </p>
       {bucket.partial && (
         <p className="text-xs text-gray-500 mt-1">Partial {noun}: the data starts or ends inside it, so it is left out of the median.</p>
@@ -105,7 +109,7 @@ function RunTooltip({
   )
 }
 
-export default function ThroughputRunAnalysis({ data, batchCloses }: ThroughputRunAnalysisProps) {
+export default function ThroughputRunAnalysis({ data, batchCloses, discountBatchCloses, onDiscountBatchClosesChange }: ThroughputRunAnalysisProps) {
   const isMounted = useIsClient()
   const [interval, setBucketInterval] = useState<ThroughputInterval>('week')
   const [view, setView] = useState<ChartView>('normal')
@@ -114,7 +118,10 @@ export default function ThroughputRunAnalysis({ data, batchCloses }: ThroughputR
 
   useEscapeToRestore(view, () => setView('normal'))
 
-  const run = useMemo(() => throughputRun(data, interval), [data, interval])
+  const run = useMemo(
+    () => throughputRun(data, interval, discountBatchCloses ? batchCloses : null),
+    [data, interval, discountBatchCloses, batchCloses]
+  )
   const noun = interval
   const points: RunPoint[] = useMemo(() => {
     const flagged = new Set(interval === 'day' ? batchCloses.closes.map(close => close.timestamp) : [])
@@ -165,6 +172,12 @@ export default function ThroughputRunAnalysis({ data, batchCloses }: ThroughputR
             <ChartViewToggle view={view} onChange={setView} />
           </div>
         </div>
+        <BatchCloseDiscountControl
+          scan={batchCloses}
+          discount={discountBatchCloses}
+          onChange={onDiscountBatchClosesChange}
+          className="mb-3"
+        />
         <div ref={chartRef} className={maximised ? 'sheet-plot flex-1 min-h-[16rem] w-full' : 'sheet-plot h-80 w-full'}>
           {isMounted && run.buckets.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -237,7 +250,7 @@ export default function ThroughputRunAnalysis({ data, batchCloses }: ThroughputR
           </p>
           {batchCloseCount > 0 && (
             <p>
-              <strong>Batch closes:</strong> the {batchCloseCount === 1 ? 'amber diamond marks a day' : `${batchCloseCount} amber diamonds mark days`} where more items closed than the file&apos;s daily limit of {batchCloses.limit.toFixed(1)}. That is usually bookkeeping, work recorded late in one sweep, rather than a real burst of delivery. The count is drawn as recorded and still feeds the median and the rules.
+              <strong>Batch closes:</strong> the {batchCloseCount === 1 ? 'amber diamond marks a day' : `${batchCloseCount} amber diamonds mark days`} where more items closed than the file&apos;s daily limit of {batchCloses.limit.toFixed(1)}. That is usually bookkeeping, work recorded late in one sweep, rather than a real burst of delivery. {discountBatchCloses ? `Discounted: each counts as ${batchCloses.cap}, in the median and the rules too.` : 'Drawn as recorded; tick Discount batch closes to count each as a normal day’s most.'}
             </p>
           )}
           <p>

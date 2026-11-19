@@ -16,6 +16,7 @@ import {
 import { SHEET_INK } from '@/lib/colours'
 import type { CsvRow } from '@/lib/csv'
 import { capBatchCloses, type BatchCloseScan } from '@/lib/batchCloses'
+import BatchCloseDiscountControl from './BatchCloseDiscountControl'
 import Reading from './Reading'
 import ExportPngButton from './ExportPngButton'
 import ForecastCalendar from './ForecastCalendar'
@@ -184,21 +185,12 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
               <Reading label="Min Daily" value={String(Math.min(...throughputArray))} />
               <Reading label="Max Daily" value={String(Math.max(...throughputArray))} />
             </dl>
-            {batchCloses.closes.length > 0 && (
-              <label className="mt-3 flex items-start gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={discountBatchCloses}
-                  onChange={(e) => onDiscountBatchClosesChange(e.target.checked)}
-                  className="mt-1"
-                />
-                <span>
-                  Discount batch closes: count the {batchCloses.closes.length === 1 ? 'day' : `${batchCloses.closes.length} days`} that
-                  {' '}look like work recorded late in bulk ({batchCloses.closes.map(close => close.date).join(', ')}) as
-                  {' '}{batchCloses.cap} {batchCloses.cap === 1 ? 'item' : 'items'}, the most a normal day reaches
-                </span>
-              </label>
-            )}
+            <BatchCloseDiscountControl
+              scan={batchCloses}
+              discount={discountBatchCloses}
+              onChange={onDiscountBatchClosesChange}
+              className="mt-3"
+            />
           </div>
 
           {/* Simulation Parameters */}

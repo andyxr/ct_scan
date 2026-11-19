@@ -72,6 +72,16 @@ describe('throughputRun', () => {
     expect(run.buckets.map(b => b.signals.includes('trend'))).toEqual([true, true, true, true, true, true, false, false, false, false])
   })
 
+  it('caps batch-close days when discounting, and carries the cap into weeks', () => {
+    const data = rows(days({ '2025-03-03': 1, '2025-03-04': 9, '2025-03-09': 1 }))
+    const scan = { limit: 3.5, cap: 3, closes: [{ timestamp: new Date(2025, 2, 4).getTime(), date: '04/03/2025', count: 9, itemIds: [] }] }
+    const day = throughputRun(data, 'day', scan)
+    expect(day.buckets.slice(0, 2).map(b => [b.count, b.recorded])).toEqual([[1, 1], [3, 9]])
+    const week = throughputRun(data, 'week', scan)
+    expect(week.buckets.map(b => [b.count, b.recorded])).toEqual([[5, 11]])
+    expect(throughputRun(data, 'week').buckets.map(b => b.count)).toEqual([11])
+  })
+
   it('applies no rules below ten full points', () => {
     const spec: Record<string, number> = {}
     for (let d = 1; d <= 9; d++) spec[`2025-03-0${d}`] = d

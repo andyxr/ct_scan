@@ -14,9 +14,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
           Recently added:
         </p>
         <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
-           <li>Filtering by several item types at once</li>
-           <li>Choosing a target date for the How Many forecast</li>
-           <li>New UI themes</li>
+           <li>Throughput Run Chart: items finished per day, week or fortnight against the median, with shift and trend signals, batch-close days marked, and the option to discount them</li>
          </ul>
          <p className="mt-4 text-center text-gray-700 leading-relaxed">
           More features coming soon!

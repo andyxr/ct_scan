@@ -8,7 +8,7 @@ This is a Next.js application for analyzing CSV files containing development tea
 
 ## Commands
 
-- `npm run dev` - Start development server (usually on localhost:3000, may use 3001/3002 if port is busy)
+- `npm run dev` - Start development server (usually on localhost:3000, may use 3001/3002 if port is busy). When running inside herdr (`HERDR_ENV=1`), start it in the herdr pane labelled `run` (find its ID via `herdr pane list`), not as a background task.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint

@@ -13,6 +13,7 @@
 
 import { formatDate, type CsvRow } from './csv'
 import { throughputFrom } from './monteCarlo'
+import { capBatchCloses, type BatchCloseScan } from './batchCloses'
 
 export type ThroughputInterval = 'day' | 'week' | 'fortnight'
 
@@ -23,7 +24,10 @@ export interface ThroughputBucket {
   start: number
   /** DD/MM/YYYY of start, for the axis and tooltip. */
   label: string
+  /** What the chart plots: the recorded count, less any batch-close excess when discounting. */
   count: number
+  /** Items the file records as finished in the bucket. */
+  recorded: number
   /**
    * The history starts or ends inside this bucket, so some of its days are not
    * in the data. Its count is low for want of days, not of delivery, so it is
@@ -133,30 +137,37 @@ function trendIndices(values: number[]): Set<number> {
   return flagged
 }
 
-export function throughputRun(data: CsvRow[], interval: ThroughputInterval): ThroughputRun {
+/**
+ * `discount` caps each batch-close day before bucketing, the same cap the
+ * Monte Carlo forecast applies, so a week holding one carries the capped total.
+ */
+export function throughputRun(data: CsvRow[], interval: ThroughputInterval, discount: BatchCloseScan | null = null): ThroughputRun {
   const { dailyThroughput } = throughputFrom(data)
+  const counted = discount ? capBatchCloses(dailyThroughput, discount) : dailyThroughput.map(day => day.count)
   if (dailyThroughput.length === 0) return { buckets: [], median: null, fullBucketCount: 0, rules: 'too-few-points' }
 
   const length = INTERVAL_DAYS[interval]
   const first = dailyThroughput[0].timestamp
   const anchor = interval === 'day' ? first : mondayOf(first)
 
-  const byStart = new Map<number, { count: number; days: number }>()
-  for (const day of dailyThroughput) {
+  const byStart = new Map<number, { count: number; recorded: number; days: number }>()
+  dailyThroughput.forEach((day, i) => {
     const index = Math.floor(daysBetween(anchor, day.timestamp) / length)
     const start = new Date(anchor)
     start.setDate(start.getDate() + index * length)
     const key = start.getTime()
-    const bucket = byStart.get(key) ?? { count: 0, days: 0 }
-    bucket.count += day.count
+    const bucket = byStart.get(key) ?? { count: 0, recorded: 0, days: 0 }
+    bucket.count += counted[i]
+    bucket.recorded += day.count
     bucket.days += 1
     byStart.set(key, bucket)
-  }
+  })
 
-  const buckets: ThroughputBucket[] = [...byStart.entries()].map(([start, { count, days }]) => ({
+  const buckets: ThroughputBucket[] = [...byStart.entries()].map(([start, { count, recorded, days }]) => ({
     start,
     label: formatDate(start),
     count,
+    recorded,
     // The daily history has no gaps, so only an edge bucket can be short of days.
     partial: days < length,
     signals: [],

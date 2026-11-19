@@ -312,7 +312,12 @@ export default function Home() {
           )}
 
           {selectedAction === 'throughput-run' && (
-            <ThroughputRunAnalysis data={filteredData} batchCloses={batchCloses} />
+            <ThroughputRunAnalysis
+              data={filteredData}
+              batchCloses={batchCloses}
+              discountBatchCloses={batchCloseChoice === 'discount'}
+              onDiscountBatchClosesChange={discount => setBatchCloseChoice(discount ? 'discount' : 'keep')}
+            />
           )}
 
           {selectedAction === 'correlation' && (
