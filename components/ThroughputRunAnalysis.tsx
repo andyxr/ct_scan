@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import type { CsvRow } from '@/lib/csv'
 import type { BatchCloseScan } from '@/lib/batchCloses'
 import BatchCloseDiscountControl from './BatchCloseDiscountControl'
+import ThroughputIntervalToggle from './ThroughputIntervalToggle'
 import { SHEET_INK } from '@/lib/colours'
 import {
   MIN_POINTS_FOR_RULES,
@@ -31,18 +32,10 @@ interface ThroughputRunAnalysisProps {
 /** Only day buckets can be batch closes: the scan works on calendar days. */
 type RunPoint = ThroughputBucket & { batchClose: boolean }
 
-const INTERVALS: readonly { id: ThroughputInterval; label: string }[] = [
-  { id: 'day', label: 'Day' },
-  { id: 'week', label: 'Week' },
-  { id: 'fortnight', label: 'Fortnight' },
-]
-
 const SIGNAL_TEXT: Record<RunSignal, string> = {
   shift: `Shift: ${SHIFT_LENGTH}+ in a row on one side of the median`,
   trend: `Trend: ${TREND_LENGTH}+ in a row rising or falling`,
 }
-
-const SEGMENT = 'px-3 py-1.5 text-sm border-gray-300 first:rounded-l last:rounded-r border-y border-l last:border-r'
 
 function RunDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: RunPoint }) {
   if (cx === undefined || cy === undefined || !payload) return null
@@ -153,19 +146,7 @@ export default function ThroughputRunAnalysis({ data, batchCloses, discountBatch
         <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
           <h3 className="text-sm font-bold tracking-[0.14em] text-gray-700">Completed per {noun}</h3>
           <div className="flex items-center gap-2">
-            <div role="group" aria-label="Interval" className="flex">
-              {INTERVALS.map(option => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setBucketInterval(option.id)}
-                  aria-pressed={interval === option.id}
-                  className={`${SEGMENT} ${interval === option.id ? 'bg-gray-900 text-white border-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <ThroughputIntervalToggle value={interval} onChange={setBucketInterval} />
             {isMounted && run.buckets.length > 0 && (
               <ExportPngButton targetRef={chartRef} filename={`throughput-run-chart-${interval}.png`} />
             )}

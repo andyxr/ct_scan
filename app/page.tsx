@@ -50,6 +50,11 @@ const ThroughputRunAnalysis = dynamic(
   { ssr: false }
 )
 
+const ThroughputHistogramAnalysis = dynamic(
+  () => import('@/components/ThroughputHistogramAnalysis'),
+  { ssr: false }
+)
+
 const AgingWipAnalysis = dynamic(
   () => import('@/components/AgingWipAnalysis'),
   { ssr: false }
@@ -313,6 +318,15 @@ export default function Home() {
 
           {selectedAction === 'throughput-run' && (
             <ThroughputRunAnalysis
+              data={filteredData}
+              batchCloses={batchCloses}
+              discountBatchCloses={batchCloseChoice === 'discount'}
+              onDiscountBatchClosesChange={discount => setBatchCloseChoice(discount ? 'discount' : 'keep')}
+            />
+          )}
+
+          {selectedAction === 'throughput-histogram' && (
+            <ThroughputHistogramAnalysis
               data={filteredData}
               batchCloses={batchCloses}
               discountBatchCloses={batchCloseChoice === 'discount'}

@@ -15,6 +15,7 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
         </p>
         <ul className="list-disc list-inside mt-2 text-gray-700 leading-relaxed">
            <li>Throughput Run Chart: items finished per day, week or fortnight against the median, with shift and trend signals, batch-close days marked, and the option to discount them</li>
+           <li>Throughput Histogram: how often each day, week or fortnight finished a given number of items, with median and 85% lines</li>
          </ul>
          <p className="mt-4 text-center text-gray-700 leading-relaxed">
           More features coming soon!

@@ -121,6 +121,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'analysis-panel',
   },
   {
+    id: 'throughput-histogram',
+    title: 'Throughput Histogram',
+    body: 'How often a week finished 0, 1, 2 or more items. It is the spread Monte Carlo samples from: a wide one, or a tall bar at zero, means less certain forecasts. The 85% line marks the count most weeks reach.',
+    scene: { screen: 'analysis', id: 'throughput-histogram' },
+    target: 'analysis-panel',
+  },
+  {
     id: 'correlation',
     title: 'Correlation Analysis',
     body: 'Each marker spans the shortest to longest cycle time for one estimate value. When the spans overlap heavily, estimates aren’t predicting how long work takes.',
