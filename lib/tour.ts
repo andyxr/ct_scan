@@ -85,6 +85,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     target: 'analysis-panel',
   },
   {
+    id: 'cycle-time-histogram',
+    title: 'Cycle Time Histogram',
+    body: 'The same finished items, counted by how many days they took. Most work bunches on the left; the long tail on the right is what makes delivery unpredictable. The percentile lines match the scatterplot.',
+    scene: { screen: 'analysis', id: 'cycle-time-histogram' },
+    target: 'analysis-panel',
+  },
+  {
     id: 'item-types',
     title: 'Filter by item type',
     body: 'Tick one or more types to narrow every chart to them; All clears the filter. Each checkbox takes its type’s colour, so the row doubles as the chart key. Try it now.',
@@ -125,6 +132,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: 'Throughput Histogram',
     body: 'How often a week finished 0, 1, 2 or more items. It is the spread Monte Carlo samples from: a wide one, or a tall bar at zero, means less certain forecasts. The 85% line marks the count most weeks reach.',
     scene: { screen: 'analysis', id: 'throughput-histogram' },
+    target: 'analysis-panel',
+  },
+  {
+    id: 'throughput-by-type',
+    title: 'Throughput by Item Type',
+    body: 'Each week’s completions, stacked by type. Switch to Share % to see how the mix shifts, such as bugs taking a growing slice of capacity.',
+    scene: { screen: 'analysis', id: 'throughput-by-type' },
     target: 'analysis-panel',
   },
   {

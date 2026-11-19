@@ -55,6 +55,16 @@ const ThroughputHistogramAnalysis = dynamic(
   { ssr: false }
 )
 
+const CycleTimeHistogramAnalysis = dynamic(
+  () => import('@/components/CycleTimeHistogramAnalysis'),
+  { ssr: false }
+)
+
+const ThroughputByTypeAnalysis = dynamic(
+  () => import('@/components/ThroughputByTypeAnalysis'),
+  { ssr: false }
+)
+
 const AgingWipAnalysis = dynamic(
   () => import('@/components/AgingWipAnalysis'),
   { ssr: false }
@@ -303,6 +313,10 @@ export default function Home() {
             />
           )}
 
+          {selectedAction === 'cycle-time-histogram' && (
+            <CycleTimeHistogramAnalysis data={filteredData} />
+          )}
+
           {selectedAction === 'aging-wip' && (
             <AgingWipAnalysis
               data={filteredData}
@@ -332,6 +346,10 @@ export default function Home() {
               discountBatchCloses={batchCloseChoice === 'discount'}
               onDiscountBatchClosesChange={discount => setBatchCloseChoice(discount ? 'discount' : 'keep')}
             />
+          )}
+
+          {selectedAction === 'throughput-by-type' && (
+            <ThroughputByTypeAnalysis data={filteredData} typeColours={typeColours} />
           )}
 
           {selectedAction === 'correlation' && (

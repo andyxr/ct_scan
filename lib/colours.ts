@@ -67,3 +67,18 @@ export const SHEET_INK = {
   /** Pencil annotation: the sprint line, cautions. */
   amber: '#9a6a15',
 } as const
+
+/**
+ * Cycle time percentile lines, shared by the scatterplot and the histogram so a
+ * percentile looks the same on both.
+ *
+ * 85th stays the original blue dashed line. The others use different hues and
+ * dash patterns so they remain separable from each other and from the optional
+ * sprint (amber) and average (purple) overlays.
+ */
+export const PERCENTILE_LINES = [
+  { p: 0.50, name: '50th', stroke: SHEET_INK.inkSoft, dash: '2 4' },
+  { p: 0.75, name: '75th', stroke: SHEET_INK.green, dash: '8 3' },
+  { p: 0.85, name: '85th', stroke: SHEET_INK.blue, dash: '5 5' },
+  { p: 0.95, name: '95th', stroke: SHEET_INK.red, dash: '12 4' },
+] as const

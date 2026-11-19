@@ -18,7 +18,7 @@ import {
   type TypeBreakdown,
 } from '@/lib/sle'
 import { TREND_WINDOW_SIZE, TREND_WINDOW_STEP, sleTrend, type SleTrend } from '@/lib/sleTrend'
-import { SHEET_INK } from '@/lib/colours'
+import { PERCENTILE_LINES, SHEET_INK } from '@/lib/colours'
 import TypeColourControl from './TypeColourControl'
 import SprintLengthControl, { DEFAULT_SPRINT_DAYS } from './SprintLengthControl'
 import SleControl from './SleControl'
@@ -80,19 +80,6 @@ function paddedDomain(left: number, right: number): [number, number] {
   return [left - pad, right + pad]
 }
 
-/**
- * Horizontal percentile lines drawn on the scatterplot.
- *
- * 85th stays the original blue dashed line. The others use different hues and
- * dash patterns so they remain separable from each other and from the optional
- * sprint (amber) and average (purple) overlays.
- */
-const PERCENTILE_LINES = [
-  { p: 0.50, name: '50th', stroke: SHEET_INK.inkSoft, dash: '2 4' },
-  { p: 0.75, name: '75th', stroke: SHEET_INK.green, dash: '8 3' },
-  { p: 0.85, name: '85th', stroke: SHEET_INK.blue, dash: '5 5' },
-  { p: 0.95, name: '95th', stroke: SHEET_INK.red, dash: '12 4' },
-] as const
 
 /** Resting thickness of a percentile line, in px. The throb keyframes scale off this. */
 const PERCENTILE_STROKE = 2

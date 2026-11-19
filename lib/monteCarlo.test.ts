@@ -6,6 +6,7 @@ import {
   firstDayAtOrAbove,
   dateAfterDays,
   daysUntil,
+  forecastWindow,
   isoDateAfterDays,
   simulateDaysToTarget,
   simulateItemCount,
@@ -182,5 +183,31 @@ describe('firstDayAtOrAbove', () => {
 
   it('falls back to the last day when never reached', () => {
     expect(firstDayAtOrAbove([0, 0.2], 0.7)).toBe(1)
+  })
+})
+
+describe('forecastWindow', () => {
+  const from = new Date(2025, 5, 10, 9, 0)
+
+  it('counts both ends, so tomorrow to two weeks out is 14 days', () => {
+    expect(forecastWindow('2025-06-11', '2025-06-24', 365, 14, from)).toEqual({ startOffset: 1, endOffset: 14, days: 14 })
+  })
+
+  it('shrinks the window when the start moves later', () => {
+    expect(forecastWindow('2025-06-20', '2025-06-24', 365, 14, from).days).toBe(5)
+  })
+
+  it('pulls a start on or after the end back to the day before it', () => {
+    expect(forecastWindow('2025-06-24', '2025-06-24', 365, 14, from)).toEqual({ startOffset: 13, endOffset: 14, days: 2 })
+    expect(forecastWindow('2025-06-30', '2025-06-24', 365, 14, from)).toEqual({ startOffset: 13, endOffset: 14, days: 2 })
+  })
+
+  it('keeps the end at least the day after tomorrow', () => {
+    expect(forecastWindow('2025-06-11', '2025-06-11', 365, 14, from)).toEqual({ startOffset: 1, endOffset: 2, days: 2 })
+  })
+
+  it('clamps a past start to tomorrow and falls back on malformed dates', () => {
+    expect(forecastWindow('2025-06-01', '2025-06-24', 365, 14, from).startOffset).toBe(1)
+    expect(forecastWindow('', '', 365, 14, from)).toEqual({ startOffset: 1, endOffset: 14, days: 14 })
   })
 })

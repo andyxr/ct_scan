@@ -246,6 +246,30 @@ export function daysUntil(isoDate: string, from: Date = new Date()): number | nu
   return Math.round((target.getTime() - today.getTime()) / 86_400_000)
 }
 
+export interface ForecastWindow {
+  /** Days from today to the first forecast day; tomorrow is 1. */
+  startOffset: number
+  /** Days from today to the last forecast day. Always after startOffset. */
+  endOffset: number
+  /** Forecast days, both ends included. */
+  days: number
+}
+
+/**
+ * The "How many?" window from two YYYY-MM-DD dates. The end runs from the day
+ * after tomorrow to maxOffset days out; the start from tomorrow to the day
+ * before the end. The end anchors the window, so a start on or after it is
+ * pulled back rather than pushing the end out. A malformed or out-of-range entry clamps rather than blanking the
+ * forecast. Only the window's length reaches the simulation: each forecast day
+ * is an independent draw from history, so where the window sits does not change
+ * the odds, only how many days it holds.
+ */
+export function forecastWindow(startIso: string, endIso: string, maxOffset: number, fallbackDays: number, from: Date = new Date()): ForecastWindow {
+  const endOffset = Math.max(2, Math.min(maxOffset, daysUntil(endIso, from) ?? fallbackDays))
+  const startOffset = Math.max(1, Math.min(endOffset - 1, daysUntil(startIso, from) ?? 1))
+  return { startOffset, endOffset, days: endOffset - startOffset + 1 }
+}
+
 /**
  * Cumulative chance the target is done on or before each day, indexed by days
  * from the start. Index 0 is the start day itself; the array runs to the last

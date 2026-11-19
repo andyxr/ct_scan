@@ -16,6 +16,10 @@ interface ForecastCalendarProps {
   totalSimulations: number
   /** Last month shown is the month of this many days from start. */
   horizonDays: number
+  /**
+   * Day 0 of the forecast: the day before the first forecast day, so a run of
+   * n days ends n days after it. Drawn blank; the first forecast day is ringed.
+   */
   start?: Date
 }
 
@@ -96,12 +100,12 @@ export default function ForecastCalendar({
 
   const legend = [...CONFIDENCE_BANDS].reverse().map(({ band, floor }) => ({
     band,
-    date: addDays(startDay, band === 'below50' ? 0 : firstDayAtOrAbove(byDay, floor)),
+    date: addDays(startDay, band === 'below50' ? 1 : firstDayAtOrAbove(byDay, floor)),
   }))
 
   const probabilityOn = (date: Date): number | null => {
     const offset = daysBetween(startDay, date)
-    if (offset < 0) return null
+    if (offset < 1) return null
     return offset < byDay.length ? byDay[offset] : 1
   }
 
@@ -138,7 +142,7 @@ export default function ForecastCalendar({
               ))}
               {month.days.map((date) => {
                 const probability = probabilityOn(date)
-                const isStart = probability !== null && daysBetween(startDay, date) === 0
+                const isStart = daysBetween(startDay, date) === 1
                 const band = probability === null ? null : bandFor(probability)
                 return (
                   <div

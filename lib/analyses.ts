@@ -1,7 +1,7 @@
-import { ChartScatter, Hourglass, Activity, ChartLine, ChartColumnBig, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
+import { ChartScatter, ChartNoAxesColumnIncreasing, Hourglass, Activity, ChartLine, ChartColumnBig, ChartColumnStacked, ChartColumn, Dices, type LucideIcon } from 'lucide-react'
 import { hasUsableEstimate, toInProgressItems, type ColumnMap, type CsvRow } from './csv'
 
-export type AnalysisId = 'cycle-time' | 'aging-wip' | 'process-behaviour' | 'throughput-run' | 'throughput-histogram' | 'correlation' | 'monte-carlo'
+export type AnalysisId = 'cycle-time' | 'cycle-time-histogram' | 'aging-wip' | 'process-behaviour' | 'throughput-run' | 'throughput-histogram' | 'throughput-by-type' | 'correlation' | 'monte-carlo'
 
 export interface Analysis {
   id: AnalysisId
@@ -44,6 +44,14 @@ export const ANALYSES: readonly Analysis[] = [
     unavailableReason: always,
   },
   {
+    id: 'cycle-time-histogram',
+    title: 'Cycle Time Histogram',
+    description: 'How many items took each number of days, with percentile lines',
+    Icon: ChartNoAxesColumnIncreasing,
+    hoverClass: 'transition-transform duration-300 origin-bottom group-hover:scale-y-125',
+    unavailableReason: always,
+  },
+  {
     id: 'aging-wip',
     title: 'Aging Work In Progress',
     description: 'See how long each open item has been running against completed cycle times',
@@ -73,6 +81,14 @@ export const ANALYSES: readonly Analysis[] = [
     description: 'How often each day, week or fortnight finished a given number of items',
     Icon: ChartColumnBig,
     hoverClass: 'transition-transform duration-300 origin-bottom group-hover:scale-y-125',
+    unavailableReason: always,
+  },
+  {
+    id: 'throughput-by-type',
+    title: 'Throughput by Item Type',
+    description: 'Items completed per day, week or fortnight, stacked by type',
+    Icon: ChartColumnStacked,
+    hoverClass: 'transition-transform duration-300 group-hover:-translate-y-1',
     unavailableReason: always,
   },
   {

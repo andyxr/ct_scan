@@ -6,8 +6,9 @@ import { ArrowLeftRight, CalendarDays } from 'lucide-react'
 import {
   EMPTY_SIMULATION,
   dateAfterDays,
-  daysUntil,
+  forecastWindow,
   isoDateAfterDays,
+  daysUntil,
   simulateDaysToTarget,
   simulateItemCount,
   throughputFrom,
@@ -51,11 +52,14 @@ function HistogramTooltip({
   payload,
   totalSimulations,
   forecastingDays,
+  base,
 }: {
   active?: boolean
   payload?: ReadonlyArray<{ payload: HistogramBin }>
   totalSimulations: number
   forecastingDays: boolean
+  /** The day before the first forecast day; see forecastBase. */
+  base: Date
 }) {
   if (active && payload && payload.length) {
     const bin = payload[0].payload
@@ -66,7 +70,7 @@ function HistogramTooltip({
           {forecastingDays ? `${bin.value} days` : `${bin.value} items`}
         </p>
         {forecastingDays && (
-          <p className="text-sm text-gray-900">by {dateAfterDays(bin.value)}</p>
+          <p className="text-sm text-gray-900">by {dateAfterDays(bin.value, base)}</p>
         )}
         <p className="text-sm text-gray-900">Frequency: {bin.frequency}</p>
         <p className="text-sm text-gray-600">Probability: {probability}%</p>
@@ -81,15 +85,34 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
   // Number fields keep raw text so the user can clear and retype; the clamped value is derived.
   const [numSimulationsText, setNumSimulationsText] = useState('10000')
   const numSimulations = clampedInt(numSimulationsText, 10000, 1000, 100000)
-  /** YYYY-MM-DD from the date input. The simulation runs over the days from today up to and including it. */
+  /** YYYY-MM-DD from the date inputs. The simulation runs over the days from the start to the target, both included. */
+  const [mode, setMode] = useState<ForecastMode>('how-many')
+  const [startDate, setStartDate] = useState(() => isoDateAfterDays(1))
   const [targetDate, setTargetDate] = useState(() => isoDateAfterDays(DEFAULT_HORIZON_DAYS))
-  const earliestDate = isoDateAfterDays(1)
-  const latestDate = isoDateAfterDays(MAX_HORIZON_DAYS)
-  // A cleared or out-of-range entry clamps rather than blanking the forecast.
-  const forecastHorizon = Math.max(1, Math.min(MAX_HORIZON_DAYS, daysUntil(targetDate) ?? DEFAULT_HORIZON_DAYS))
+  const span = forecastWindow(startDate, targetDate, MAX_HORIZON_DAYS, DEFAULT_HORIZON_DAYS)
+  const forecastHorizon = span.days
+  /**
+   * First forecast day, as days from today. "How many?" also keeps it before
+   * the target date; "When?" has no end date to keep it before.
+   */
+  const startOffset = mode === 'when'
+    ? Math.max(1, Math.min(MAX_HORIZON_DAYS, daysUntil(startDate) ?? 1))
+    : span.startOffset
+  /**
+   * The day before the first forecast day. A forecast of n days means done n
+   * days after it, so with the default start of tomorrow this is today.
+   */
+  const forecastBase = useMemo(() => {
+    const today = new Date()
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + startOffset - 1)
+  }, [startOffset])
+  /** Puts both inputs back on the span actually forecast, after a typed entry that broke the rules. */
+  const snapDates = () => {
+    setStartDate(isoDateAfterDays(span.startOffset))
+    setTargetDate(isoDateAfterDays(span.endOffset))
+  }
   const [targetItemsText, setTargetItemsText] = useState('25')
   const targetItems = clampedInt(targetItemsText, 25, 1, 1000)
-  const [mode, setMode] = useState<ForecastMode>('how-many')
   const [isRunning, setIsRunning] = useState(false)
   const [runId, setRunId] = useState(0)
   const [showCalendar, setShowCalendar] = useState(true)
@@ -196,7 +219,7 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
           {/* Simulation Parameters */}
           <div className="mb-6">
             <h3 className="sheet-heading text-sm font-bold tracking-[0.14em] mb-3 text-gray-700">Simulation Parameters</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Number of Simulations
@@ -210,6 +233,21 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                   min="1000"
                   max="100000"
                   step="1000"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Starting from
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  // The picker's Clear empties the field; an empty start means the default, tomorrow.
+                  onChange={(e) => setStartDate(e.target.value || isoDateAfterDays(1))}
+                  onBlur={forecastingDays ? () => setStartDate(isoDateAfterDays(startOffset)) : snapDates}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  min={isoDateAfterDays(1)}
+                  max={isoDateAfterDays(forecastingDays ? MAX_HORIZON_DAYS : span.endOffset - 1)}
                 />
               </div>
               {forecastingDays ? (
@@ -235,10 +273,11 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                   <input
                     type="date"
                     value={targetDate}
-                    onChange={(e) => setTargetDate(e.target.value)}
+                    onChange={(e) => setTargetDate(e.target.value || isoDateAfterDays(DEFAULT_HORIZON_DAYS))}
+                    onBlur={snapDates}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    min={earliestDate}
-                    max={latestDate}
+                    min={isoDateAfterDays(span.startOffset + 1)}
+                    max={isoDateAfterDays(MAX_HORIZON_DAYS)}
                   />
                 </div>
               )}
@@ -281,19 +320,19 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                   <Reading
                     label="50% Confidence"
                     value={forecastingDays ? `${stats.p50} days` : String(stats.p50)}
-                    note={forecastingDays ? `by ${dateAfterDays(stats.p50)} (median)` : 'items or more (median)'}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p50, forecastBase)} (median)` : 'items or more (median)'}
                     ink="text-blue-700"
                   />
                   <Reading
                     label="85% Confidence"
                     value={forecastingDays ? `${stats.p85} days` : String(stats.p85)}
-                    note={forecastingDays ? `by ${dateAfterDays(stats.p85)} (conservative)` : 'items or more (conservative)'}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p85, forecastBase)} (conservative)` : 'items or more (conservative)'}
                     ink="text-green-700"
                   />
                   <Reading
                     label="95% Confidence"
                     value={forecastingDays ? `${stats.p95} days` : String(stats.p95)}
-                    note={forecastingDays ? `by ${dateAfterDays(stats.p95)} (highly confident)` : 'items or more (highly confident)'}
+                    note={forecastingDays ? `by ${dateAfterDays(stats.p95, forecastBase)} (highly confident)` : 'items or more (highly confident)'}
                     ink="text-red-700"
                   />
                 </dl>
@@ -311,7 +350,11 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                       type="button"
                       data-tour="mc-mode"
                       data-tour-state={mode}
-                      onClick={() => setMode(forecastingDays ? 'how-many' : 'when')}
+                      onClick={() => {
+                        // "When?" lets the start pass the target date; put it back inside the window.
+                        if (forecastingDays) snapDates()
+                        setMode(forecastingDays ? 'how-many' : 'when')
+                      }}
                       title={forecastingDays ? 'Switch to forecasting items' : 'Switch to forecasting dates'}
                       className={TOOLBAR_BUTTON}
                     >
@@ -363,7 +406,7 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                           label={{ value: 'Frequency', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: SHEET_INK.inkSoft } }}
                           tick={{ fill: SHEET_INK.inkSoft }}
                         />
-                        <Tooltip content={<HistogramTooltip totalSimulations={stats.totalSimulations} forecastingDays={forecastingDays} />} />
+                        <Tooltip content={<HistogramTooltip totalSimulations={stats.totalSimulations} forecastingDays={forecastingDays} base={forecastBase} />} />
 
                         {/* Percentile lines - now correctly showing confidence levels */}
                         {/* Labelled down the line rather than along the top: the
@@ -419,6 +462,7 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                     histogram={histogram}
                     totalSimulations={stats.totalSimulations}
                     horizonDays={stats.p95}
+                    start={forecastBase}
                   />
                 </div>
               )}
@@ -430,13 +474,13 @@ export default function MonteCarloAnalysis({ data, batchCloses, discountBatchClo
                   <strong>Interpretation:</strong>{' '}
                   {forecastingDays ? (
                     <>
-                      Based on {stats.totalSimulations.toLocaleString()} simulations, 85% finished {targetItems} items
-                      within {stats.p85} days (by {dateAfterDays(stats.p85)}), and 50% finished
-                      within {stats.p50} days (by {dateAfterDays(stats.p50)}).
+                      Based on {stats.totalSimulations.toLocaleString()} simulations starting {dateAfterDays(1, forecastBase)}, 85% finished {targetItems} items
+                      within {stats.p85} days (by {dateAfterDays(stats.p85, forecastBase)}), and 50% finished
+                      within {stats.p50} days (by {dateAfterDays(stats.p50, forecastBase)}).
                     </>
                   ) : (
                     <>
-                      Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} {forecastHorizon === 1 ? 'day' : 'days'} (to {dateAfterDays(forecastHorizon)}),
+                      Based on {stats.totalSimulations.toLocaleString()} simulations over {forecastHorizon} {forecastHorizon === 1 ? 'day' : 'days'} (from {dateAfterDays(span.startOffset)} to {dateAfterDays(span.endOffset)}),
                       there is an 85% probability of completing {stats.p85} or more items, and a 50% probability of completing {stats.p50} or more items.
                     </>
                   )}

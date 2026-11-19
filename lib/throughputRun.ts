@@ -138,6 +138,21 @@ function trendIndices(values: number[]): Set<number> {
 }
 
 /**
+ * Maps a day (local midnight) to the start of its bucket. Buckets are anchored
+ * on the history's first day: that day for days, its Monday otherwise, so every
+ * throughput chart over the same data draws the same buckets.
+ */
+export function bucketStartFor(interval: ThroughputInterval, firstDay: number): (day: number) => number {
+  const length = INTERVAL_DAYS[interval]
+  const anchor = interval === 'day' ? firstDay : mondayOf(firstDay)
+  return day => {
+    const start = new Date(anchor)
+    start.setDate(start.getDate() + Math.floor(daysBetween(anchor, day) / length) * length)
+    return start.getTime()
+  }
+}
+
+/**
  * `discount` caps each batch-close day before bucketing, the same cap the
  * Monte Carlo forecast applies, so a week holding one carries the capped total.
  */
@@ -147,15 +162,11 @@ export function throughputRun(data: CsvRow[], interval: ThroughputInterval, disc
   if (dailyThroughput.length === 0) return { buckets: [], median: null, fullBucketCount: 0, rules: 'too-few-points' }
 
   const length = INTERVAL_DAYS[interval]
-  const first = dailyThroughput[0].timestamp
-  const anchor = interval === 'day' ? first : mondayOf(first)
+  const bucketStart = bucketStartFor(interval, dailyThroughput[0].timestamp)
 
   const byStart = new Map<number, { count: number; recorded: number; days: number }>()
   dailyThroughput.forEach((day, i) => {
-    const index = Math.floor(daysBetween(anchor, day.timestamp) / length)
-    const start = new Date(anchor)
-    start.setDate(start.getDate() + index * length)
-    const key = start.getTime()
+    const key = bucketStart(day.timestamp)
     const bucket = byStart.get(key) ?? { count: 0, recorded: 0, days: 0 }
     bucket.count += counted[i]
     bucket.recorded += day.count
